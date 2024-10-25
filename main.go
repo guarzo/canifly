@@ -19,7 +19,7 @@ import (
 	"github.com/gambtho/canifly/internal/xlog"
 )
 
-var version = "0.0.36"
+var version = "0.0.37"
 
 func main() {
 	xlog.Logf("Starting application, version %s", version)
