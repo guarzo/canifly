@@ -1,0 +1,18 @@
+Weapon Upgrades 4
+Caldari Destroyer 3
+Caldari Frigate 3
+Gunnery 5
+Long Range Targeting 4
+CPU Management 2
+Caldari Battlecruiser 1
+Medium Hybrid Turret 3
+Warp Drive Operation 2
+Sharpshooter 5
+Small Hybrid Turret 3
+Spaceship Command 3
+Trajectory Analysis 4
+Caldari Cruiser 3
+Large Hybrid Turret 5
+Large Railgun Specialization 1
+Micro Jump Drive Operation 1
+Navigation 4

@@ -1,0 +1,79 @@
+{
+  "name": "canifly",
+  "version": "0.0.36",
+  "description": "Electron app for managing character skill plans in Eve online",
+  "main": "main.js",
+  "scripts": {
+    "go:build:mac": "GOOS=darwin GOARCH=amd64 go build -o ./dist/mac/canifly-backend",
+    "go:build:win": "GOOS=windows GOARCH=amd64 go build -o ./dist/win/canifly-backend.exe",
+    "go:build:linux": "GOOS=linux GOARCH=amd64 go build -o ./dist/linux/canifly-backend",
+    "go:build": "npm run go:build:mac && npm run go:build:win && npm run go:build:linux",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "GOOS=linux GOARCH=amd64 go build -o dist/canifly-backend && electron .",
+    "build": "npm run go:build:win",
+    "bump": "bash scripts/bump.sh",
+    "dist": "npm run build && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.github.gambtho.canifly",
+    "files": [
+      "main.js",
+      "static/**/*",
+      "node_modules/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "dist/win/canifly-backend.exe",
+      "dist/linux/canifly-backend",
+      "dist/mac/canifly-backend"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/win/canifly-backend.exe",
+        "to": "canifly-backend.exe"
+      },
+      {
+        "from": "dist/linux/canifly-backend",
+        "to": "canifly-backend"
+      },
+      {
+        "from": "dist/mac/canifly-backend",
+        "to": "canifly-backend-mac"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon/zoologo.png"
+    },
+    "win": {
+      "target": "nsis",
+      "forceCodeSigning": false,
+      "icon": "assets/icon/favicon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon/zoologo.png"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "assets/icon"
+    }
+  },
+  "keywords": [],
+  "author": {
+    "name": "gambtho",
+    "email": "thomasgamble2@gmail.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8",
+    "standard-version": "^9.5.0"
+  }
+}

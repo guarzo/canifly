@@ -1,0 +1,57 @@
+Navigation 1
+Afterburner 1
+Afterburner 2
+Afterburner 3
+Afterburner 4
+CPU Management 1
+CPU Management 2
+CPU Management 3
+CPU Management 4
+Spaceship Command 1
+Caldari Frigate 1
+Caldari Frigate 2
+Caldari Frigate 3
+Caldari Destroyer 1
+Caldari Destroyer 2
+Caldari Destroyer 3
+Caldari Destroyer 4
+Caldari Destroyer 5
+Cloaking 1
+Cloaking 2
+Cloaking 3
+Science 1
+Science 2
+Science 3
+Science 4
+Science 5
+Power Grid Management 1
+Power Grid Management 2
+Power Grid Management 3
+Power Grid Management 4
+Power Grid Management 5
+Graviton Physics 1
+Navigation 2
+Navigation 3
+High Speed Maneuvering 1
+Mechanics 1
+Hull Upgrades 1
+Hull Upgrades 2
+Propulsion Jamming 1
+Propulsion Jamming 2
+Propulsion Jamming 3
+Propulsion Jamming 4
+Propulsion Jamming 5
+Spaceship Command 2
+Spaceship Command 3
+Spaceship Command 4
+Interdictors 1
+Missile Launcher Operation 1
+Missile Launcher Operation 2
+Rockets 1
+Rockets 2
+Rockets 3
+Rockets 4
+Rockets 5
+Rocket Specialization 1
+Shield Upgrades 1
+Tactical Shield Manipulation 1

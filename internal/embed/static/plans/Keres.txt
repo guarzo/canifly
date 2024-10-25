@@ -1,0 +1,54 @@
+Drones 1
+Drones 2
+Drones 3
+Drones 4
+Drones 5
+CPU Management 1
+Electronic Warfare 1
+Electronic Warfare 2
+Electronic Warfare 3
+Electronic Warfare 4
+Advanced Drone Avionics 1
+Navigation 1
+Afterburner 1
+Afterburner 2
+Afterburner 3
+Science 1
+Science 2
+Science 3
+Astrometrics 1
+CPU Management 2
+CPU Management 3
+Long Range Targeting 1
+Long Range Targeting 2
+Long Range Targeting 3
+Long Range Targeting 4
+Long Range Targeting 5
+Spaceship Command 1
+Spaceship Command 2
+Spaceship Command 3
+Electronic Attack Ships 1
+Gallente Frigate 1
+Gallente Frigate 2
+Gallente Frigate 3
+Gallente Frigate 4
+Gallente Frigate 5
+Navigation 2
+Navigation 3
+High Speed Maneuvering 1
+Mechanics 1
+Hull Upgrades 1
+Hull Upgrades 2
+Hull Upgrades 3
+Hull Upgrades 4
+Repair Systems 1
+Sensor Linking 1
+Sensor Linking 2
+Sensor Linking 3
+Sensor Linking 4
+Target Management 1
+Electronic Attack Ships 2
+Electronic Attack Ships 3
+Frequency Modulation 1
+Frequency Modulation 2
+Frequency Modulation 3

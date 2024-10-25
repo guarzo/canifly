@@ -1,0 +1,239 @@
+/* ================================
+   Color Scheme Enhancement
+   ================================ */
+
+/* Root Variables for Both Themes */
+:root {
+    /* Light Theme Variables */
+    --light-background-color: #F5F5F5; /* Light Off-White */
+    --light-surface-color: #FFFFFF;    /* White */
+    --light-primary-color: #4A90E2;    /* Modern Soft Blue */
+    --light-secondary-color: #00A89D;  /* Teal */
+    --light-accent-color: #FF7F50;     /* Coral */
+    --light-error-color: #DC143C;      /* Crimson */
+    --light-info-color: #1E90FF;       /* Dodger Blue */
+    --light-success-color: #2E8B57;    /* Sea Green */
+    --light-on-primary: #FFFFFF;       /* White */
+    --light-on-secondary: #FFFFFF;     /* White */
+    --light-on-error: #FFFFFF;         /* White */
+    --light-on-info: #FFFFFF;          /* White */
+    --light-on-success: #FFFFFF;       /* White */
+    --light-text-color: #2D3E50;       /* Dark Charcoal */
+    --light-header-text-color: #3A4F66;/* Slate Gray */
+    --light-button-hover-bg: #006494;  /* Dark Blue on Hover */
+    --light-button-hover-color: #FFFFFF;/* White */
+
+    /* Dark Theme Variables */
+    --dark-background-color: #1C1F2B;  /* Deep Dark Blue-Gray */
+    --dark-surface-color: #2A2E3D;     /* Dark Gray */
+    --dark-primary-color: #5B87F3;     /* Bright Electric Blue */
+    --dark-secondary-color: #50C878;   /* Emerald Green */
+    --dark-accent-color: #FFBF00;      /* Amber */
+    --dark-error-color: #B22222;       /* Firebrick */
+    --dark-info-color: #00BFFF;        /* Sky Blue */
+    --dark-success-color: #32CD32;     /* Lime Green */
+    --dark-on-primary: #FFFFFF;        /* White */
+    --dark-on-secondary: #FFFFFF;      /* White */
+    --dark-on-error: #FFFFFF;          /* White */
+    --dark-on-info: #FFFFFF;           /* White */
+    --dark-on-success: #FFFFFF;        /* White */
+    --dark-text-color: #E0E0E0;        /* Light Gray */
+    --dark-header-text-color: #B39DDB; /* Soft Violet */
+    --dark-button-hover-bg: #8B008B;   /* Dark Magenta */
+    --dark-button-hover-color: #FFFFFF; /* White */
+
+    /* Table Row Colors */
+    /* Dark Mode */
+    --dark-table-row-even: #2A2E3D;    /* Dark Gray */
+    --dark-table-row-odd: #1C1F2B;     /* Darker Blue-Gray */
+    --dark-table-row-hover: #3B3B4F;   /* Dark Purple-Gray on Hover */
+
+    /* Light Mode */
+    --light-table-row-even: #F5F5F5;   /* Soft Off-White */
+    --light-table-row-odd: #E0E8F0;    /* Light Blue-Gray */
+    --light-table-row-hover: #D8E4FF;  /* Light Sky Blue */
+
+    /* Table Text Color */
+    --dark-table-text-color: #E0E0E0;  /* Light Gray */
+    --light-table-text-color: #2D3E50; /* Dark Charcoal */
+
+    /* Icon Colors */
+    --checkmark-color: #32CD32;        /* Lime Green */
+    --x-color: #B22222;                /* Firebrick */
+    --info-color: #00BFFF;             /* Sky Blue */
+    --success-color: #32CD32;          /* Lime Green */
+}
+
+/* ================================
+   Theme-Specific Styles
+   ================================ */
+
+/* Light Theme */
+body.light-theme {
+    background: var(--light-background-color);
+    color: var(--light-text-color);
+}
+
+body.light-theme header {
+    background-color: var(--light-surface-color); /* White */
+    color: var(--light-header-text-color);        /* Slate Gray */
+    border-bottom: 2px solid var(--light-primary-color); /* Soft Blue Border */
+}
+
+body.light-theme .tabulator-header {
+    background-color: var(--light-surface-color);
+    color: var(--light-header-text-color);        /* Slate Gray */
+    font-weight: bold; /* Bold Header Text for Visibility */
+}
+
+body.light-theme .tabulator-row:nth-child(even) .tabulator-cell {
+    background-color: var(--light-table-row-even);
+    color: var(--light-table-text-color);
+}
+
+body.light-theme .tabulator-row:nth-child(odd) .tabulator-cell {
+    background-color: var(--light-table-row-odd);
+    color: var(--light-table-text-color);
+}
+
+body.light-theme .tabulator-row:hover {
+    background-color: var(--light-table-row-hover);
+}
+
+body.light-theme .tabulator-row:hover .tabulator-cell {
+    color: var(--light-primary-color);
+}
+
+body.light-theme .button:hover {
+    background-color: var(--light-button-hover-bg);
+    color: var(--light-button-hover-color);
+}
+
+/* Dark Theme */
+body.dark-theme {
+    background: var(--dark-background-color);
+    color: var(--dark-text-color);
+}
+
+body.dark-theme header {
+    background-color: var(--dark-surface-color);
+    color: var(--dark-header-text-color); /* Soft Violet */
+    border-bottom: 2px solid var(--dark-primary-color); /* Electric Blue Border */
+}
+
+body.dark-theme .tabulator-header {
+    background-color: var(--dark-surface-color);
+    color: var(--dark-header-text-color); /* Soft Violet */
+    font-weight: bold; /* Bold Header Text for Visibility */
+}
+
+body.dark-theme .tabulator-row:nth-child(even) .tabulator-cell {
+    background-color: var(--dark-table-row-even) !important;
+    color: #CCCCCC !important; /* Light Gray */
+}
+
+body.dark-theme .tabulator-row:nth-child(odd) .tabulator-cell {
+    background-color: var(--dark-table-row-odd);
+    color: var(--dark-table-text-color);
+}
+
+body.dark-theme .tabulator-row:hover {
+    background-color: var(--dark-table-row-hover);
+}
+
+body.dark-theme .tabulator-row:hover .tabulator-cell {
+    color: var(--dark-on-primary); /* Ensure text remains readable on hover */
+}
+
+body.dark-theme .button:hover {
+    background-color: var(--dark-button-hover-bg);
+    color: var(--dark-button-hover-color);
+}
+
+/* Fix: Set text color for even rows */
+body.dark-theme .tabulator-row:nth-child(even) .tabulator-cell {
+    color: var(--dark-table-text-color) !important;
+}
+
+/* Ensure expand rows have custom background color */
+
+/* Light Theme */
+body.light-theme .custom-expand-row {
+    background-color: #F0F8FF; /* Light Blue for expanded rows in light theme */
+}
+
+body.light-theme .custom-expand-row:hover {
+    background-color: #D0E8FF !important; /* Slightly darker on hover */
+}
+
+/* Dark Theme */
+body.dark-theme .custom-expand-row {
+    background-color: #2C2C2C; /* Dark Gray for expanded rows in dark theme */
+}
+
+body.dark-theme .custom-expand-row:hover {
+    background-color: #404040 !important; /* Slightly lighter gray on hover */
+}
+
+/* Icon-specific Styles */
+body.dark-theme i.fas, body.light-theme i.fas {
+    color: inherit !important; /* Ensure icons inherit color */
+}
+
+/* Fixes for icon placement and header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header .header-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+}
+
+header h1 {
+    text-align: center;
+    margin: 0 auto;
+    flex: 1;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.header-container img {
+    margin-right: 15px;
+}
+
+/* Other icon fixes */
+.tabulator-col-copy .clipboard-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Fixes for table layout */
+.tabulator-header {
+    text-align: left;
+}
+
+.tabulator-col {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.tabulator {
+    table-layout: fixed !important;
+}
+
+.tabulator-cell {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

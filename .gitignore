@@ -1,0 +1,12 @@
+.idea
+canifly-backend
+internal/embed/static/.env
+release
+canifly
+dist
+.mise.toml
+node_modules
+notes.sh
+data/
+.idea/
+.env

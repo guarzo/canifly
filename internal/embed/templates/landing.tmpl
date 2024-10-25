@@ -1,0 +1,31 @@
+{{ define "landing" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body class="light-theme"> <!-- Added class for consistent theming -->
+    <header>
+        <div class="header-container">
+            <h1>{{ .Title }}</h1>
+        </div>
+    </header>
+    <div class="main-container center-content">
+        <a href="/login" class="login-image" aria-label="Login with Eve SSO">
+            <img src="/static/eve-sso.png" alt="Login with Eve SSO" class="login-button">
+        </a>
+    </div>
+    <footer>
+        <div class="container">
+            <!--
+                <p class="footer-text">Designed for <img src="/static/pushx.png" alt="Push Industries Logo"></p>
+             -->
+        </div>
+    </footer>
+</body>
+</html>
+{{ end }}

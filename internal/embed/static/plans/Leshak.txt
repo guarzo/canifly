@@ -1,0 +1,109 @@
+Drones 1
+Drones 2
+Drones 3
+Drones 4
+Drones 5
+CPU Management 1
+Electronic Warfare 1
+Electronic Warfare 2
+Electronic Warfare 3
+Electronic Warfare 4
+Advanced Drone Avionics 1
+Navigation 1
+Afterburner 1
+Afterburner 2
+Afterburner 3
+Amarr Drone Specialization 1
+CPU Management 2
+CPU Management 3
+Science 1
+Science 2
+Power Grid Management 1
+Power Grid Management 2
+Power Grid Management 3
+Capacitor Emission Systems 1
+Capacitor Emission Systems 2
+Capacitor Emission Systems 3
+Capacitor Emission Systems 4
+Drone Avionics 1
+Drone Avionics 2
+Drone Avionics 3
+Drone Avionics 4
+Drone Avionics 5
+Drone Navigation 1
+Gunnery 1
+Gunnery 2
+Gunnery 3
+Gunnery 4
+Gunnery 5
+Navigation 2
+Navigation 3
+High Speed Maneuvering 1
+Mechanics 1
+Hull Upgrades 1
+Hull Upgrades 2
+Hull Upgrades 3
+Hull Upgrades 4
+Hull Upgrades 5
+Small Precursor Weapon 1
+Small Precursor Weapon 2
+Small Precursor Weapon 3
+Medium Precursor Weapon 1
+Medium Precursor Weapon 2
+Medium Precursor Weapon 3
+Large Precursor Weapon 1
+Mechanics 2
+Mechanics 3
+Medium Drone Operation 1
+Medium Drone Operation 2
+Medium Drone Operation 3
+Medium Drone Operation 4
+Medium Drone Operation 5
+Navigation 4
+Warp Drive Operation 1
+Warp Drive Operation 2
+Micro Jump Drive Operation 1
+Spaceship Command 1
+Precursor Frigate 1
+Precursor Frigate 2
+Precursor Frigate 3
+Precursor Destroyer 1
+Precursor Destroyer 2
+Precursor Destroyer 3
+Spaceship Command 2
+Spaceship Command 3
+Spaceship Command 4
+Precursor Cruiser 1
+Precursor Cruiser 2
+Precursor Cruiser 3
+Precursor Battlecruiser 1
+Precursor Battlecruiser 2
+Precursor Battlecruiser 3
+Spaceship Command 5
+Precursor Battleship 1
+Propulsion Jamming 1
+Propulsion Jamming 2
+Propulsion Jamming 3
+Repair Systems 1
+Trajectory Analysis 1
+Trajectory Analysis 2
+Trajectory Analysis 3
+Trajectory Analysis 4
+Weapon Disruption 1
+Weapon Disruption 2
+Weapon Disruption 3
+Weapon Disruption 4
+Weapon Upgrades 1
+Weapon Upgrades 2
+Weapon Upgrades 3
+Weapon Upgrades 4
+Motion Prediction 1
+Motion Prediction 2
+Motion Prediction 3
+Motion Prediction 4
+Motion Prediction 5
+Large Precursor Weapon 2
+Large Precursor Weapon 3
+Large Precursor Weapon 4
+Large Precursor Weapon 5
+Large Disintegrator Specialization 1

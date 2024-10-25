@@ -1,0 +1,23 @@
+Small Disintegrator Specialization 4
+Acceleration Control 4
+Weapon Upgrades 5
+Rapid Firing 3
+CPU Management 5
+Afterburner 4
+Thermodynamics 2
+Evasive Maneuvering 4
+Sharpshooter 4
+Controlled Bursts 3
+Navigation 4
+Hull Upgrades 5
+Repair Systems 4
+Small Precursor Weapon 5
+Astrometric Acquisition 3
+Precursor Destroyer 4
+Astrometric Rangefinding 3
+Motion Prediction 3
+Long Range Targeting 4
+Precursor Frigate 3
+Surgical Strike 3
+Trajectory Analysis 3
+Signature Analysis 3
