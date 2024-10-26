@@ -1,6 +1,6 @@
 {
   "name": "canifly",
-  "version": "0.0.38",
+  "version": "0.0.39",
   "description": "Electron app for managing character skill plans in Eve online",
   "main": "main.js",
   "scripts": {
