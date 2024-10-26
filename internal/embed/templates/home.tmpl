@@ -1,45 +1,14 @@
 {{ define "content" }}
 <div class="main-container">
-    <!-- Modal for Adding Skill Plan -->
-    <div id="add-skill-plan-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="close-modal" class="close">&times;</span>
-            <h2>Add New Skill Plan</h2>
-            <label for="skill-plan-name">Skill Plan Name:</label>
-            <input type="text" id="skill-plan-name" name="skill-plan-name" required />
-            <label for="skill-plan-contents">Skill Plan Contents:</label>
-            <textarea id="skill-plan-contents" name="skill-plan-contents" rows="10" required></textarea>
-            <div class="modal-buttons">
-                <button id="save-skill-plan-button" class="button" title="Save Skill Plan" aria-label="Save Skill Plan">
-                    <i class="fas fa-save"></i> Save
-                </button>
-                <button id="cancel-skill-plan-button" class="button cancel-button" title="Cancel" aria-label="Cancel">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Character Table -->
     <div id="character-table" class="table-container"></div>
-    
-    <!-- Skill Plan Table (Hidden by Default) -->
-    <div id="skill-plan-table" class="table-container" style="display: none;"></div>
-    
-    <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
-    
-    <!-- Loading Indicator -->
-    <div class="loading-indicator" id="loading-indicator" style="display: none;">Loading...</div>
-    
-    <!-- Error Message -->
-    <div class="error-message" id="error-message" style="display: none;"></div>
+    <div id="skill-plan-table" class="table-container"></div>
 </div>
+<div id="loading-indicator" style="display: none;">Loading...</div>
+<div id="error-message" style="display: none;"></div>
 <script>
     const TabulatorIdentities = {{ .TabulatorIdentities }};
     const TabulatorSkillPlans = {{ .TabulatorSkillPlans }};
     const MatchingSkillPlans = {{ .MatchingSkillPlans }};
     const MatchingCharacters = {{ .MatchingCharacters }};
 </script>
-<script src="/static/home.js"></script>
 {{ end }}

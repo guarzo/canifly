@@ -1,239 +1,267 @@
-/* ================================
-   Color Scheme Enhancement
-   ================================ */
-
-/* Root Variables for Both Themes */
-:root {
-    /* Light Theme Variables */
-    --light-background-color: #F5F5F5; /* Light Off-White */
-    --light-surface-color: #FFFFFF;    /* White */
-    --light-primary-color: #4A90E2;    /* Modern Soft Blue */
-    --light-secondary-color: #00A89D;  /* Teal */
-    --light-accent-color: #FF7F50;     /* Coral */
-    --light-error-color: #DC143C;      /* Crimson */
-    --light-info-color: #1E90FF;       /* Dodger Blue */
-    --light-success-color: #2E8B57;    /* Sea Green */
-    --light-on-primary: #FFFFFF;       /* White */
-    --light-on-secondary: #FFFFFF;     /* White */
-    --light-on-error: #FFFFFF;         /* White */
-    --light-on-info: #FFFFFF;          /* White */
-    --light-on-success: #FFFFFF;       /* White */
-    --light-text-color: #2D3E50;       /* Dark Charcoal */
-    --light-header-text-color: #3A4F66;/* Slate Gray */
-    --light-button-hover-bg: #006494;  /* Dark Blue on Hover */
-    --light-button-hover-color: #FFFFFF;/* White */
-
-    /* Dark Theme Variables */
-    --dark-background-color: #1C1F2B;  /* Deep Dark Blue-Gray */
-    --dark-surface-color: #2A2E3D;     /* Dark Gray */
-    --dark-primary-color: #5B87F3;     /* Bright Electric Blue */
-    --dark-secondary-color: #50C878;   /* Emerald Green */
-    --dark-accent-color: #FFBF00;      /* Amber */
-    --dark-error-color: #B22222;       /* Firebrick */
-    --dark-info-color: #00BFFF;        /* Sky Blue */
-    --dark-success-color: #32CD32;     /* Lime Green */
-    --dark-on-primary: #FFFFFF;        /* White */
-    --dark-on-secondary: #FFFFFF;      /* White */
-    --dark-on-error: #FFFFFF;          /* White */
-    --dark-on-info: #FFFFFF;           /* White */
-    --dark-on-success: #FFFFFF;        /* White */
-    --dark-text-color: #E0E0E0;        /* Light Gray */
-    --dark-header-text-color: #B39DDB; /* Soft Violet */
-    --dark-button-hover-bg: #8B008B;   /* Dark Magenta */
-    --dark-button-hover-color: #FFFFFF; /* White */
-
-    /* Table Row Colors */
-    /* Dark Mode */
-    --dark-table-row-even: #2A2E3D;    /* Dark Gray */
-    --dark-table-row-odd: #1C1F2B;     /* Darker Blue-Gray */
-    --dark-table-row-hover: #3B3B4F;   /* Dark Purple-Gray on Hover */
-
-    /* Light Mode */
-    --light-table-row-even: #F5F5F5;   /* Soft Off-White */
-    --light-table-row-odd: #E0E8F0;    /* Light Blue-Gray */
-    --light-table-row-hover: #D8E4FF;  /* Light Sky Blue */
-
-    /* Table Text Color */
-    --dark-table-text-color: #E0E0E0;  /* Light Gray */
-    --light-table-text-color: #2D3E50; /* Dark Charcoal */
-
-    /* Icon Colors */
-    --checkmark-color: #32CD32;        /* Lime Green */
-    --x-color: #B22222;                /* Firebrick */
-    --info-color: #00BFFF;             /* Sky Blue */
-    --success-color: #32CD32;          /* Lime Green */
+body {
+    background: #1e1e1e;
+    color: #e0e0e0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-/* ================================
-   Theme-Specific Styles
-   ================================ */
-
-/* Light Theme */
-body.light-theme {
-    background: var(--light-background-color);
-    color: var(--light-text-color);
-}
-
-body.light-theme header {
-    background-color: var(--light-surface-color); /* White */
-    color: var(--light-header-text-color);        /* Slate Gray */
-    border-bottom: 2px solid var(--light-primary-color); /* Soft Blue Border */
-}
-
-body.light-theme .tabulator-header {
-    background-color: var(--light-surface-color);
-    color: var(--light-header-text-color);        /* Slate Gray */
-    font-weight: bold; /* Bold Header Text for Visibility */
-}
-
-body.light-theme .tabulator-row:nth-child(even) .tabulator-cell {
-    background-color: var(--light-table-row-even);
-    color: var(--light-table-text-color);
-}
-
-body.light-theme .tabulator-row:nth-child(odd) .tabulator-cell {
-    background-color: var(--light-table-row-odd);
-    color: var(--light-table-text-color);
-}
-
-body.light-theme .tabulator-row:hover {
-    background-color: var(--light-table-row-hover);
-}
-
-body.light-theme .tabulator-row:hover .tabulator-cell {
-    color: var(--light-primary-color);
-}
-
-body.light-theme .button:hover {
-    background-color: var(--light-button-hover-bg);
-    color: var(--light-button-hover-color);
-}
-
-/* Dark Theme */
-body.dark-theme {
-    background: var(--dark-background-color);
-    color: var(--dark-text-color);
-}
-
-body.dark-theme header {
-    background-color: var(--dark-surface-color);
-    color: var(--dark-header-text-color); /* Soft Violet */
-    border-bottom: 2px solid var(--dark-primary-color); /* Electric Blue Border */
-}
-
-body.dark-theme .tabulator-header {
-    background-color: var(--dark-surface-color);
-    color: var(--dark-header-text-color); /* Soft Violet */
-    font-weight: bold; /* Bold Header Text for Visibility */
-}
-
-body.dark-theme .tabulator-row:nth-child(even) .tabulator-cell {
-    background-color: var(--dark-table-row-even) !important;
-    color: #CCCCCC !important; /* Light Gray */
-}
-
-body.dark-theme .tabulator-row:nth-child(odd) .tabulator-cell {
-    background-color: var(--dark-table-row-odd);
-    color: var(--dark-table-text-color);
-}
-
-body.dark-theme .tabulator-row:hover {
-    background-color: var(--dark-table-row-hover);
-}
-
-body.dark-theme .tabulator-row:hover .tabulator-cell {
-    color: var(--dark-on-primary); /* Ensure text remains readable on hover */
-}
-
-body.dark-theme .button:hover {
-    background-color: var(--dark-button-hover-bg);
-    color: var(--dark-button-hover-color);
-}
-
-/* Fix: Set text color for even rows */
-body.dark-theme .tabulator-row:nth-child(even) .tabulator-cell {
-    color: var(--dark-table-text-color) !important;
-}
-
-/* Ensure expand rows have custom background color */
-
-/* Light Theme */
-body.light-theme .custom-expand-row {
-    background-color: #F0F8FF; /* Light Blue for expanded rows in light theme */
-}
-
-body.light-theme .custom-expand-row:hover {
-    background-color: #D0E8FF !important; /* Slightly darker on hover */
-}
-
-/* Dark Theme */
-body.dark-theme .custom-expand-row {
-    background-color: #2C2C2C; /* Dark Gray for expanded rows in dark theme */
-}
-
-body.dark-theme .custom-expand-row:hover {
-    background-color: #404040 !important; /* Slightly lighter gray on hover */
-}
-
-/* Icon-specific Styles */
-body.dark-theme i.fas, body.light-theme i.fas {
-    color: inherit !important; /* Ensure icons inherit color */
-}
-
-/* Fixes for icon placement and header */
 header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-header .header-container {
-    display: flex;
-    justify-content: space-between;
+    background-color: #004d4d;
+    color: #ffeb3b;
+    padding: 20px;
     width: 100%;
-    align-items: center;
+    display: flex;
+    justify-content: center; /* Center aligns header contents */
+    box-sizing: border-box;
 }
 
-header h1 {
+.header-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px; /* Limits width to center the content */
+    justify-content: space-between; /* Space between logo/title and buttons */
+}
+
+.header-container h1 {
+    margin: 0;
+    flex-grow: 1;
     text-align: center;
-    margin: 0 auto;
-    flex: 1;
+    color: #ffeb3b;
 }
 
-.header-actions {
+.logout-button, .button {
+    background-color: #00bcd4;
+    color: #1e1e1e;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.logout-button:hover, .button:hover {
+    background-color: #0097a7;
+    transform: scale(1.05);
+}
+
+.main-container {
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.header-container img {
-    margin-right: 15px;
-}
-
-/* Other icon fixes */
-.tabulator-col-copy .clipboard-icon {
-    display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-/* Fixes for table layout */
-.tabulator-header {
-    text-align: left;
+footer {
+    background-color: #004d4d;
+    color: #ffeb3b;
+    padding: 20px 0;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: auto;
 }
 
-.tabulator-col {
-    white-space: nowrap;
-    text-overflow: ellipsis;
+h1, h2, h3 {
+    color: #ffeb3b;
 }
 
-.tabulator {
-    table-layout: fixed !important;
+#character-table, #skill-plan-table {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px 0;
+    background: #2b2b2b;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 .tabulator-cell {
-    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Center clipboard icon within its cell */
+.tabulator-cell .clipboard-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Ensures it takes the full height of the cell */
+    font-size: 1.2em; /* Adjust as needed for icon size */
+    cursor: pointer;
+}
+
+.clipboard-icon {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clipboard-icon.active {
+    color: green;
+    transition: color 0.3s;
+}
+
+.clipboard-icon.error {
+    color: red;
+    transition: color 0.3s;
+}
+
+/* Modal styling remains the same */
+
+@keyframes fade-out {
+    0% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10; /* Higher than other elements */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Transparent background overlay */
+}
+
+.modal-content {
+    background-color: #2b2b2b;
+    color: #e0e0e0;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.close {
+    color: #ffeb3b;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    right: 16px;
+    top: 8px;
+}
+
+.close:hover {
+    color: #ff5722;
+}
+
+.modal label {
+    display: block;
+    font-size: 1em;
+    color: #e0e0e0;
+    margin-top: 10px;
+}
+
+.modal input[type="text"], .modal textarea {
+    width: 90%;
+    padding: 10px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    box-sizing: border-box;
+}
+
+.modal input[type="text"]:focus, .modal textarea:focus {
+    outline: none;
+    border-color: #ffeb3b;
+}
+
+.button {
+    margin-top: 20px;
+}
+
+.icon-button a {
+    color: inherit; /* Inherit color from .icon-button */
+    text-decoration: none; /* Remove underline */
+}
+/* Icon button styling */
+.icon-button {
+    font-size: 1.5em;
+    color: #00bcd4;
+    padding: 10px;
+    cursor: pointer;
+    transition: color 0.3s, transform 0.3s;
+    position: relative;
+}
+
+.icon-button:hover {
+    color: #ffeb3b;
+    transform: scale(1.1);
+}
+
+/* Tooltip text styling */
+.icon-button .tooltip-text {
+    position: absolute;
+    bottom: -1.8em; /* Position below the icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 6px;
+    border-radius: 5px;
+    font-size: 0.75em;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+/* Show tooltip on hover */
+.icon-button:hover .tooltip-text {
+    opacity: 0.9;
+    visibility: visible;
+}
+
+/* Adjust tooltip when close to left edge */
+.left-edge .tooltip-text {
+    left: 15%; /* Position slightly more to the right */
+    transform: translateX(0); /* Remove centering */
+}
+
+/* Adjust tooltip when close to right edge */
+.right-edge .tooltip-text {
+    right: 15%; /* Position slightly more to the left */
+    left: auto;
+    transform: translateX(0); /* Remove centering */
+}
+
+/* Transparent save button in the modal */
+#save-skill-plan-button {
+    background-color: transparent;
+    color: #00bcd4;
+    border: 2px solid #00bcd4;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+#save-skill-plan-button:hover {
+    background-color: #00bcd4;
+    color: #1e1e1e;
+    transform: scale(1.05);
 }
