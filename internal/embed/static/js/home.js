@@ -118,15 +118,39 @@ function transformCharacterData(character) {
             };
         } else if (pending) {
             const daysRemaining = calculateDaysFromToday(pendingFinishDate);
+            const missingSkillsJson = JSON.stringify(missingSkillsForPlan);
+
+            // Add clipboard icon for copying missing skills
+            const clipboardIcon = `<i class="fas fa-clipboard clipboard-icon" 
+                title="Copy Missing Skills" style="cursor: pointer; margin-left: 5px;" 
+                data-plan-name="${planName}" data-character-name="${character.CharacterName}" 
+                data-missing-skills='${missingSkillsJson}' data-skills-count="${skillMissingCount}"></i>`;
+
             return {
                 CharacterName: planName,
-                TotalSP: `<div style="display: flex; align-items: center;"><i class="fas fa-clock" style="color: orange;"></i> <span style="margin-left: 5px;">${daysRemaining} days</span></div>`
+                TotalSP: `<div style="display: flex; align-items: center;">
+                            <i class="fas fa-clock" style="color: orange;"></i>
+                            <span style="margin-left: 5px;">${daysRemaining} days</span>
+                            ${clipboardIcon}
+                          </div>`
             };
         } else if (skillMissingCount > 0) {
-            const clipboardIcon = `<i class="fas fa-clipboard clipboard-icon" style="cursor: pointer; margin-left: 5px;" data-plan-name="${planName}" data-missing-skills='${JSON.stringify(missingSkillsForPlan)}' data-skills-count="${skillMissingCount}"></i>`;
+            // For characters missing skills (not pending or qualified)
+            const missingSkillsJson = JSON.stringify(missingSkillsForPlan);
+
+            // Add clipboard icon for copying missing skills
+            const clipboardIcon = `<i class="fas fa-clipboard clipboard-icon" 
+                title="Copy Missing Skills" style="cursor: pointer; margin-left: 5px;" 
+                data-plan-name="${planName}" data-character-name="${character.CharacterName}" 
+                data-missing-skills='${missingSkillsJson}' data-skills-count="${skillMissingCount}"></i>`;
+
             return {
                 CharacterName: planName,
-                TotalSP: `<div style="display: flex; align-items: center;"><i class="fas fa-exclamation-circle" style="color: red;"></i> <span style="margin-left: 5px;">${skillMissingCount} missing</span>${clipboardIcon}</div>`
+                TotalSP: `<div style="display: flex; align-items: center;">
+                            <i class="fas fa-exclamation-circle" style="color: red;"></i>
+                            <span style="margin-left: 5px;">${skillMissingCount} missing</span>
+                            ${clipboardIcon}
+                          </div>`
             };
         }
         return null;
@@ -134,6 +158,7 @@ function transformCharacterData(character) {
 
     return { ...character, _children: children };
 }
+
 
 function copySkillPlanToClipboard(planName, icon) {
     const planSkills = TabulatorSkillPlans[planName]?.Skills || {};
