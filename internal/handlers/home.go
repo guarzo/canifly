@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 
-	"github.com/gambtho/canifly/internal/embed"
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/embed"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 func HomeHandler(s *SessionService) http.HandlerFunc {

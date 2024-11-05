@@ -10,13 +10,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 
-	"github.com/gambtho/canifly/internal/api"
-	"github.com/gambtho/canifly/internal/embed"
-	flyHandlers "github.com/gambtho/canifly/internal/handlers"
-	"github.com/gambtho/canifly/internal/service/skillplan"
-	"github.com/gambtho/canifly/internal/service/skilltype"
-	"github.com/gambtho/canifly/internal/utils/crypto"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/api"
+	"github.com/guarzo/canifly/internal/embed"
+	flyHandlers "github.com/guarzo/canifly/internal/handlers"
+	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/service/skilltype"
+	"github.com/guarzo/canifly/internal/utils/crypto"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
 var version = "0.0.39"

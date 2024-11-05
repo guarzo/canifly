@@ -2,14 +2,14 @@ package persist
 
 import (
 	"fmt"
-	"github.com/gambtho/canifly/internal/utils/crypto"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/utils/crypto"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"os"
 	"path/filepath"
 
 	"golang.org/x/oauth2"
 
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 // GetWritableDataPath returns a writable path in the user’s model directory for storing identity data.

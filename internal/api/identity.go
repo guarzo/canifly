@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"sync"
 
 	"golang.org/x/oauth2"
 
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 func PopulateIdentities(userConfig *model.Identities) (map[int64]model.CharacterData, error) {

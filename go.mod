@@ -1,4 +1,4 @@
-module github.com/gambtho/canifly
+module github.com/guarzo/canifly
 
 go 1.23.2
 

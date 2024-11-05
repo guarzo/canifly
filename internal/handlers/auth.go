@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gambtho/canifly/internal/persist"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 	"slices"
 	"time"
 
-	"github.com/gambtho/canifly/internal/api"
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/api"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {

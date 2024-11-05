@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 var Store *HomeDataStore

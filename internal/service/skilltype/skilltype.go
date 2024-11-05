@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/gambtho/canifly/internal/embed"
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/embed"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 const skillTypeFile = "static/invTypes.csv"

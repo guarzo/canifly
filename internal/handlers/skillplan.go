@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/gambtho/canifly/internal/service/skillplan"
-	"github.com/gambtho/canifly/internal/utils/xlog"
+	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gambtho/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/model"
 )
 
 var romanToInt = map[string]int{
