@@ -251,3 +251,29 @@ func getMatchingSkillPlans(
 
 	return updatedCharacters, updatedSkillPlans
 }
+
+// DeleteSkillPlanHandler handles the deletion of a skill plan.
+func DeleteSkillPlanHandler(w http.ResponseWriter, r *http.Request) {
+	// Ensure it's a DELETE request
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the planName from the URL query parameters
+	planName := r.URL.Query().Get("planName")
+	if planName == "" {
+		xlog.Log("planName parameter missing")
+		http.Error(w, "Missing planName parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the skill plan
+	if err := skillplan.DeleteSkillPlan(planName); err != nil {
+		xlog.Logf("Failed to delete skill plan: %v", err)
+		http.Error(w, "Failed to delete skill plan", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

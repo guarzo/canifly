@@ -135,6 +135,7 @@ func setupRouter(secret string) *mux.Router {
 	r.HandleFunc("/logout", flyHandlers.LogoutHandler(sessionStore))
 	r.HandleFunc("/get-skill-plan", flyHandlers.SkillPlanFileHandler)
 	r.HandleFunc("/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
+	r.HandleFunc("/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
 
 	// Admin routes
 	r.HandleFunc("/reset-identities", flyHandlers.ResetIdentitiesHandler(sessionStore))

@@ -249,3 +249,27 @@ func SaveSkillPlan(planName string, skills map[string]model.Skill) error {
 
 	return nil
 }
+
+// DeleteSkillPlan deletes a skill plan from disk and updates the SkillPlans map.
+func DeleteSkillPlan(planName string) error {
+	writablePath, err := GetWritablePlansPath()
+	if err != nil {
+		return fmt.Errorf("failed to get writable path: %w", err)
+	}
+
+	// Construct the file path
+	planFilePath := filepath.Join(writablePath, planName+".txt")
+
+	// Remove the file from disk
+	if err := os.Remove(planFilePath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("skill plan does not exist: %w", err)
+		}
+		return fmt.Errorf("failed to delete skill plan file: %w", err)
+	}
+
+	// Remove from the SkillPlans map
+	delete(SkillPlans, planName)
+
+	return nil
+}

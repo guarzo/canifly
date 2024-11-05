@@ -682,6 +682,10 @@ video {
   display: flex;
 }
 
+.table {
+  display: table;
+}
+
 .contents {
   display: contents;
 }
