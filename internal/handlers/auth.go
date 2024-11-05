@@ -2,25 +2,25 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/gambtho/canifly/internal/persist"
+	"github.com/gambtho/canifly/internal/utils/xlog"
 	"net/http"
 	"slices"
 	"time"
 
-	"github.com/gambtho/canifly/internal/eveapi"
-	"github.com/gambtho/canifly/internal/identity"
+	"github.com/gambtho/canifly/internal/api"
 	"github.com/gambtho/canifly/internal/model"
-	"github.com/gambtho/canifly/internal/xlog"
 )
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	state := fmt.Sprintf("main-%d", time.Now().UnixNano())
-	url := eveapi.GetAuthURL(state)
+	url := api.GetAuthURL(state)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func AuthCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	state := fmt.Sprintf("character-%d", time.Now().UnixNano())
-	url := eveapi.GetAuthURL(state)
+	url := api.GetAuthURL(state)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -30,14 +30,14 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
 
-		token, err := eveapi.ExchangeCode(code)
+		token, err := api.ExchangeCode(code)
 		if err != nil {
 			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to exchange token for code: %s, state: %s, %v", code, state, err), "/")
 			return
 		}
 
 		// Get user information
-		user, err := eveapi.GetUserInfo(token)
+		user, err := api.GetUserInfo(token)
 		if err != nil {
 			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to get user info: %v", err), "/")
 			return
@@ -63,7 +63,7 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
-		err = identity.UpdateIdentities(mainIdentity, func(userConfig *model.Identities) error {
+		err = persist.UpdateIdentities(mainIdentity, func(userConfig *model.Identities) error {
 			userConfig.Tokens[user.CharacterID] = *token
 			return nil
 		})
@@ -99,7 +99,7 @@ func ResetIdentitiesHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
-		err := identity.DeleteIdentity(mainIdentity)
+		err := persist.DeleteIdentity(mainIdentity)
 		if err != nil {
 			xlog.Logf("Failed to delete identity %d: %v", mainIdentity, err)
 		}

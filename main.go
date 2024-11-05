@@ -10,13 +10,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 
-	"github.com/gambtho/canifly/internal/crypto"
+	"github.com/gambtho/canifly/internal/api"
 	"github.com/gambtho/canifly/internal/embed"
-	"github.com/gambtho/canifly/internal/eveapi"
 	flyHandlers "github.com/gambtho/canifly/internal/handlers"
-	"github.com/gambtho/canifly/internal/skillplan"
-	"github.com/gambtho/canifly/internal/skilltype"
-	"github.com/gambtho/canifly/internal/xlog"
+	"github.com/gambtho/canifly/internal/service/skillplan"
+	"github.com/gambtho/canifly/internal/service/skilltype"
+	"github.com/gambtho/canifly/internal/utils/crypto"
+	"github.com/gambtho/canifly/internal/utils/xlog"
 )
 
 var version = "0.0.39"
@@ -91,7 +91,7 @@ func initializeComponents(secret string) {
 	if clientID == "" || clientSecret == "" || callbackURL == "" {
 		log.Fatalf("EVE_CLIENT_ID, EVE_CLIENT_SECRET, and EVE_CALLBACK_URL must be set")
 	}
-	eveapi.InitializeOAuth(clientID, clientSecret, callbackURL)
+	api.InitializeOAuth(clientID, clientSecret, callbackURL)
 
 	if err := skillplan.ProcessSkillPlans(); err != nil {
 		log.Fatalf("Failed to load skill plans: %v", err)
@@ -101,7 +101,7 @@ func initializeComponents(secret string) {
 		log.Fatalf("Failed to load skill types: %v", err)
 	}
 
-	if err := embed.LoadTemplates(); err != nil {
+	if err := embed.LoadStatic(); err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
 
@@ -123,8 +123,9 @@ func setupRouter(secret string) *mux.Router {
 	sessionStore := flyHandlers.NewSessionService(secret)
 	r := mux.NewRouter()
 
-	// Static files
-	r.HandleFunc("/static/{file}", flyHandlers.StaticFileHandler)
+	// Serve static files from the embedded filesystem
+	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
 	// Utility and user functions
 	r.HandleFunc("/callback/", flyHandlers.CallbackHandler(sessionStore))

@@ -1,10 +1,11 @@
-package eveapi
+package api
 
 import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/gambtho/canifly/internal/utils/xlog"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-
-	"github.com/gambtho/canifly/internal/xlog"
 )
 
 const (

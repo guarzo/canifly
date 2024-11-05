@@ -3,6 +3,7 @@ package skillplan
 import (
 	"bufio"
 	"fmt"
+	"github.com/gambtho/canifly/internal/utils/xlog"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gambtho/canifly/internal/embed"
 	"github.com/gambtho/canifly/internal/model"
-	"github.com/gambtho/canifly/internal/xlog"
 )
 
 var SkillPlans map[string]model.SkillPlan // Holds all loaded skill plans

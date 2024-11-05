@@ -1,4 +1,4 @@
-package store
+package persist
 
 import (
 	"crypto/sha256"
@@ -46,7 +46,7 @@ func (s *HomeDataStore) Get(id int64) (model.HomeData, string, bool) {
 	return homeData, s.ETag, ok
 }
 
-// Delete removes an identity from the store
+// Delete removes an identity from the persist
 func (s *HomeDataStore) Delete(id int64) {
 	s.Lock()
 	defer s.Unlock()

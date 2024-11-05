@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/gambtho/canifly/internal/utils/xlog"
 	"net/http"
 
 	"github.com/gambtho/canifly/internal/embed"
 	"github.com/gambtho/canifly/internal/model"
-	"github.com/gambtho/canifly/internal/xlog"
 )
 
 func HomeHandler(s *SessionService) http.HandlerFunc {
@@ -36,7 +36,7 @@ func HomeHandler(s *SessionService) http.HandlerFunc {
 
 		etag, err = updateStoreAndSession(storeData, data, etag, session, r, w)
 		if err != nil {
-			xlog.Logf("Failed to update store and session: %v", err)
+			xlog.Logf("Failed to update persist and session: %v", err)
 			return
 		}
 

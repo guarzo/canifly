@@ -8,9 +8,11 @@
     "go:build:win": "GOOS=windows GOARCH=amd64 go build -o ./dist/win/canifly-backend.exe",
     "go:build:linux": "GOOS=linux GOARCH=amd64 go build -o ./dist/linux/canifly-backend",
     "go:build": "npm run go:build:mac && npm run go:build:win && npm run go:build:linux",
+    "build:css": "npx tailwindcss -i ./internal/embed/static/css/tailwind.css -o ./internal/embed/static/css/output.css",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "GOOS=linux GOARCH=amd64 go build -o dist/canifly-backend && electron .",
-    "build": "npm run go:build:win",
+    "dev": "npm run build:css && GOOS=linux GOARCH=amd64 go build -o dist/canifly-backend && electron . --no-sandbox",
+    "build": "npm run build:css && npm run go:build:win",
     "bump": "bash scripts/bump.sh",
     "dist": "npm run build && electron-builder --win --x64"
   },
@@ -69,11 +71,18 @@
   },
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.5",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14"
   },
   "devDependencies": {
+    "@eslint/js": "^9.14.0",
     "electron": "^32.2.0",
     "electron-builder": "^25.1.8",
+    "eslint": "^9.14.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
     "standard-version": "^9.5.0"
   }
 }

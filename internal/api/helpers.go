@@ -1,4 +1,4 @@
-package eveapi
+package api
 
 import (
 	"errors"
