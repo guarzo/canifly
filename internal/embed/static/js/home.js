@@ -62,13 +62,13 @@ const transformSkillPlanData = (skillPlan) => {
     };
 
     const qualifiedChildren = qualifiedCharacters.map((characterName) => {
-        // Include character data for consistency
         return {
             planName: characterName,
-            status: `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`,
-            missingSkillsText: '', // No missing skills for qualified characters
+            missingSkillsText: '',
             skillsCount: 0,
-            characterName: characterName
+            characterName: characterName,
+            daysRemaining: '',
+            isQualified: true
         };
     });
 
@@ -88,36 +88,32 @@ const transformSkillPlanData = (skillPlan) => {
         let missingSkillsText = '';
         if (skillsCount > 0) {
             missingSkillsText = Object.entries(missingSkillsForPlan)
-                .map(([skillName, skillData]) => `${skillName}: Level ${skillData.Level}`)
+                .map(([skillName, skillData]) => {
+                    const requiredLevel = skillData.requiredLevel || skillData.RequiredLevel || skillData.Level || 'N/A';
+                    return `${skillName}: Level ${requiredLevel}`;
+                })
                 .join('\n');
         }
 
         return {
             planName: characterName,
-            status: `
-                <div style="display: flex; align-items: center;">
-                    <i class="fas fa-clock" style="color: orange;"></i>
-                    <span style="margin-left: 5px;">${daysRemaining} days</span>
-                </div>
-            `,
             missingSkillsText: missingSkillsText,
             skillsCount: skillsCount,
-            characterName: characterName
+            characterName: characterName,
+            daysRemaining: daysRemaining,
+            isQualified: false
         };
     }).filter(Boolean); // Filter out any null values
 
     const children = [...qualifiedChildren, ...pendingChildren];
     console.log(`Skill Plan: ${skillPlan.Name}, Children:`, children);
 
-    // Add clipboard icon for copying the skill plan
-    const clipboardIconParent = `<i class="fas fa-clipboard clipboard-icon" title="Copy Skill Plan" style="cursor: pointer; margin-left: 5px;" data-plan-name="${skillPlan.Name}"></i>`;
-
     return {
         planName: skillPlan.Name,
-        status: clipboardIconParent,
         _children: children
     };
 };
+
 
 
 // Function to transform character data into hierarchical format
@@ -148,7 +144,10 @@ const transformCharacterData = (character) => {
         } else if (skillMissingCount > 0) {
             // Prepare missing skills text
             const missingSkillsText = Object.entries(missingSkillsForPlan)
-                .map(([skillName, skillData]) => `${skillName}: Level ${skillData.Level}`)
+                .map(([skillName, skillData]) => {
+                    const requiredLevel = skillData.requiredLevel || skillData.RequiredLevel || skillData.Level || 'N/A';
+                    return `${skillName}: Level ${requiredLevel}`;
+                })
                 .join('\n');
 
             // Add clipboard icon for copying missing skills
@@ -466,33 +465,46 @@ document.addEventListener('DOMContentLoaded', () => {
                         const planName = data.planName || data.name;
 
                         if (!row.getTreeParent()) {
-                            // Parent row actions
+                            cell.getElement().style.textAlign = "center";
                             return `
-                <i class="fas fa-clipboard clipboard-icon" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" data-plan-name="${planName}"></i>
-                <i class="fas fa-trash-alt delete-icon" title="Delete Skill Plan" style="cursor: pointer; color: red;" data-plan-name="${planName}"></i>
-            `;
+                                <i class="fas fa-clipboard clipboard-icon" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" data-plan-name="${planName}"></i>
+                                <i class="fas fa-trash-alt delete-icon" title="Delete Skill Plan" style="cursor: pointer; color: red;" data-plan-name="${planName}"></i>
+                            `;
                         } else {
-                            // Child row actions
+                            cell.getElement().style.textAlign = "left";
                             const characterName = data.characterName || data.planName || data.CharacterName;
                             const missingSkillsText = data.missingSkillsText || '';
                             const skillsCount = data.skillsCount || 0;
 
-                            if (skillsCount > 0) {
+                            if (data.isQualified) {
+                                // Qualified character
+                                return `
+                                    <div style="display: flex; align-items: center;">
+                                        <i class="fas fa-check-circle" style="color: green;"></i>
+                                        <span style="margin-left: 5px;">Qualified</span>
+                                    </div>
+                                `;
+                            } else if (skillsCount > 0) {
                                 // Pending character with missing skills
+                                const daysRemaining = data.daysRemaining || '';
                                 return `
-                    <i class="fas fa-clipboard clipboard-icon" title="Copy Missing Skills" style="cursor: pointer;" data-plan-name="${planName}" data-character-name="${characterName}" data-missing-skills='${missingSkillsText}' data-skills-count="${skillsCount}"></i>
-                `;
+                                    <div style="display: flex; align-items: center;">
+                                        <i class="fas fa-clock" style="color: orange;"></i>
+                                        <span style="margin-left: 5px;">${daysRemaining} days</span>
+                                        <i class="fas fa-clipboard clipboard-icon" title="Copy Missing Skills" style="cursor: pointer; margin-left: 10px;" data-plan-name="${planName}" data-character-name="${characterName}" data-missing-skills='${missingSkillsText}' data-skills-count="${skillsCount}"></i>
+                                    </div>
+                                `;
                             } else {
-                                // Qualified character or pending character without missing skills
-                                return `
-                    <i class="fas fa-check-circle" style="color: green;" title="Qualified"></i>
-                `;
+                                // No missing skills and not qualified
+                                return '';
                             }
                         }
                     },
-                    width: 120,
-                    hozAlign: "center",
+                    width: 200,
                     headerSort: false,
+                    formatterParams: {
+                        sanitize: false, // Allow HTML content
+                    },
                 }
             ]
         });
