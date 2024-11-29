@@ -3,12 +3,13 @@ package skillplan
 import (
 	"bufio"
 	"fmt"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/model"

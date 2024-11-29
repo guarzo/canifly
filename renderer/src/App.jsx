@@ -1,5 +1,3 @@
-// src/App.js
-
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -9,7 +7,7 @@ import Landing from './components/Landing';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '@fortawesome/fontawesome-free/css/all.min.css'; // Import Font Awesome
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
@@ -18,23 +16,20 @@ const App = () => {
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
 
     useEffect(() => {
-        // Fetch authentication state and home data
         const fetchData = async () => {
             try {
                 const response = await fetch('/api/home-data', {
                     credentials: 'include', // Ensure cookies are sent
                 });
                 if (response.status === 401) {
-                    // User is not authenticated
                     setIsAuthenticated(false);
                     toast.warning("Please log in to access your data.");
                 } else if (response.ok) {
                     const data = await response.json();
-                    console.log("Home Data:", data); // Debugging Log
+                    console.log("Home Data:", data);
                     setHomeData(data);
                     setIsAuthenticated(true);
                 } else {
-                    // Handle other HTTP status codes
                     const errorData = await response.json();
                     toast.error(errorData.error || "An unexpected error occurred.");
                     setIsAuthenticated(false);
@@ -55,7 +50,7 @@ const App = () => {
         try {
             const response = await fetch('/api/logout', {
                 method: 'POST',
-                credentials: 'include', // Ensure cookies are sent
+                credentials: 'include',
             });
             if (response.ok) {
                 const data = await response.json();
@@ -101,7 +96,7 @@ const App = () => {
             if (response.ok) {
                 toast.success("Skill Plan Saved!");
                 setIsSkillPlanModalOpen(false);
-                // Fetch updated data instead of reloading
+
                 const updatedHomeDataResponse = await fetch('/api/home-data', {
                     credentials: 'include',
                 });
@@ -131,10 +126,10 @@ const App = () => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 text-gray-100">
                 <div className="text-center">
                     <svg
-                        className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4"
+                        className="animate-spin h-12 w-12 text-teal-400 mx-auto mb-4"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -153,7 +148,7 @@ const App = () => {
                             d="M4 12a8 8 0 018-8v8H4z"
                         ></path>
                     </svg>
-                    <p className="text-xl text-gray-700 dark:text-gray-300">Loading...</p>
+                    <p className="text-xl text-teal-200">Loading...</p>
                 </div>
             </div>
         );
@@ -165,11 +160,11 @@ const App = () => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 text-gray-100">
                 <Header
                     title={homeData?.Title || "Can I Fly?"}
                     loggedIn={homeData?.LoggedIn || false}
-                    handleLogout={handleLogout} // Ensure this is passed
+                    handleLogout={handleLogout}
                 />
                 <MainContent
                     identities={homeData?.TabulatorIdentities || []}
@@ -178,8 +173,13 @@ const App = () => {
                     matchingCharacters={homeData?.MatchingCharacters || {}}
                 />
                 <Footer />
-                {isSkillPlanModalOpen && <AddSkillPlanModal onClose={closeSkillPlanModal} onSave={handleSaveSkillPlan} />}
-                <ToastContainer /> {/* Add Toast Container for react-toastify */}
+                {isSkillPlanModalOpen && (
+                    <AddSkillPlanModal
+                        onClose={closeSkillPlanModal}
+                        onSave={handleSaveSkillPlan}
+                    />
+                )}
+                <ToastContainer />
             </div>
         </ErrorBoundary>
     );

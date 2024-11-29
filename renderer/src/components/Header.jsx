@@ -1,17 +1,11 @@
-// src/components/Header.jsx
-
 import React from 'react';
 import PropTypes from 'prop-types';
+const { remote } = require('@electron/remote');
 
 /**
  * Header Component
  *
- * Displays the application title and user actions like "Add Character," "Add Skill Plan," and "Logout."
- *
- * Props:
- * - title: The title of the application.
- * - loggedIn: Boolean indicating if the user is logged in.
- * - handleLogout: Function to handle user logout.
+ * Displays the application title and user actions like "Add Character," "Add Skill Plan," "Logout," and "Close Window."
  */
 const Header = ({ title, loggedIn, handleLogout }) => {
     const handleAddCharacter = () => {
@@ -19,15 +13,21 @@ const Header = ({ title, loggedIn, handleLogout }) => {
     };
 
     const handleAddSkillPlan = () => {
-        // Open the Add Skill Plan Modal by dispatching a custom event
         window.dispatchEvent(new Event('openAddSkillPlanModal'));
     };
 
+    const handleCloseWindow = () => {
+        const currentWindow = remote.getCurrentWindow();
+        currentWindow.close();
+    };
+
     return (
-        <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-            <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 className="text-xl font-bold text-gray-800 dark:text-white">{title}</h1>
-                <div className="flex items-center space-x-4">
+        <header
+            className="fixed top-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-gray-800 shadow-md z-10 py-3"
+            style={{ WebkitAppRegion: 'drag' }} // Enable window dragging
+        >
+            <div className="container mx-auto px-4 flex justify-between items-center">
+                <div className="flex space-x-2" style={{ WebkitAppRegion: 'no-drag' }}>
                     {loggedIn && (
                         <>
                             <button
@@ -44,12 +44,28 @@ const Header = ({ title, loggedIn, handleLogout }) => {
                             >
                                 <i className="fas fa-plus-circle"></i>
                             </button>
+                        </>
+                    )}
+                </div>
+
+                <h1 className="text-2xl font-bold text-teal-200 text-center flex-grow">{title}</h1>
+
+                <div className="flex space-x-2" style={{ WebkitAppRegion: 'no-drag' }}>
+                    {loggedIn && (
+                        <>
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center p-2 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none"
                                 title="Logout"
                             >
                                 <i className="fas fa-sign-out-alt"></i>
+                            </button>
+                            <button
+                                onClick={handleCloseWindow}
+                                className="flex items-center p-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none"
+                                title="Close"
+                            >
+                                <i className="fas fa-times"></i>
                             </button>
                         </>
                     )}

@@ -8,8 +8,6 @@ import React from 'react';
  * Renders a button that redirects the user to the /login endpoint with a unique query parameter.
  */
 const LoginButton = () => {
-    // Generate a unique query parameter to prevent caching
-    // const loginUrl = `/login?ts=${Date.now()}`;
     const loginUrl = `http://localhost:8713/login?ts=${Date.now()}`
 
     return (

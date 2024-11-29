@@ -1,6 +1,7 @@
 // main.js
 
 const { app, BrowserWindow } = require('electron');
+require('@electron/remote/main').initialize(); // Initialize remote module
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
@@ -21,11 +22,14 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false, // Important for communication
-        }
+            enableRemoteModule: true, // Explicitly enable remote
+        },
+        frame: false,
     });
 
     // Disable the menu bar
     mainWindow.setMenuBarVisibility(false);
+    require('@electron/remote/main').enable(mainWindow.webContents);
 
     if (isDev) {
         mainWindow.loadURL('http://localhost:5173'); // Vite dev server

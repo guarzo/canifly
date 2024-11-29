@@ -1,17 +1,10 @@
-// src/components/Landing.jsx
-
 import React from 'react';
 import LoginButton from './LoginButton';
 
-/**
- * Landing Component
- *
- * Displays the landing page with the login button.
- */
 const Landing = () => {
     return (
-        <div className="flex flex-col min-h-screen">
-            <header className="bg-teal-600 text-white dark:bg-teal-800 dark:text-white p-5 shadow-md">
+        <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 text-teal-200">
+            <header className="bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200 p-5 shadow-md">
                 <div className="container mx-auto">
                     <h1 className="text-3xl font-bold tracking-wide">Can I Fly?</h1>
                 </div>
@@ -22,7 +15,7 @@ const Landing = () => {
                     <LoginButton />
                 </div>
             </main>
-            <footer className="bg-teal-600 text-white dark:bg-teal-800 dark:text-white p-5 shadow-md">
+            <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200 p-5 shadow-md">
                 <div className="text-center">
                     <img src="/static/img/logo.png" alt="Zoolanders Logo" className="mx-auto h-10" />
                 </div>
