@@ -6,12 +6,17 @@ import { toast } from "react-toastify";
 const MainContent = ({ identities = [], skillPlans = {} }) => {
     const tabulatorRef = useRef(null);
 
-    // Helper function to calculate days from today
+// Helper function to calculate days from today
     const calculateDaysFromToday = (date) => {
+        console.log(date)
         if (!date) return "";
-        const diffTime = new Date(date) - new Date();
-        return diffTime > 0 ? `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days` : "";
+        const targetDate = new Date(date);
+        const currentDate = new Date();
+        const diffTime = targetDate - currentDate;
+        if (diffTime <= 0) return "0 days"; // If the date has passed or is today
+        return `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days`; // Calculate remaining days
     };
+
 
     // Format number with commas (for thousands)
     const formatNumberWithCommas = (num) => {
@@ -32,26 +37,30 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
                 const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
                 const missingCount = Object.keys(missingSkillsForPlan).length;
 
+                // Log the status computation to debug
+                console.log(`Plan: ${planName}, Qualified: ${qualified}, Pending: ${pending}, Missing Count: ${missingCount}`);
+
+                let status = '';
                 if (qualified) {
-                    return {
-                        CharacterName: planName,
-                        Status: `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`, // Only icon, no text
-                    };
+                    status = `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`;
                 } else if (pending) {
                     const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-                    return {
-                        CharacterName: planName,
-                        Status: `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`, // Show days only if non-zero
-                    };
+                    status = `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`;
                 } else if (missingCount > 0) {
-                    return {
-                        CharacterName: planName,
-                        Status: `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`, // Showing missing skills
-                    };
+                    status = `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`;
                 }
 
-                return null;
+                // Log the computed status for the row
+                console.log(`Computed Status for ${planName}: ${status}`);
+
+                return {
+                    CharacterName: planName,
+                    TotalSP: status,
+                };
             }).filter(Boolean);
+
+            // Log the character data being processed
+            console.log(`Character Data for ${identity.CharacterName}:`, { TotalSP, children });
 
             return {
                 ...identity,

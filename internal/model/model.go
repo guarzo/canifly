@@ -18,6 +18,7 @@ type HomeData struct {
 // SkillPlanWithStatus holds detailed information about each skill plan
 type SkillPlanWithStatus struct {
 	Name                string
+	Plan                SkillPlan
 	QualifiedCharacters []string
 	PendingCharacters   []string
 	MissingSkills       map[string]map[string]int32 // Missing skills by character

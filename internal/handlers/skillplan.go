@@ -155,6 +155,7 @@ func getMatchingSkillPlans(
 	for planName, plan := range skillPlans {
 		updatedSkillPlans[planName] = model.SkillPlanWithStatus{
 			Name:                plan.Name,
+			Plan:                plan, // Include the SkillPlan data in the response
 			QualifiedCharacters: []string{},
 			PendingCharacters:   []string{},
 			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills
@@ -195,6 +196,10 @@ func getMatchingSkillPlans(
 		}
 		if characterData.Character.MissingSkills == nil {
 			characterData.Character.MissingSkills = make(map[string]map[string]int32)
+		}
+
+		if characterData.Character.PendingFinishDates == nil {
+			characterData.Character.PendingFinishDates = make(map[string]*time.Time)
 		}
 
 		// Check matching skill plans for the current character
@@ -260,6 +265,7 @@ func getMatchingSkillPlans(
 				modifiedPlan.PendingCharacters = append(modifiedPlan.PendingCharacters, character.CharacterName)
 				characterSkillStatus.PendingFinishDate = latestFinishDate
 				characterData.Character.PendingPlans[planName] = true // Update the character's PendingPlans
+				characterData.Character.PendingFinishDates[planName] = latestFinishDate
 			}
 
 			// If there are missing skills, store them in the MissingSkills map
