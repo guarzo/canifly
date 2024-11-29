@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/guarzo/canifly/internal/service/skillplan"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"github.com/guarzo/canifly/internal/model"
 )
@@ -143,12 +144,12 @@ func parseSkillLevel(levelStr string) (int, error) {
 }
 
 func getMatchingSkillPlans(
-	characters map[int64]model.CharacterData,
+	characters map[int64]model.CharacterIdentity,
 	skillPlans map[string]model.SkillPlan,
 	skillTypes map[string]model.SkillType, // Retain the skillTypes map parameter
-) (map[int64]model.CharacterData, map[string]model.SkillPlan) {
+) (map[int64]model.CharacterIdentity, map[string]model.SkillPlan) {
 
-	updatedCharacters := make(map[int64]model.CharacterData)
+	updatedCharacters := make(map[int64]model.CharacterIdentity)
 	updatedSkillPlans := make(map[string]model.SkillPlan)
 
 	// Initialize updatedSkillPlans with empty QualifiedCharacters and PendingCharacters

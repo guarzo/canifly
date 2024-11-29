@@ -93,6 +93,8 @@ func initializeComponents(secret string) {
 	}
 	api.InitializeOAuth(clientID, clientSecret, callbackURL)
 
+	xlog.Logf("callback url %s", callbackURL)
+
 	if err := skillplan.ProcessSkillPlans(); err != nil {
 		log.Fatalf("Failed to load skill plans: %v", err)
 	}
@@ -113,7 +115,7 @@ func initializeComponents(secret string) {
 func getPort() string {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8713"
 	}
 	return port
 }
@@ -122,10 +124,6 @@ func getPort() string {
 func setupRouter(secret string) *mux.Router {
 	sessionStore := flyHandlers.NewSessionService(secret)
 	r := mux.NewRouter()
-
-	// Serve static files from the embedded filesystem
-	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
 	// Utility and user functions
 	r.HandleFunc("/callback/", flyHandlers.CallbackHandler(sessionStore))
@@ -137,8 +135,18 @@ func setupRouter(secret string) *mux.Router {
 	r.HandleFunc("/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
 	r.HandleFunc("/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
 
+	r.HandleFunc("/api/home-data", flyHandlers.HomeDataHandler(sessionStore))
+	r.HandleFunc("/api/logout", flyHandlers.LogoutReactHandler(sessionStore))
+	r.HandleFunc("/api/get-skill-plan", flyHandlers.SkillPlanFileHandler)
+	r.HandleFunc("/api/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
+	r.HandleFunc("/api/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
+
 	// Admin routes
 	r.HandleFunc("/reset-identities", flyHandlers.ResetIdentitiesHandler(sessionStore))
+
+	// Serve static files from the embedded filesystem
+	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
 	return r
 }

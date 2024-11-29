@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/guarzo/canifly/internal/service/skillplan"
-	"github.com/guarzo/canifly/internal/service/skilltype"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 	"slices"
 	"time"
+
+	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/service/skilltype"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"github.com/gorilla/sessions"
 
@@ -18,7 +19,7 @@ import (
 
 const Title = "Can I Fly?"
 
-func sameIdentities(users []int64, identities map[int64]model.CharacterData) bool {
+func sameIdentities(users []int64, identities map[int64]model.CharacterIdentity) bool {
 	var identitiesKeys []int64
 	for k, _ := range identities {
 		identitiesKeys = append(identitiesKeys, k)
@@ -87,7 +88,7 @@ func checkIfCanSkip(session *sessions.Session, sessionValues SessionValues, r *h
 	return storeData, etag, canSkip
 }
 
-func validateIdentities(session *sessions.Session, sessionValues SessionValues, storeData model.HomeData) (map[int64]model.CharacterData, error) {
+func validateIdentities(session *sessions.Session, sessionValues SessionValues, storeData model.HomeData) (map[int64]model.CharacterIdentity, error) {
 	identities := storeData.Identities
 
 	authenticatedUsers, ok := session.Values[allAuthenticatedCharacters].([]int64)
@@ -121,7 +122,7 @@ func validateIdentities(session *sessions.Session, sessionValues SessionValues, 
 	return identities, nil
 }
 
-func getAuthenticatedCharacterIDs(identities map[int64]model.CharacterData) []int64 {
+func getAuthenticatedCharacterIDs(identities map[int64]model.CharacterIdentity) []int64 {
 	authenticatedCharacters := make([]int64, 0, len(identities))
 	for id := range identities {
 		authenticatedCharacters = append(authenticatedCharacters, id)
@@ -129,7 +130,7 @@ func getAuthenticatedCharacterIDs(identities map[int64]model.CharacterData) []in
 	return authenticatedCharacters
 }
 
-func prepareHomeData(sessionValues SessionValues, identities map[int64]model.CharacterData) model.HomeData {
+func prepareHomeData(sessionValues SessionValues, identities map[int64]model.CharacterIdentity) model.HomeData {
 	matchingCharacters, matchingSkillPlans := getMatchingSkillPlans(identities, skillplan.SkillPlans, skilltype.SkillTypes)
 	return model.HomeData{
 		Title:               Title,
@@ -143,7 +144,7 @@ func prepareHomeData(sessionValues SessionValues, identities map[int64]model.Cha
 	}
 }
 
-func convertIdentitiesToTabulatorData(identities map[int64]model.CharacterData) []map[string]interface{} {
+func convertIdentitiesToTabulatorData(identities map[int64]model.CharacterIdentity) []map[string]interface{} {
 	var tabulatorData []map[string]interface{}
 
 	for index, id := range identities {

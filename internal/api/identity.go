@@ -3,16 +3,17 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"sync"
+
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/model"
 )
 
-func PopulateIdentities(userConfig *model.Identities) (map[int64]model.CharacterData, error) {
-	characterData := make(map[int64]model.CharacterData)
+func PopulateIdentities(userConfig *model.Identities) (map[int64]model.CharacterIdentity, error) {
+	characterData := make(map[int64]model.CharacterIdentity)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
@@ -38,7 +39,7 @@ func PopulateIdentities(userConfig *model.Identities) (map[int64]model.Character
 	return characterData, nil
 }
 
-func processIdentity(id int64, token oauth2.Token, userConfig *model.Identities, mu *sync.Mutex) (*model.CharacterData, error) {
+func processIdentity(id int64, token oauth2.Token, userConfig *model.Identities, mu *sync.Mutex) (*model.CharacterIdentity, error) {
 	newToken, err := RefreshToken(token.RefreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to refresh token for character %d: %v", id, err)
@@ -61,24 +62,39 @@ func processIdentity(id int64, token oauth2.Token, userConfig *model.Identities,
 		skillQueue = &[]model.SkillQueue{}
 	}
 
+	characterLocation, err := getCharacterLocationInfo(id, &token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get location for character %d: %v", id, err)
+	}
+
 	user, err := GetUserInfo(&token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
 
 	character := model.Character{
-		User:                    *user,
+		BaseCharacterResponse:   *user,
 		CharacterSkillsResponse: *skills,
 		SkillQueue:              *skillQueue,
+		Location:                characterLocation,
 	}
 
-	return &model.CharacterData{
+	return &model.CharacterIdentity{
 		Token:     token,
 		Character: character,
 	}, nil
 }
 
-func GetUserInfo(token *oauth2.Token) (*model.User, error) {
+func getCharacterLocationInfo(id int64, token *oauth2.Token) (int64, error) {
+	characterLocation, err := getCharacterLocation(id, token)
+	if err != nil {
+		return 0, err
+	}
+
+	return characterLocation, nil
+}
+
+func GetUserInfo(token *oauth2.Token) (*model.BaseCharacterResponse, error) {
 	if token.AccessToken == "" {
 		return nil, fmt.Errorf("no access token provided")
 	}
@@ -90,7 +106,7 @@ func GetUserInfo(token *oauth2.Token) (*model.User, error) {
 		return nil, err
 	}
 
-	var user model.User
+	var user model.BaseCharacterResponse
 	if err := json.Unmarshal(bodyBytes, &user); err != nil {
 		return nil, fmt.Errorf("failed to decode response body: %v", err)
 	}

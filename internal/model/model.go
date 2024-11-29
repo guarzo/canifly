@@ -9,24 +9,24 @@ import (
 type HomeData struct {
 	Title               string
 	LoggedIn            bool
-	Identities          map[int64]CharacterData
+	Identities          map[int64]CharacterIdentity
 	TabulatorIdentities []map[string]interface{}
 	TabulatorSkillPlans map[string]SkillPlan
 	MainIdentity        int64
 	MatchingSkillPlans  map[string]SkillPlan
-	MatchingCharacters  map[int64]CharacterData
+	MatchingCharacters  map[int64]CharacterIdentity
 }
 
-// CharacterData structure contains nested Character struct
-type CharacterData struct {
+// CharacterIdentity structure contains nested Character struct
+type CharacterIdentity struct {
 	Token     oauth2.Token
-	Character Character // Keeping Character as an independent struct
+	Character Character
 }
 
-// Character represents the user information
 type Character struct {
-	User
+	BaseCharacterResponse
 	CharacterSkillsResponse `json:"CharacterSkillsResponse"`
+	Location                int64                       `json:"Location"`
 	SkillQueue              []SkillQueue                `json:"SkillQueue"`
 	QualifiedPlans          map[string]bool             `json:"QualifiedPlans"`
 	PendingPlans            map[string]bool             `json:"PendingPlans"`
@@ -34,8 +34,8 @@ type Character struct {
 	MissingSkills           map[string]map[string]int32 `json:"MissingSkills"`
 }
 
-// User represents the user information returned by the EVE SSO
-type User struct {
+// BaseCharacterResponse represents the user information returned by the EVE SSO
+type BaseCharacterResponse struct {
 	CharacterID   int64  `json:"CharacterID"`
 	CharacterName string `json:"CharacterName"`
 }
@@ -102,4 +102,35 @@ type SkillType struct {
 type Identities struct {
 	MainIdentity string                 `json:"main_identity"`
 	Tokens       map[int64]oauth2.Token `json:"identities"`
+}
+
+type Station struct {
+	SystemID int64  `json:"system_id"`
+	ID       int64  `json:"station_id"`
+	Name     string `json:"station_name"`
+}
+
+type Structure struct {
+	Name     string `json:"name"`
+	OwnerID  int64  `json:"owner_id"`
+	SystemID int64  `json:"solar_system_id"`
+	TypeID   int64  `json:"type_id"`
+}
+
+type CharacterLocation struct {
+	SolarSystemID int64 `json:"solar_system_id"`
+	StructureID   int64 `json:"structure_id"`
+}
+
+type CloneLocation struct {
+	HomeLocation struct {
+		LocationID   int64  `json:"location_id"`
+		LocationType string `json:"location_type"`
+	} `json:"home_location"`
+	JumpClones []struct {
+		Implants     []int  `json:"implants"`
+		JumpCloneID  int64  `json:"jump_clone_id"`
+		LocationID   int64  `json:"location_id"`
+		LocationType string `json:"location_type"`
+	} `json:"jump_clones"`
 }

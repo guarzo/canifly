@@ -2,10 +2,11 @@ package persist
 
 import (
 	"fmt"
-	"github.com/guarzo/canifly/internal/utils/crypto"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"os"
 	"path/filepath"
+
+	"github.com/guarzo/canifly/internal/utils/crypto"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"golang.org/x/oauth2"
 
@@ -27,27 +28,6 @@ func GetWritableDataPath() (string, error) {
 		return "", err
 	}
 	return identityPath, nil
-}
-
-// GetWritablePlansPath returns the writable directory path for storing skill plans.
-func GetWritablePlansPath() (string, error) {
-	configDir, err := os.UserConfigDir()
-
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve writeable directory: %w", err)
-	}
-
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	planPath := filepath.Join(configDir, "canifly", "plans")
-	if pathSuffix != "" {
-		planPath = filepath.Join(configDir, "canifly", pathSuffix)
-	}
-
-	if err := os.MkdirAll(planPath, os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create writable plans directory: %w", err)
-	}
-
-	return planPath, nil
 }
 
 // LoadIdentities loads the identities from a writable data path.
