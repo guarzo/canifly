@@ -155,7 +155,7 @@ func getMatchingSkillPlans(
 	for planName, plan := range skillPlans {
 		updatedSkillPlans[planName] = model.SkillPlanWithStatus{
 			Name:                plan.Name,
-			Plan:                plan, // Include the SkillPlan data in the response
+			Skills:              plan.Skills,
 			QualifiedCharacters: []string{},
 			PendingCharacters:   []string{},
 			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills

@@ -132,21 +132,37 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
     // Function to handle delete or copy actions
     useEffect(() => {
         window.copySkillPlan = (planName) => {
-            const planSkills = skillPlans[planName]?.Skills || {};
-            const skillText = Object.entries(planSkills)
-                .map(([skill, detail]) => `${skill}: Level ${detail.Level}`)
-                .join("\n");
-            if (skillText) {
-                navigator.clipboard.writeText(skillText)
-                    .then(() => toast.success(`Copied ${Object.keys(planSkills).length} skills from ${planName}.`, { autoClose: 1500 }))
-                    .catch((err) => {
-                        console.error("Copy to clipboard failed:", err);
-                        toast.error("Failed to copy skill plan.", { autoClose: 1500 });
-                    });
-            } else {
-                toast.warning("No skills available to copy.", { autoClose: 1500 });
+            const plan = skillPlans[planName];
+            if (!plan) {
+                console.error(`Skill plan not found: ${planName}`);
+                toast.warning(`Skill plan not found: ${planName}`, { autoClose: 1500 });
+                return;
             }
+
+            const planSkills = plan.Skills || {};
+
+            if (Object.keys(planSkills).length === 0) {
+                console.warn(`No skills available to copy in the plan: ${planName}`);
+                toast.warning(`No skills available to copy in the plan: ${planName}.`, { autoClose: 1500 });
+                return;
+            }
+
+            // Create the skill text without the colon
+            const skillText = Object.entries(planSkills)
+                .map(([skill, detail]) => `${skill} ${detail.Level}`)  // No colon here
+                .join("\n"); // Join skills with a newline for better readability
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(skillText)
+                .then(() => {
+                    toast.success(`Copied ${Object.keys(planSkills).length} skills from ${planName}.`, { autoClose: 1500 });
+                })
+                .catch((err) => {
+                    console.error("Copy to clipboard failed:", err);
+                    toast.error("Failed to copy skill plan.", { autoClose: 1500 });
+                });
         };
+
 
         window.deleteSkillPlan = async (planName) => {
             try {
