@@ -1,113 +1,12 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import PropTypes from "prop-types";
-import TabulatorTable from "./TabulatorTable";
-import { toast } from "react-toastify";
-import { calculateDaysFromToday, formatNumberWithCommas } from './Utils';
+// MainContent.jsx
+import React, { useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import CharacterTable from './CharacterTable';
+import SkillPlanTable from './SkillPlanTable';
+import { toast } from 'react-toastify';
 
-const MainContent = ({ identities = [], skillPlans = {} }) => {
+const MainContent = ({ identities, skillPlans }) => {
     const tabulatorRef = useRef(null);
-
-    // Helper function to generate plan status as HTML
-    const generatePlanStatus = (planName, characterDetails) => {
-        const qualified = characterDetails.QualifiedPlans?.[planName];
-        const pending = characterDetails.PendingPlans?.[planName];
-        const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
-        const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
-        const missingCount = Object.keys(missingSkillsForPlan).length;
-
-        let status = '';
-        if (qualified) {
-            status = `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`;
-        } else if (pending) {
-            const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-            status = `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`;
-        } else if (missingCount > 0) {
-            status = `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`;
-        }
-
-        return status;
-    };
-
-    // Character Table Data
-    const characterData = useMemo(() => {
-        return identities.map((identity) => {
-            const characterDetails = identity.Character || {};
-            let TotalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0; // Use total_sp directly
-            TotalSP = formatNumberWithCommas(TotalSP); // Format with commas
-
-            const children = Object.keys(skillPlans)
-                .map((planName) => ({
-                    CharacterName: planName,
-                    TotalSP: generatePlanStatus(planName, characterDetails),
-                }))
-                .filter(Boolean);
-
-            return {
-                ...identity,
-                TotalSP,
-                _children: children,
-            };
-        });
-    }, [identities, skillPlans]);
-
-    // Skill Plan Table Data (with parent row actions)
-    const skillPlanData = useMemo(() => {
-        return Object.values(skillPlans).map((skillPlan) => {
-            const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
-            const pendingCharacters = skillPlan.PendingCharacters || [];
-            const missingCharacters = skillPlan.MissingCharacters || [];
-
-            const qualifiedChildren = qualifiedCharacters.map((characterName) => ({
-                planName: characterName,
-                Status: `<i class="fas fa-check-circle" style="color: green;"></i>`,
-            }));
-
-            const pendingChildren = pendingCharacters.map((characterName) => {
-                const characterData = identities.find((identity) => identity.Character?.CharacterName === characterName)?.Character || null;
-                if (!characterData) {
-                    console.log(`Pending character not found: ${characterName}`);
-                    return null;
-                }
-
-                const pendingFinishDate = characterData.PendingFinishDates?.[skillPlan.Name] || "";
-                const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-
-                if (daysRemaining === "") {
-                    console.log(`Adding pending character: ${characterName} but no pending days`);
-                    return {
-                        planName: characterName,
-                        Status: `<i class="fas fa-clock" style="color: orange;"></i>`,
-                    };
-                }
-
-                console.log(`Adding pending character: ${characterName} with remaining days: ${daysRemaining}`);
-                return {
-                    planName: characterName,
-                    Status: `<i class="fas fa-clock" style="color: orange;"></i> Pending ${daysRemaining ? `(${daysRemaining})` : ""}`, // Pending icon and days remaining
-                };
-            }).filter(Boolean);
-
-            const missingChildren = missingCharacters.map((characterName) => ({
-                planName: characterName,
-                Status: `<i class="fas fa-exclamation-circle" style="color: red;"></i> Missing`, // Missing indicator
-            }));
-
-            // Adding copy/delete icons to the parent row
-            return {
-                id: skillPlan.Name,
-                planName: skillPlan.Name,
-                Status: `
-                    <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${skillPlan.Name}')"></i>
-                    <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${skillPlan.Name}')"></i>
-                `,
-                _children: [
-                    ...qualifiedChildren,   // Add qualified characters
-                    ...pendingChildren,     // Add pending characters
-                    ...missingChildren,     // Add missing characters
-                ],
-            };
-        });
-    }, [skillPlans, identities]);
 
     // Function to handle delete or copy actions
     useEffect(() => {
@@ -127,12 +26,10 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
                 return;
             }
 
-            // Create the skill text without the colon
             const skillText = Object.entries(planSkills)
-                .map(([skill, detail]) => `${skill} ${detail.Level}`)  // No colon here
-                .join("\n"); // Join skills with a newline for better readability
+                .map(([skill, detail]) => `${skill} ${detail.Level}`)
+                .join("\n");
 
-            // Copy to clipboard
             navigator.clipboard.writeText(skillText)
                 .then(() => {
                     toast.success(`Copied ${Object.keys(planSkills).length} skills from ${planName}.`, { autoClose: 1500 });
@@ -179,56 +76,18 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
         <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-16">
             <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
                 {/* Character Table */}
-                <div className="mb-8 w-full">
-                    <h2 className="text-2xl font-bold mb-4 text-teal-200">Character Table</h2>
-                    <TabulatorTable
-                        id="character-table"
-                        data={characterData}
-                        columns={[
-                            {
-                                title: "Character Name",
-                                field: "CharacterName",
-                                formatter: "html",
-                            },
-                            {
-                                title: "Total Skill Points",
-                                field: "TotalSP",
-                                formatter: "html", // Ensure this is rendered as HTML
-                            },
-                        ]}
-                        options={{
-                            dataTree: true,
-                            dataTreeStartExpanded: false,
-                        }}
-                        ref={tabulatorRef}
-                    />
-                </div>
+                <CharacterTable
+                    identities={identities}
+                    skillPlans={skillPlans}
+                    tabulatorRef={tabulatorRef}
+                />
 
                 {/* Skill Plan Table */}
-                <div className="mb-8 w-full">
-                    <h2 className="text-2xl font-bold mb-4 text-teal-200">Skill Plan Table</h2>
-                    <TabulatorTable
-                        id="skill-plan-table"
-                        data={skillPlanData}
-                        columns={[
-                            {
-                                title: "Skill Plan",
-                                field: "planName",
-                                formatter: "html", // Render HTML for copy/delete icons in parent row
-                            },
-                            {
-                                title: "Status",
-                                field: "Status",
-                                formatter: "html", // Render HTML for the status of both parent and child rows
-                            },
-                        ]}
-                        options={{
-                            dataTree: true,
-                            dataTreeStartExpanded: false,
-                        }}
-                        ref={tabulatorRef}
-                    />
-                </div>
+                <SkillPlanTable
+                    skillPlans={skillPlans}
+                    identities={identities}
+                    tabulatorRef={tabulatorRef}
+                />
             </div>
         </main>
     );
