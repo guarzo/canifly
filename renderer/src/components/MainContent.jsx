@@ -7,8 +7,8 @@ import { calculateDaysFromToday, formatNumberWithCommas } from './Utils';
 const MainContent = ({ identities = [], skillPlans = {} }) => {
     const tabulatorRef = useRef(null);
 
-    // Character Table Data
-    const processCharacterPlanData = (planName, characterDetails) => {
+    // Helper function to generate plan status as HTML
+    const generatePlanStatus = (planName, characterDetails) => {
         const qualified = characterDetails.QualifiedPlans?.[planName];
         const pending = characterDetails.PendingPlans?.[planName];
         const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
@@ -25,9 +25,10 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
             status = `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`;
         }
 
-        return { CharacterName: planName, TotalSP: status };
+        return status;
     };
 
+    // Character Table Data
     const characterData = useMemo(() => {
         return identities.map((identity) => {
             const characterDetails = identity.Character || {};
@@ -35,7 +36,10 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
             TotalSP = formatNumberWithCommas(TotalSP); // Format with commas
 
             const children = Object.keys(skillPlans)
-                .map((planName) => processCharacterPlanData(planName, characterDetails))
+                .map((planName) => ({
+                    CharacterName: planName,
+                    TotalSP: generatePlanStatus(planName, characterDetails),
+                }))
                 .filter(Boolean);
 
             return {
@@ -93,9 +97,9 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
                 id: skillPlan.Name,
                 planName: skillPlan.Name,
                 Status: `
-          <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${skillPlan.Name}')"></i>
-          <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${skillPlan.Name}')"></i>
-        `,
+                    <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${skillPlan.Name}')"></i>
+                    <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${skillPlan.Name}')"></i>
+                `,
                 _children: [
                     ...qualifiedChildren,   // Add qualified characters
                     ...pendingChildren,     // Add pending characters
@@ -138,7 +142,6 @@ const MainContent = ({ identities = [], skillPlans = {} }) => {
                     toast.error("Failed to copy skill plan.", { autoClose: 1500 });
                 });
         };
-
 
         window.deleteSkillPlan = async (planName) => {
             try {
