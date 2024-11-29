@@ -1,3 +1,5 @@
+//src/components/Header.jsx
+
 import React from 'react';
 import PropTypes from 'prop-types';
 const { remote } = require('@electron/remote');
