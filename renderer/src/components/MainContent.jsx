@@ -2,65 +2,41 @@ import React, { useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import TabulatorTable from "./TabulatorTable";
 import { toast } from "react-toastify";
+import { calculateDaysFromToday, formatNumberWithCommas } from './Utils';
 
 const MainContent = ({ identities = [], skillPlans = {} }) => {
     const tabulatorRef = useRef(null);
 
-// Helper function to calculate days from today
-    const calculateDaysFromToday = (date) => {
-        console.log(date)
-        if (!date) return "";
-        const targetDate = new Date(date);
-        const currentDate = new Date();
-        const diffTime = targetDate - currentDate;
-        if (diffTime <= 0) return "0 days"; // If the date has passed or is today
-        return `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days`; // Calculate remaining days
-    };
-
-
-    // Format number with commas (for thousands)
-    const formatNumberWithCommas = (num) => {
-        return num.toLocaleString(); // Using toLocaleString to format numbers with commas
-    };
-
     // Character Table Data
+    const processCharacterPlanData = (planName, characterDetails) => {
+        const qualified = characterDetails.QualifiedPlans?.[planName];
+        const pending = characterDetails.PendingPlans?.[planName];
+        const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
+        const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
+        const missingCount = Object.keys(missingSkillsForPlan).length;
+
+        let status = '';
+        if (qualified) {
+            status = `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`;
+        } else if (pending) {
+            const daysRemaining = calculateDaysFromToday(pendingFinishDate);
+            status = `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`;
+        } else if (missingCount > 0) {
+            status = `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`;
+        }
+
+        return { CharacterName: planName, TotalSP: status };
+    };
+
     const characterData = useMemo(() => {
         return identities.map((identity) => {
             const characterDetails = identity.Character || {};
             let TotalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0; // Use total_sp directly
             TotalSP = formatNumberWithCommas(TotalSP); // Format with commas
 
-            const children = Object.keys(skillPlans).map((planName) => {
-                const qualified = characterDetails.QualifiedPlans?.[planName];
-                const pending = characterDetails.PendingPlans?.[planName];
-                const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
-                const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
-                const missingCount = Object.keys(missingSkillsForPlan).length;
-
-                // Log the status computation to debug
-                console.log(`Plan: ${planName}, Qualified: ${qualified}, Pending: ${pending}, Missing Count: ${missingCount}`);
-
-                let status = '';
-                if (qualified) {
-                    status = `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`;
-                } else if (pending) {
-                    const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-                    status = `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`;
-                } else if (missingCount > 0) {
-                    status = `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`;
-                }
-
-                // Log the computed status for the row
-                console.log(`Computed Status for ${planName}: ${status}`);
-
-                return {
-                    CharacterName: planName,
-                    TotalSP: status,
-                };
-            }).filter(Boolean);
-
-            // Log the character data being processed
-            console.log(`Character Data for ${identity.CharacterName}:`, { TotalSP, children });
+            const children = Object.keys(skillPlans)
+                .map((planName) => processCharacterPlanData(planName, characterDetails))
+                .filter(Boolean);
 
             return {
                 ...identity,
