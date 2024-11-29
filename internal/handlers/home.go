@@ -36,7 +36,7 @@ func HomeHandler(s *SessionService) http.HandlerFunc {
 
 		data := prepareHomeData(sessionValues, identities)
 
-		etag, err = updateStoreAndSession(storeData, data, etag, session, r, w)
+		etag, err = updateStoreAndSession(data, etag, session, r, w)
 		if err != nil {
 			xlog.Logf("Failed to update persist and session: %v", err)
 			return
@@ -74,7 +74,7 @@ func HomeDataHandler(s *SessionService) http.HandlerFunc {
 
 		data := prepareHomeData(sessionValues, identities)
 
-		etag, err = updateStoreAndSession(storeData, data, etag, session, r, w)
+		etag, err = updateStoreAndSession(data, etag, session, r, w)
 		if err != nil {
 			xlog.Logf("Failed to update persist and session: %v", err)
 			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)
@@ -97,7 +97,7 @@ func renderBaseTemplate(w http.ResponseWriter, r *http.Request, data model.HomeD
 
 func renderLandingPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	data := model.HomeData{Title: Title}
+	data := model.HomeData{}
 	if err := embed.Templates.ExecuteTemplate(w, "landing", data); err != nil {
 		handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to render landing template: %v", err), "/")
 	}

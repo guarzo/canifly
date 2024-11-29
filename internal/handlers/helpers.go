@@ -6,18 +6,15 @@ import (
 	"slices"
 	"time"
 
-	"github.com/guarzo/canifly/internal/service/skillplan"
-	"github.com/guarzo/canifly/internal/service/skilltype"
-	"github.com/guarzo/canifly/internal/utils/xlog"
-
 	"github.com/gorilla/sessions"
 
 	"github.com/guarzo/canifly/internal/api"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/service/skilltype"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 )
-
-const Title = "Can I Fly?"
 
 func sameIdentities(users []int64, identities map[int64]model.CharacterIdentity) bool {
 	var identitiesKeys []int64
@@ -131,34 +128,17 @@ func getAuthenticatedCharacterIDs(identities map[int64]model.CharacterIdentity) 
 }
 
 func prepareHomeData(sessionValues SessionValues, identities map[int64]model.CharacterIdentity) model.HomeData {
-	matchingCharacters, matchingSkillPlans := getMatchingSkillPlans(identities, skillplan.SkillPlans, skilltype.SkillTypes)
+	skillPlans := getMatchingSkillPlans(identities, skillplan.SkillPlans, skilltype.SkillTypes)
+
 	return model.HomeData{
-		Title:               Title,
-		LoggedIn:            true,
-		Identities:          identities,
-		TabulatorIdentities: convertIdentitiesToTabulatorData(identities),
-		TabulatorSkillPlans: skillplan.SkillPlans,
-		MatchingSkillPlans:  matchingSkillPlans,
-		MatchingCharacters:  matchingCharacters,
-		MainIdentity:        sessionValues.LoggedInUser,
+		LoggedIn:     true,
+		Identities:   identities,
+		SkillPlans:   skillPlans, // Return the updated skill plans
+		MainIdentity: sessionValues.LoggedInUser,
 	}
 }
 
-func convertIdentitiesToTabulatorData(identities map[int64]model.CharacterIdentity) []map[string]interface{} {
-	var tabulatorData []map[string]interface{}
-
-	for index, id := range identities {
-		Row := make(map[string]interface{})
-		Row["CharacterName"] = id.Character.CharacterName
-		Row["TotalSP"] = id.Character.TotalSP
-		Row["ID"] = index
-		tabulatorData = append(tabulatorData, Row)
-	}
-
-	return tabulatorData
-}
-
-func updateStoreAndSession(storeData model.HomeData, data model.HomeData, etag string, session *sessions.Session, r *http.Request, w http.ResponseWriter) (string, error) {
+func updateStoreAndSession(data model.HomeData, etag string, session *sessions.Session, r *http.Request, w http.ResponseWriter) (string, error) {
 	newEtag, err := persist.GenerateETag(data)
 	if err != nil {
 		return etag, fmt.Errorf("failed to generate etag: %w", err)

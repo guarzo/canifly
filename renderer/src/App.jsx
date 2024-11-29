@@ -117,12 +117,24 @@ const App = () => {
         }
     };
 
-    console.log("Passing to MainContent:", {
-        identities: homeData?.TabulatorIdentities || [],
-        skillPlans: homeData?.TabulatorSkillPlans || {},
-        matchingSkillPlans: homeData?.MatchingSkillPlans || {},
-        matchingCharacters: homeData?.MatchingCharacters || {},
-    });
+    // Convert the 'Identities' object to an array and preserve the full character structure
+    const identitiesArray = homeData?.Identities ? Object.values(homeData?.Identities) : [];
+
+    // Ensure all necessary properties are preserved for each identity
+    const sanitizedIdentities = identitiesArray.map((identity) => ({
+        ...identity,
+        CharacterID: identity.CharacterID || identity.Character?.CharacterID, // Ensure CharacterID exists
+        CharacterName: identity.CharacterName || identity.Character?.CharacterName,
+        CharacterSkillsResponse: identity.CharacterSkillsResponse || identity.Character?.CharacterSkillsResponse,
+        Location: identity.Location || identity.Character?.Location,
+        PendingPlans: identity.PendingPlans || identity.Character?.PendingPlans,
+        MissingSkills: identity.MissingSkills || identity.Character?.MissingSkills,
+        QualifiedPlans: identity.QualifiedPlans || identity.Character?.QualifiedPlans,
+        Token: identity.Token || identity.Character?.Token,
+        // Add any other necessary properties from the character
+    }));
+
+    console.log("Sanitized Identities Array:", sanitizedIdentities);
 
     if (isLoading) {
         return (
@@ -167,10 +179,8 @@ const App = () => {
                     handleLogout={handleLogout}
                 />
                 <MainContent
-                    identities={homeData?.TabulatorIdentities || []}
-                    skillPlans={homeData?.TabulatorSkillPlans || {}}
-                    matchingSkillPlans={homeData?.MatchingSkillPlans || {}}
-                    matchingCharacters={homeData?.MatchingCharacters || {}}
+                    identities={sanitizedIdentities} // Use the sanitized identities
+                    skillPlans={homeData?.SkillPlans || {}}  // Pass skill plans as usual
                 />
                 <Footer />
                 {isSkillPlanModalOpen && (

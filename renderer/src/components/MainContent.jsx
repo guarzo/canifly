@@ -1,59 +1,126 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import TabulatorTable from "./TabulatorTable";
 import { toast } from "react-toastify";
 
-const MainContent = ({
-                         identities = [],
-                         skillPlans = {},
-                         matchingSkillPlans = {},
-                         matchingCharacters = {},
-                     }) => {
-    console.log("MainContent Props:", { identities, skillPlans, matchingSkillPlans, matchingCharacters });
+const MainContent = ({ identities = [], skillPlans = {} }) => {
+    const tabulatorRef = useRef(null);
 
-    const tabulatorRef = useRef(null); // Create a ref to hold the Tabulator instance
-
+    // Helper function to calculate days from today
     const calculateDaysFromToday = (date) => {
         if (!date) return "";
         const diffTime = new Date(date) - new Date();
-        return diffTime > 0 ? `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days` : "0 days";
+        return diffTime > 0 ? `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days` : "";
     };
 
-    window.deleteSkillPlan = async (planName) => {
-        try {
-            if (!tabulatorRef.current) {
-                console.error("Tabulator instance is not ready yet.");
-                return;
-            }
+    // Format number with commas (for thousands)
+    const formatNumberWithCommas = (num) => {
+        return num.toLocaleString(); // Using toLocaleString to format numbers with commas
+    };
 
-            const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
-                method: "DELETE",
-            });
+    // Character Table Data
+    const characterData = useMemo(() => {
+        return identities.map((identity) => {
+            const characterDetails = identity.Character || {};
+            let TotalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0; // Use total_sp directly
+            TotalSP = formatNumberWithCommas(TotalSP); // Format with commas
 
-            if (response.ok) {
-                toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
+            const children = Object.keys(skillPlans).map((planName) => {
+                const qualified = characterDetails.QualifiedPlans?.[planName];
+                const pending = characterDetails.PendingPlans?.[planName];
+                const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
+                const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
+                const missingCount = Object.keys(missingSkillsForPlan).length;
 
-                const row = tabulatorRef.current.getRow(planName);
-                if (row) {
-                    row.delete();
-                    console.log(`Deleted row with planName '${planName}' from the table.`);
-                } else {
-                    console.warn(`Row with planName '${planName}' not found in Tabulator.`);
+                if (qualified) {
+                    return {
+                        CharacterName: planName,
+                        Status: `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`, // Only icon, no text
+                    };
+                } else if (pending) {
+                    const daysRemaining = calculateDaysFromToday(pendingFinishDate);
+                    return {
+                        CharacterName: planName,
+                        Status: `<i class="fas fa-clock" style="color: orange;"></i> Pending${daysRemaining ? ` (${daysRemaining})` : ""}`, // Show days only if non-zero
+                    };
+                } else if (missingCount > 0) {
+                    return {
+                        CharacterName: planName,
+                        Status: `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`, // Showing missing skills
+                    };
                 }
-            } else {
-                const errorMessage = await response.text();
-                toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
-            }
-        } catch (error) {
-            console.error("Error deleting skill plan:", error);
-            toast.error("An error occurred while deleting the skill plan.", { autoClose: 1500 });
-        }
-    };
 
-    useEffect(() => {
-        window.tabulatorRef = tabulatorRef;
-    }, []);
+                return null;
+            }).filter(Boolean);
 
+            return {
+                ...identity,
+                TotalSP,
+                _children: children,
+            };
+        });
+    }, [identities, skillPlans]);
+
+    // Skill Plan Table Data (with parent row actions)
+    const skillPlanData = useMemo(() => {
+        return Object.values(skillPlans).map((skillPlan) => {
+            const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
+            const pendingCharacters = skillPlan.PendingCharacters || [];
+            const missingCharacters = skillPlan.MissingCharacters || [];
+
+            const qualifiedChildren = qualifiedCharacters.map((characterName) => ({
+                planName: characterName,
+                Status: `<i class="fas fa-check-circle" style="color: green;"></i>`,
+            }));
+
+            const pendingChildren = pendingCharacters.map((characterName) => {
+                const characterData = identities.find((identity) => identity.Character?.CharacterName === characterName)?.Character || null;
+                if (!characterData) {
+                    console.log(`Pending character not found: ${characterName}`);
+                    return null;
+                }
+
+                const pendingFinishDate = characterData.PendingFinishDates?.[skillPlan.Name] || "";
+                const daysRemaining = calculateDaysFromToday(pendingFinishDate);
+
+                if (daysRemaining === "") {
+                    console.log(`Adding pending character: ${characterName} but no pending days`);
+                    return {
+                        planName: characterName,
+                        Status: `<i class="fas fa-clock" style="color: orange;"></i>`,
+                    };
+                }
+
+                console.log(`Adding pending character: ${characterName} with remaining days: ${daysRemaining}`);
+                return {
+                    planName: characterName,
+                    Status: `<i class="fas fa-clock" style="color: orange;"></i> Pending ${daysRemaining ? `(${daysRemaining})` : ""}`, // Pending icon and days remaining
+                };
+            }).filter(Boolean);
+
+            const missingChildren = missingCharacters.map((characterName) => ({
+                planName: characterName,
+                Status: `<i class="fas fa-exclamation-circle" style="color: red;"></i> Missing`, // Missing indicator
+            }));
+
+            // Adding copy/delete icons to the parent row
+            return {
+                id: skillPlan.Name,
+                planName: skillPlan.Name,
+                Status: `
+          <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${skillPlan.Name}')"></i>
+          <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${skillPlan.Name}')"></i>
+        `,
+                _children: [
+                    ...qualifiedChildren,   // Add qualified characters
+                    ...pendingChildren,     // Add pending characters
+                    ...missingChildren,     // Add missing characters
+                ],
+            };
+        });
+    }, [skillPlans, identities]);
+
+    // Function to handle delete or copy actions
     useEffect(() => {
         window.copySkillPlan = (planName) => {
             const planSkills = skillPlans[planName]?.Skills || {};
@@ -71,87 +138,48 @@ const MainContent = ({
                 toast.warning("No skills available to copy.", { autoClose: 1500 });
             }
         };
-    }, [skillPlans]);
 
-    const characterData = useMemo(() => {
-        return identities.map((identity) => {
-            const characterID = identity.ID;
-            const characterDetails = matchingCharacters[characterID]?.Character || {};
-
-            const children = Object.keys(skillPlans).map((planName) => {
-                const qualified = characterDetails.QualifiedPlans?.[planName];
-                const pending = characterDetails.PendingPlans?.[planName];
-                const pendingFinishDate = characterDetails.PendingFinishDates?.[planName];
-                const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
-                const missingCount = Object.keys(missingSkillsForPlan).length;
-
-                if (qualified) {
-                    return {
-                        CharacterName: planName,
-                        TotalSP: `<i class="fas fa-check-circle" style="color: green;"></i>`,
-                    };
-                } else if (pending) {
-                    const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-                    return {
-                        CharacterName: planName,
-                        TotalSP: `<i class="fas fa-clock" style="color: orange;"></i> ${daysRemaining}`,
-                    };
-                } else if (missingCount > 0) {
-                    return {
-                        CharacterName: planName,
-                        TotalSP: `<i class="fas fa-exclamation-circle" style="color: red;"></i> ${missingCount} missing`,
-                    };
+        window.deleteSkillPlan = async (planName) => {
+            try {
+                if (!tabulatorRef.current) {
+                    console.error("Tabulator instance is not ready yet.");
+                    return;
                 }
 
-                return null;
-            }).filter(Boolean);
+                const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
+                    method: "DELETE",
+                });
 
-            return {
-                ...identity,
-                _children: children,
-            };
-        });
-    }, [identities, matchingCharacters, skillPlans]);
+                if (response.ok) {
+                    toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
 
-    const skillPlanData = useMemo(() => {
-        return Object.values(matchingSkillPlans).map((skillPlan) => {
-            const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
-            const pendingCharacters = skillPlan.PendingCharacters || [];
-
-            const qualifiedChildren = qualifiedCharacters.map((characterName) => ({
-                planName: characterName,
-                status: `<i class="fas fa-check-circle" style="color: green;"></i> Qualified`,
-            }));
-
-            const pendingChildren = pendingCharacters.map((characterName) => {
-                const characterData = matchingCharacters[characterName]?.Character || null;
-                if (!characterData) return null;
-
-                const pendingFinishDate = characterData.PendingFinishDates?.[skillPlan.Name] || "";
-                const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-
-                return {
-                    planName: characterName,
-                    status: `<i class="fas fa-clock" style="color: orange;"></i> Pending (${daysRemaining})`,
-                };
-            }).filter(Boolean);
-
-            return {
-                id: skillPlan.Name,
-                planName: skillPlan.Name,
-                _children: [...qualifiedChildren, ...pendingChildren],
-            };
-        });
-    }, [matchingSkillPlans, matchingCharacters]);
+                    const row = tabulatorRef.current.getRow(planName);
+                    if (row) {
+                        row.delete();
+                        console.log(`Deleted row with planName '${planName}' from the table.`);
+                    } else {
+                        console.warn(`Row with planName '${planName}' not found in Tabulator.`);
+                    }
+                } else {
+                    const errorMessage = await response.text();
+                    toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
+                }
+            } catch (error) {
+                console.error("Error deleting skill plan:", error);
+                toast.error("An error occurred while deleting the skill plan.", { autoClose: 1500 });
+            }
+        };
+    }, [skillPlans]);
 
     return (
         <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-16">
             <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
+                {/* Character Table */}
                 <div className="mb-8 w-full">
                     <h2 className="text-2xl font-bold mb-4 text-teal-200">Character Table</h2>
                     <TabulatorTable
                         id="character-table"
-                        data={characterData} // Pass the correct data here
+                        data={characterData}
                         columns={[
                             {
                                 title: "Character Name",
@@ -161,7 +189,7 @@ const MainContent = ({
                             {
                                 title: "Total Skill Points",
                                 field: "TotalSP",
-                                formatter: (cell) => cell.getValue(),
+                                formatter: "html", // Ensure this is rendered as HTML
                             },
                         ]}
                         options={{
@@ -172,37 +200,27 @@ const MainContent = ({
                     />
                 </div>
 
-                <div className="w-full">
+                {/* Skill Plan Table */}
+                <div className="mb-8 w-full">
                     <h2 className="text-2xl font-bold mb-4 text-teal-200">Skill Plan Table</h2>
                     <TabulatorTable
                         id="skill-plan-table"
-                        data={skillPlanData} // Pass the correct skill plan data
+                        data={skillPlanData}
                         columns={[
                             {
-                                title: "Skill Plan Name",
+                                title: "Skill Plan",
                                 field: "planName",
-                                formatter: "html",
+                                formatter: "html", // Render HTML for copy/delete icons in parent row
                             },
                             {
-                                title: "Actions",
-                                field: "actions",
-                                formatter: (cell) => {
-                                    const data = cell.getRow().getData();
-                                    const planName = data.planName;
-
-                                    return `
-                                        <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${planName}')"></i>
-                                        <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${planName}')"></i>
-                                    `;
-                                },
-                                headerSort: false,
-                                width: 200,
+                                title: "Status",
+                                field: "Status",
+                                formatter: "html", // Render HTML for the status of both parent and child rows
                             },
                         ]}
                         options={{
                             dataTree: true,
                             dataTreeStartExpanded: false,
-                            key: "id",
                         }}
                         ref={tabulatorRef}
                     />
@@ -213,10 +231,26 @@ const MainContent = ({
 };
 
 MainContent.propTypes = {
-    identities: PropTypes.array.isRequired,
-    skillPlans: PropTypes.object.isRequired,
-    matchingSkillPlans: PropTypes.object.isRequired,
-    matchingCharacters: PropTypes.object.isRequired,
+    identities: PropTypes.arrayOf(
+        PropTypes.shape({
+            CharacterID: PropTypes.number.isRequired,
+            CharacterName: PropTypes.string.isRequired,
+            Character: PropTypes.shape({
+                QualifiedPlans: PropTypes.object,
+                PendingPlans: PropTypes.object,
+                PendingFinishDates: PropTypes.object,
+                MissingSkills: PropTypes.object,
+            }),
+        })
+    ),
+    skillPlans: PropTypes.objectOf(
+        PropTypes.shape({
+            Name: PropTypes.string.isRequired,
+            QualifiedCharacters: PropTypes.arrayOf(PropTypes.string),
+            PendingCharacters: PropTypes.arrayOf(PropTypes.string),
+            Skills: PropTypes.object,
+        })
+    ),
 };
 
 export default MainContent;

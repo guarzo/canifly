@@ -6,15 +6,30 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// HomeData is the structure used to pass the data to the frontend
 type HomeData struct {
-	Title               string
-	LoggedIn            bool
-	Identities          map[int64]CharacterIdentity
-	TabulatorIdentities []map[string]interface{}
-	TabulatorSkillPlans map[string]SkillPlan
-	MainIdentity        int64
-	MatchingSkillPlans  map[string]SkillPlan
-	MatchingCharacters  map[int64]CharacterIdentity
+	Title        string
+	LoggedIn     bool
+	Identities   map[int64]CharacterIdentity
+	SkillPlans   map[string]SkillPlanWithStatus // Skill plans with character status
+	MainIdentity int64
+}
+
+// SkillPlanWithStatus holds detailed information about each skill plan
+type SkillPlanWithStatus struct {
+	Name                string
+	QualifiedCharacters []string
+	PendingCharacters   []string
+	MissingSkills       map[string]map[string]int32 // Missing skills by character
+	Characters          []CharacterSkillPlanStatus  // List of characters with their status for this skill plan
+}
+
+// CharacterSkillPlanStatus represents a character's status for a specific skill plan
+type CharacterSkillPlanStatus struct {
+	CharacterName     string
+	Status            string // "qualified", "pending", "missing"
+	MissingSkills     map[string]int32
+	PendingFinishDate *time.Time
 }
 
 // CharacterIdentity structure contains nested Character struct

@@ -146,33 +146,33 @@ func parseSkillLevel(levelStr string) (int, error) {
 func getMatchingSkillPlans(
 	characters map[int64]model.CharacterIdentity,
 	skillPlans map[string]model.SkillPlan,
-	skillTypes map[string]model.SkillType, // Retain the skillTypes map parameter
-) (map[int64]model.CharacterIdentity, map[string]model.SkillPlan) {
+	skillTypes map[string]model.SkillType,
+) map[string]model.SkillPlanWithStatus {
 
-	updatedCharacters := make(map[int64]model.CharacterIdentity)
-	updatedSkillPlans := make(map[string]model.SkillPlan)
+	updatedSkillPlans := make(map[string]model.SkillPlanWithStatus)
 
-	// Initialize updatedSkillPlans with empty QualifiedCharacters and PendingCharacters
+	// Initialize updatedSkillPlans with empty QualifiedCharacters, PendingCharacters, and Characters
 	for planName, plan := range skillPlans {
-		plan.QualifiedCharacters = []string{}
-		plan.PendingCharacters = []string{}
-		updatedSkillPlans[planName] = plan
+		updatedSkillPlans[planName] = model.SkillPlanWithStatus{
+			Name:                plan.Name,
+			QualifiedCharacters: []string{},
+			PendingCharacters:   []string{},
+			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills
+			Characters:          []model.CharacterSkillPlanStatus{},
+		}
 	}
 
-	for charID, characterData := range characters {
+	// Process each character to update their matching skill plans
+	for characterID, characterData := range characters {
 		character := characterData.Character
-		character.QualifiedPlans = make(map[string]bool)
-		character.PendingPlans = make(map[string]bool)
-		character.PendingFinishDates = make(map[string]*time.Time)
-		character.MissingSkills = make(map[string]map[string]int32)
-
-		// Map character's current skills and skill queue for lookup
 		characterSkills := make(map[int32]int32)
+
+		// Map character's current skills for lookup
 		for _, skill := range character.Skills {
 			characterSkills[skill.SkillID] = skill.TrainedSkillLevel
 		}
 
-		// Track maximum levels of skills in the queue and their finish dates
+		// Track skill queue levels for pending skills
 		skillQueueLevels := make(map[int32]struct {
 			level      int32
 			finishDate *time.Time
@@ -186,7 +186,19 @@ func getMatchingSkillPlans(
 			}
 		}
 
-		for planName, plan := range updatedSkillPlans {
+		// Initialize QualifiedPlans, PendingPlans, and MissingSkills for the character
+		if characterData.Character.QualifiedPlans == nil {
+			characterData.Character.QualifiedPlans = make(map[string]bool)
+		}
+		if characterData.Character.PendingPlans == nil {
+			characterData.Character.PendingPlans = make(map[string]bool)
+		}
+		if characterData.Character.MissingSkills == nil {
+			characterData.Character.MissingSkills = make(map[string]map[string]int32)
+		}
+
+		// Check matching skill plans for the current character
+		for planName, plan := range skillPlans {
 			qualifies := true
 			pending := false
 			missingSkills := make(map[string]int32)
@@ -199,7 +211,7 @@ func getMatchingSkillPlans(
 				if !exists {
 					xlog.Logf("Error: Skill '%s' does not exist in skill types", skillName)
 					qualifies = false
-					continue // Instead of break, use continue to move to the next skill
+					continue
 				}
 
 				skillID, err := strconv.Atoi(skillType.TypeID)
@@ -215,7 +227,7 @@ func getMatchingSkillPlans(
 
 				// Compare current skill and skill queue for qualification
 				if hasSkill && characterLevel >= requiredLevel {
-					continue
+					continue // Qualified for this skill
 				} else if inQueue && queued.level >= requiredLevel {
 					pending = true
 					if latestFinishDate == nil || (queued.finishDate != nil && queued.finishDate.After(*latestFinishDate)) {
@@ -227,30 +239,59 @@ func getMatchingSkillPlans(
 				}
 			}
 
-			// Update Qualified and Pending status
-			if qualifies && !pending {
-				character.QualifiedPlans[planName] = true
-				modifiedPlan := updatedSkillPlans[planName]
-				modifiedPlan.QualifiedCharacters = append(modifiedPlan.QualifiedCharacters, character.CharacterName)
-				updatedSkillPlans[planName] = modifiedPlan
-			} else if pending {
-				character.PendingPlans[planName] = true
-				modifiedPlan := updatedSkillPlans[planName]
-				modifiedPlan.PendingCharacters = append(modifiedPlan.PendingCharacters, character.CharacterName)
-				updatedSkillPlans[planName] = modifiedPlan
-				character.PendingFinishDates[planName] = latestFinishDate
+			// Add this character's status to the skill plan's Characters list
+			characterSkillStatus := model.CharacterSkillPlanStatus{
+				CharacterName:     character.CharacterName,
+				Status:            getStatus(qualifies, pending),
+				MissingSkills:     missingSkills, // Store missing skills correctly
+				PendingFinishDate: latestFinishDate,
 			}
 
-			// If there are any missing skills, add them to the character's MissingSkills map
-			if len(missingSkills) > 0 {
-				character.MissingSkills[planName] = missingSkills
+			modifiedPlan := updatedSkillPlans[planName]
+
+			// If qualifies and not pending, add to QualifiedCharacters
+			if qualifies && !pending {
+				modifiedPlan.QualifiedCharacters = append(modifiedPlan.QualifiedCharacters, character.CharacterName)
+				characterData.Character.QualifiedPlans[planName] = true // Update the character's QualifiedPlans
 			}
+
+			// If pending, add to PendingCharacters
+			if pending {
+				modifiedPlan.PendingCharacters = append(modifiedPlan.PendingCharacters, character.CharacterName)
+				characterSkillStatus.PendingFinishDate = latestFinishDate
+				characterData.Character.PendingPlans[planName] = true // Update the character's PendingPlans
+			}
+
+			// If there are missing skills, store them in the MissingSkills map
+			if len(missingSkills) > 0 {
+				if modifiedPlan.MissingSkills == nil {
+					modifiedPlan.MissingSkills = make(map[string]map[string]int32)
+				}
+				modifiedPlan.MissingSkills[character.CharacterName] = missingSkills
+				characterData.Character.MissingSkills[planName] = missingSkills // Update MissingSkills for the character
+			}
+
+			// Add the character's skill status to the plan's character list
+			modifiedPlan.Characters = append(modifiedPlan.Characters, characterSkillStatus)
+
+			// Update the skill plan with the new status
+			updatedSkillPlans[planName] = modifiedPlan
 		}
-		characterData.Character = character
-		updatedCharacters[charID] = characterData
+
+		// Update the identities map with the modified character data
+		characters[characterID] = characterData
 	}
 
-	return updatedCharacters, updatedSkillPlans
+	return updatedSkillPlans
+}
+
+func getStatus(qualifies bool, pending bool) string {
+	if qualifies && !pending {
+		return "Qualified"
+	} else if pending {
+		return "Pending"
+	}
+	return "Not Qualified"
 }
 
 // DeleteSkillPlanHandler handles the deletion of a skill plan.
