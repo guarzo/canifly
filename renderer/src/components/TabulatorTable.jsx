@@ -3,34 +3,34 @@ import PropTypes from 'prop-types';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator_midnight.min.css';
 
-const TabulatorTable = ({ id, data, columns, options }) => {
-    const tableRef = useRef(null);
-    const tabulatorRef = useRef(null);
+// ForwardRef to properly handle ref passing to the div container
+const TabulatorTable = React.forwardRef(({ id, data, columns, options }, ref) => {
+    const tableRef = useRef(null); // Local ref for the table DOM element
+    const tabulatorRef = useRef(null); // Local ref for the Tabulator instance
 
     useEffect(() => {
         if (tableRef.current && !tabulatorRef.current) {
-            // Initialize Tabulator only once
+            // Initialize Tabulator only once, save it to the ref
             tabulatorRef.current = new Tabulator(tableRef.current, {
                 data,
                 columns,
                 layout: options.layout || 'fitColumns',
                 ...options,
             });
-        } else if (tabulatorRef.current) {
-            // Update the data without destroying/reinitializing the table
-            tabulatorRef.current.replaceData(data);
         }
-
-        return () => {
-            if (tabulatorRef.current) {
-                tabulatorRef.current.destroy();
-                tabulatorRef.current = null;
-            }
-        };
     }, [data, columns, options]);
 
-    return <div id={id} ref={tableRef}></div>;
-};
+    // Expose the Tabulator instance to the parent component via the forwarded ref
+    useEffect(() => {
+        if (ref && tabulatorRef.current) {
+            ref.current = tabulatorRef.current;
+        }
+    }, [ref]);
+
+    return (
+        <div id={id} ref={tableRef} />
+    );
+});
 
 TabulatorTable.propTypes = {
     id: PropTypes.string.isRequired,

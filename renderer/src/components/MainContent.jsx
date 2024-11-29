@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import TabulatorTable from "./TabulatorTable";
 import { toast } from "react-toastify";
@@ -11,11 +11,48 @@ const MainContent = ({
                      }) => {
     console.log("MainContent Props:", { identities, skillPlans, matchingSkillPlans, matchingCharacters });
 
+    const tabulatorRef = useRef(null); // Create a ref to hold the Tabulator instance
+
     const calculateDaysFromToday = (date) => {
         if (!date) return "";
         const diffTime = new Date(date) - new Date();
         return diffTime > 0 ? `${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} days` : "0 days";
     };
+
+    window.deleteSkillPlan = async (planName) => {
+        try {
+            if (!tabulatorRef.current) {
+                console.error("Tabulator instance is not ready yet.");
+                return;
+            }
+
+            const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
+
+                const row = tabulatorRef.current.getRow(planName);
+                if (row) {
+                    row.delete();
+                    console.log(`Deleted row with planName '${planName}' from the table.`);
+                } else {
+                    console.warn(`Row with planName '${planName}' not found in Tabulator.`);
+                }
+            } else {
+                const errorMessage = await response.text();
+                toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
+            }
+        } catch (error) {
+            console.error("Error deleting skill plan:", error);
+            toast.error("An error occurred while deleting the skill plan.", { autoClose: 1500 });
+        }
+    };
+
+    useEffect(() => {
+        window.tabulatorRef = tabulatorRef;
+    }, []);
 
     useEffect(() => {
         window.copySkillPlan = (planName) => {
@@ -32,38 +69,6 @@ const MainContent = ({
                     });
             } else {
                 toast.warning("No skills available to copy.", { autoClose: 1500 });
-            }
-        };
-
-        window.deleteSkillPlan = async (planName) => {
-            try {
-                const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
-                    method: "DELETE",
-                });
-
-                if (response.ok) {
-                    toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-
-                    // Dynamically remove the row from Tabulator
-                    const tableElement = document.getElementById("skill-plan-table");
-                    if (tableElement?.tabulator) {
-                        const row = tableElement.tabulator.getRow(planName);
-                        if (row) {
-                            tableElement.tabulator.deleteRow(planName);
-                            console.log(`Deleted row with planName '${planName}' from the table.`);
-                        } else {
-                            console.warn(`Row with planName '${planName}' not found in Tabulator.`);
-                        }
-                    } else {
-                        console.warn("Tabulator instance not found for #skill-plan-table");
-                    }
-                } else {
-                    const errorMessage = await response.text();
-                    toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
-                }
-            } catch (error) {
-                console.error("Error deleting skill plan:", error);
-                toast.error("An error occurred while deleting the skill plan.", { autoClose: 1500 });
             }
         };
     }, [skillPlans]);
@@ -132,7 +137,7 @@ const MainContent = ({
             }).filter(Boolean);
 
             return {
-                id: skillPlan.Name, // Ensure unique ID for Tabulator
+                id: skillPlan.Name,
                 planName: skillPlan.Name,
                 _children: [...qualifiedChildren, ...pendingChildren],
             };
@@ -142,12 +147,11 @@ const MainContent = ({
     return (
         <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-16">
             <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
-                {/* Character Table */}
                 <div className="mb-8 w-full">
                     <h2 className="text-2xl font-bold mb-4 text-teal-200">Character Table</h2>
                     <TabulatorTable
                         id="character-table"
-                        data={characterData}
+                        data={characterData} // Pass the correct data here
                         columns={[
                             {
                                 title: "Character Name",
@@ -157,28 +161,22 @@ const MainContent = ({
                             {
                                 title: "Total Skill Points",
                                 field: "TotalSP",
-                                formatter: (cell) => {
-                                    const value = cell.getValue();
-                                    if (cell.getRow().getTreeParent() === false) {
-                                        return Number(value).toLocaleString(); // Format parent row as number
-                                    }
-                                    return value; // Child rows retain HTML
-                                },
+                                formatter: (cell) => cell.getValue(),
                             },
                         ]}
                         options={{
                             dataTree: true,
                             dataTreeStartExpanded: false,
                         }}
+                        ref={tabulatorRef}
                     />
                 </div>
 
-                {/* Skill Plan Table */}
                 <div className="w-full">
                     <h2 className="text-2xl font-bold mb-4 text-teal-200">Skill Plan Table</h2>
                     <TabulatorTable
                         id="skill-plan-table"
-                        data={skillPlanData}
+                        data={skillPlanData} // Pass the correct skill plan data
                         columns={[
                             {
                                 title: "Skill Plan Name",
@@ -192,18 +190,10 @@ const MainContent = ({
                                     const data = cell.getRow().getData();
                                     const planName = data.planName;
 
-                                    if (!cell.getRow().getTreeParent()) {
-                                        return `
-                                            <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200"                                                 title="Copy Skill Plan" 
-                                                style="cursor: pointer; margin-right: 10px;" 
-                                                onclick="window.copySkillPlan('${planName}')"></i>
-                                            <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300"                                                 title="Delete Skill Plan" 
-                                                style="cursor: pointer; color: red;" 
-                                                onclick="window.deleteSkillPlan('${planName}')"></i>
-                                        `;
-                                    }
-
-                                    return data.status || "";
+                                    return `
+                                        <i class="fas fa-clipboard clipboard-icon text-teal-400 hover:text-teal-200" title="Copy Skill Plan" style="cursor: pointer; margin-right: 10px;" onclick="window.copySkillPlan('${planName}')"></i>
+                                        <i class="fas fa-trash-alt delete-icon text-red-500 hover:text-red-300" title="Delete Skill Plan" style="cursor: pointer;" onclick="window.deleteSkillPlan('${planName}')"></i>
+                                    `;
                                 },
                                 headerSort: false,
                                 width: 200,
@@ -212,8 +202,9 @@ const MainContent = ({
                         options={{
                             dataTree: true,
                             dataTreeStartExpanded: false,
-                            key: "id", // Explicitly set unique key
+                            key: "id",
                         }}
+                        ref={tabulatorRef}
                     />
                 </div>
             </div>
