@@ -1,7 +1,7 @@
 // main.js
 
-const { app, BrowserWindow } = require('electron');
-require('@electron/remote/main').initialize(); // Initialize remote module
+const { app, BrowserWindow, ipcMain } = require('electron');
+require('@electron/remote/main').initialize(); // Ensure this is initialized
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
@@ -38,9 +38,20 @@ function createWindow() {
         mainWindow.loadURL(`file://${path.join(__dirname, 'renderer', 'dist', 'index.html')}`);
     }
 
-    mainWindow.on('closed', function () {
-        if (goProcess) goProcess.kill();
+    // Listen for close window request
+    ipcMain.on('close-window', () => {
+        mainWindow.close(); // Close the window
     });
+
+    mainWindow.on('closed', function () {
+        if (goProcess) {
+            goProcess.kill();
+            console.log('Go process terminated');
+        }
+        app.quit(); // Quit the Electron app completely
+        process.exit(); // Force exit if necessary
+    });
+
 }
 
 function checkBackendReady(retries) {

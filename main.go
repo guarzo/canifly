@@ -127,19 +127,16 @@ func setupRouter(secret string) *mux.Router {
 
 	// Utility and user functions
 	r.HandleFunc("/callback/", flyHandlers.CallbackHandler(sessionStore))
-	r.HandleFunc("/", flyHandlers.HomeHandler(sessionStore))
 	r.HandleFunc("/login", flyHandlers.LoginHandler)
 	r.HandleFunc("/auth-character", flyHandlers.AuthCharacterHandler)
-	r.HandleFunc("/logout", flyHandlers.LogoutHandler(sessionStore))
-	r.HandleFunc("/get-skill-plan", flyHandlers.SkillPlanFileHandler)
-	r.HandleFunc("/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
-	r.HandleFunc("/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
 
 	r.HandleFunc("/api/home-data", flyHandlers.HomeDataHandler(sessionStore))
-	r.HandleFunc("/api/logout", flyHandlers.LogoutReactHandler(sessionStore))
+	r.HandleFunc("/api/logout", flyHandlers.LogoutHandler(sessionStore))
 	r.HandleFunc("/api/get-skill-plan", flyHandlers.SkillPlanFileHandler)
 	r.HandleFunc("/api/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
 	r.HandleFunc("/api/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
+	r.HandleFunc("/api/unassigned-characters", flyHandlers.GetUnassignedCharactersHandler(sessionStore))
+	r.HandleFunc("/api/assign-character", flyHandlers.AssignCharacterHandler(sessionStore))
 
 	// Admin routes
 	r.HandleFunc("/reset-identities", flyHandlers.ResetIdentitiesHandler(sessionStore))

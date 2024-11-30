@@ -10,6 +10,7 @@ import (
 const (
 	lastRefreshTime            = "last_refresh"
 	allAuthenticatedCharacters = "authenticated_characters"
+	unassignedCharactersString = "unassigned_characters"
 	loggedInUser               = "logged_in_user"
 	sessionName                = "session"
 	previousUserCount          = "previous_user_count"

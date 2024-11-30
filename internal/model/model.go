@@ -1,17 +1,31 @@
 package model
 
 import (
+	"encoding/gob"
 	"time"
 
 	"golang.org/x/oauth2"
 )
 
-// HomeData is the structure used to pass the data to the frontend
+type Account struct {
+	Name       string
+	Status     string // "Omega", "Alpha"
+	Characters []CharacterIdentity
+	ID         int64 // dynamically generated for now
+}
+
+type CharacterIdentity struct {
+	Token     oauth2.Token // existing field
+	Character Character    // existing field
+	Role      string       // new field for categorization
+	MCT       bool         // new field, useful for sorting
+}
+
 type HomeData struct {
 	Title        string
 	LoggedIn     bool
-	Identities   map[int64]CharacterIdentity
-	SkillPlans   map[string]SkillPlanWithStatus // Skill plans with character status
+	Accounts     []Account // Add Accounts here
+	SkillPlans   map[string]SkillPlanWithStatus
 	MainIdentity int64
 }
 
@@ -34,10 +48,10 @@ type CharacterSkillPlanStatus struct {
 }
 
 // CharacterIdentity structure contains nested Character struct
-type CharacterIdentity struct {
-	Token     oauth2.Token
-	Character Character
-}
+//type CharacterIdentity struct {
+//	Token     oauth2.Token
+//	Character Character
+//}
 
 type Character struct {
 	BaseCharacterResponse
@@ -149,4 +163,11 @@ type CloneLocation struct {
 		LocationID   int64  `json:"location_id"`
 		LocationType string `json:"location_type"`
 	} `json:"jump_clones"`
+}
+
+func init() {
+	// Register the base type for gob encoding/decoding
+	gob.Register(CharacterIdentity{})
+	// Register the slice type for gob encoding/decoding
+	gob.Register([]CharacterIdentity{})
 }

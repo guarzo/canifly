@@ -2,14 +2,14 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-const { remote } = require('@electron/remote');
+const { ipcRenderer } = require('electron'); // Import ipcRenderer for communication with main process
 
 /**
  * Header Component
  *
  * Displays the application title and user actions like "Add Character," "Add Skill Plan," "Logout," and "Close Window."
  */
-const Header = ({ title, loggedIn, handleLogout }) => {
+const Header = ({ loggedIn, handleLogout }) => {
     const handleAddCharacter = () => {
         window.location.href = 'http://localhost:8713/auth-character'; // Initiate OAuth flow
     };
@@ -19,8 +19,7 @@ const Header = ({ title, loggedIn, handleLogout }) => {
     };
 
     const handleCloseWindow = () => {
-        const currentWindow = remote.getCurrentWindow();
-        currentWindow.close();
+        ipcRenderer.send('close-window'); // Send close-window event to main process
     };
 
     return (
@@ -50,7 +49,7 @@ const Header = ({ title, loggedIn, handleLogout }) => {
                     )}
                 </div>
 
-                <h1 className="text-2xl font-bold text-teal-200 text-center flex-grow">{title}</h1>
+                <h1 className="text-2xl font-bold text-teal-200 text-center flex-grow">Can I Fly?</h1>
 
                 <div className="flex space-x-2" style={{ WebkitAppRegion: 'no-drag' }}>
                     {loggedIn && (
@@ -78,7 +77,6 @@ const Header = ({ title, loggedIn, handleLogout }) => {
 };
 
 Header.propTypes = {
-    title: PropTypes.string.isRequired,
     loggedIn: PropTypes.bool.isRequired,
     handleLogout: PropTypes.func.isRequired,
 };

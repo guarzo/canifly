@@ -12,24 +12,27 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
-func PopulateIdentities(userConfig *model.Identities) (map[int64]model.CharacterIdentity, error) {
-	characterData := make(map[int64]model.CharacterIdentity)
+func PopulateIdentities(userConfig *model.Identities) ([]model.CharacterIdentity, error) {
+	var characterData []model.CharacterIdentity
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
+	// Iterate through each account and its characters
 	for id, token := range userConfig.Tokens {
 		wg.Add(1)
 		go func(id int64, token oauth2.Token) {
 			defer wg.Done()
 
-			charIdentity, err := processIdentity(id, token, userConfig, &mu)
+			// Process each character identity asynchronously
+			charIdentityProcessed, err := processIdentity(id, token, userConfig, &mu)
 			if err != nil {
 				xlog.Logf("Failed to process identity for character %d: %v", id, err)
 				return
 			}
 
 			mu.Lock()
-			characterData[id] = *charIdentity
+			// Add the processed identity to the list
+			characterData = append(characterData, *charIdentityProcessed)
 			mu.Unlock()
 		}(id, token)
 	}

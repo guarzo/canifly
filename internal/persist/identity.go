@@ -8,8 +8,6 @@ import (
 	"github.com/guarzo/canifly/internal/utils/crypto"
 	"github.com/guarzo/canifly/internal/utils/xlog"
 
-	"golang.org/x/oauth2"
-
 	"github.com/guarzo/canifly/internal/model"
 )
 
@@ -30,42 +28,35 @@ func GetWritableDataPath() (string, error) {
 	return identityPath, nil
 }
 
-// LoadIdentities loads the identities from a writable data path.
-func LoadIdentities(mainIdentity int64) (*model.Identities, error) {
-	if mainIdentity == 0 {
-		return nil, fmt.Errorf("logged in user not provided")
-	}
+// FetchAccountByIdentity loads the identities from a writable data path.
+func FetchAccountByIdentity(mainIdentity int64) ([]model.Account, error) {
+	var accounts []model.Account
+	identityPath := getAccountFileName(mainIdentity)
 
-	identities := &model.Identities{Tokens: make(map[int64]oauth2.Token)}
-	filePath := getIdentityFileName(mainIdentity)
-
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := os.Stat(identityPath)
 	if os.IsNotExist(err) || fileInfo.Size() == 0 {
 		xlog.Log("no identity file or file is empty")
-		return identities, nil
+		return accounts, nil
 	}
 
-	err = crypto.DecryptData(filePath, identities)
+	err = crypto.DecryptData(identityPath, &accounts)
 	if err != nil {
 		xlog.Log("error in decrypt")
-		os.Remove(filePath) // Remove corrupted file
+		os.Remove(identityPath) // Remove corrupted file
 		return nil, err
 	}
 
-	return identities, nil
+	return accounts, nil
 }
 
-// SaveIdentities encrypts and saves identities to the writable path.
-func SaveIdentities(mainIdentity int64, ids *model.Identities) error {
-	if mainIdentity == 0 {
-		return fmt.Errorf("no main identity provided")
-	}
-
-	return crypto.EncryptData(ids, getIdentityFileName(mainIdentity))
+// SaveAccounts encrypts and saves identities to the writable path.
+func SaveAccounts(mainIdentity int64, accounts []model.Account) error {
+	filePath := getAccountFileName(mainIdentity)
+	return crypto.EncryptData(accounts, filePath)
 }
 
-// getIdentityFileName constructs the file path for storing identity files in the writable data directory.
-func getIdentityFileName(mainIdentity int64) string {
+// getAccountFileName constructs the file path for storing identity files in the writable data directory.
+func getAccountFileName(mainIdentity int64) string {
 	identityPath, err := GetWritableDataPath()
 	if err != nil {
 		xlog.Logf("Error retrieving writable data path: %v\n", err)
@@ -74,29 +65,73 @@ func getIdentityFileName(mainIdentity int64) string {
 	return filepath.Join(identityPath, fmt.Sprintf("%d_identity.json", mainIdentity))
 }
 
-// UpdateIdentities updates identities using a provided function.
-func UpdateIdentities(mainIdentity int64, updateFunc func(*model.Identities) error) error {
-	ids, err := LoadIdentities(mainIdentity)
+func UpdateAccounts(mainIdentity int64, updateFunc func(*model.Account) error) error {
+	xlog.Logf("starting update accounts")
+	accounts, err := FetchAccountByIdentity(mainIdentity)
 	if err != nil {
 		xlog.Log("error in load")
 		return err
 	}
 
-	if err = updateFunc(ids); err != nil {
-		xlog.Log("error in update")
-		return err
+	// Log account details for debugging
+	xlog.Logf("Account fetched: %+v", accounts)
+
+	// Update the accounts
+	for i := range accounts {
+		if err := updateFunc(&accounts[i]); err != nil {
+			xlog.Log("error in update")
+			return err
+		}
 	}
 
-	if err = SaveIdentities(mainIdentity, ids); err != nil {
+	// Save the updated identities back
+	if err := SaveAccounts(mainIdentity, accounts); err != nil {
 		xlog.Log("error in save")
 		return err
 	}
 
+	xlog.Logf("completing update accounts")
 	return nil
 }
 
-// DeleteIdentity removes an identity file from the writable directory.
-func DeleteIdentity(mainIdentity int64) error {
-	idFile := getIdentityFileName(mainIdentity)
+// DeleteAccount removes an identity file from the writable directory.
+func DeleteAccount(mainIdentity int64) error {
+	idFile := getAccountFileName(mainIdentity)
 	return os.Remove(idFile)
+}
+
+// SaveUnassignedCharacters encrypts and saves unassigned characters to a writable path.
+func SaveUnassignedCharacters(mainIdentity int64, unassignedCharacters []model.CharacterIdentity) error {
+	filePath := getUnassignedCharactersFileName(mainIdentity)
+	return crypto.EncryptData(unassignedCharacters, filePath)
+}
+
+// FetchUnassignedCharacters loads the unassigned characters from a writable data path.
+func FetchUnassignedCharacters(mainIdentity int64) ([]model.CharacterIdentity, error) {
+	var unassignedCharacters []model.CharacterIdentity
+	identityPath := getUnassignedCharactersFileName(mainIdentity)
+
+	fileInfo, err := os.Stat(identityPath)
+	if os.IsNotExist(err) || fileInfo.Size() == 0 {
+		xlog.Log("no unassigned characters file or file is empty")
+		return unassignedCharacters, nil
+	}
+
+	err = crypto.DecryptData(identityPath, &unassignedCharacters)
+	if err != nil {
+		xlog.Log("error in decrypt")
+		os.Remove(identityPath) // Remove corrupted file
+		return nil, err
+	}
+
+	return unassignedCharacters, nil
+}
+
+func getUnassignedCharactersFileName(mainIdentity int64) string {
+	identityPath, err := GetWritableDataPath()
+	if err != nil {
+		xlog.Logf("Error retrieving writable data path: %v\n", err)
+		return ""
+	}
+	return filepath.Join(identityPath, fmt.Sprintf("%d_unassigned_characters.json", mainIdentity))
 }

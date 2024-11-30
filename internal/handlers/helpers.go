@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/api"
 	"github.com/guarzo/canifly/internal/model"
@@ -16,18 +17,15 @@ import (
 	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
-func sameIdentities(users []int64, identities map[int64]model.CharacterIdentity) bool {
-	var identitiesKeys []int64
-	for k, _ := range identities {
-		identitiesKeys = append(identitiesKeys, k)
-	}
-
-	if len(identities) != len(users) {
+func sameIdentities(users []int64, characterIDs []int64) bool {
+	// Compare the lengths of the two slices
+	if len(characterIDs) != len(users) {
 		return false
 	}
 
-	for k, _ := range identities {
-		if !slices.Contains(users, k) {
+	// Check if every user is in the character IDs list
+	for _, userID := range users {
+		if !slices.Contains(characterIDs, userID) {
 			return false
 		}
 	}
@@ -79,60 +77,102 @@ func checkIfCanSkip(session *sessions.Session, sessionValues SessionValues, r *h
 	if !ok || sessionValues.PreviousInputSubmitted == "" || sessionValues.PreviousInputSubmitted != r.FormValue("desired_destinations") {
 		canSkip = false
 	}
-	if !sameUserCount(session, sessionValues.PreviousUserCount, len(storeData.Identities)) {
+
+	var identitiesCount int
+	for _, account := range storeData.Accounts {
+		identitiesCount += len(account.Characters)
+	}
+
+	if !sameUserCount(session, sessionValues.PreviousUserCount, identitiesCount) {
 		canSkip = false
 	}
 	return storeData, etag, canSkip
 }
 
-func validateIdentities(session *sessions.Session, sessionValues SessionValues, storeData model.HomeData) (map[int64]model.CharacterIdentity, error) {
-	identities := storeData.Identities
-
+func validateAccounts(session *sessions.Session, sessionValues SessionValues, storeData model.HomeData) ([]model.Account, error) {
 	authenticatedUsers, ok := session.Values[allAuthenticatedCharacters].([]int64)
 	if !ok {
 		xlog.Logf("Failed to retrieve authenticated users from session")
 		return nil, fmt.Errorf("failed to retrieve authenticated users from session")
 	}
 
-	needIdentityPopulation := len(authenticatedUsers) == 0 || !sameIdentities(authenticatedUsers, storeData.Identities) || time.Since(time.Unix(sessionValues.LastRefreshTime, 0)) > 15*time.Minute
+	// Flag to track if identities need to be populated
+	needIdentityPopulation := len(authenticatedUsers) == 0
+	for _, account := range storeData.Accounts {
+		// Extract character IDs from account.Characters for comparison
+		var accountCharacterIDs []int64
+		for _, charIdentity := range account.Characters {
+			accountCharacterIDs = append(accountCharacterIDs, charIdentity.Character.CharacterID)
+		}
 
+		// Check if we need to populate identities
+		needIdentityPopulation = needIdentityPopulation || !sameIdentities(authenticatedUsers, accountCharacterIDs)
+	}
+
+	// If identities need population, load and update
 	if needIdentityPopulation {
-		userConfig, err := persist.LoadIdentities(sessionValues.LoggedInUser)
+		// Load identities (model.Identities)
+		accounts, err := persist.FetchAccountByIdentity(sessionValues.LoggedInUser)
 		if err != nil {
 			xlog.Logf("Failed to load identities: %v", err)
 			return nil, fmt.Errorf("failed to load identities: %w", err)
 		}
 
-		identities, err = api.PopulateIdentities(userConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to populate identities: %w", err)
+		// Convert accounts (which is []model.Account) to *model.Identities
+		identities := &model.Identities{
+			Tokens: make(map[int64]oauth2.Token),
 		}
 
-		if err = persist.SaveIdentities(sessionValues.LoggedInUser, userConfig); err != nil {
+		// Populate the Tokens map from the accounts in accounts
+		for _, account := range accounts {
+			for _, charIdentity := range account.Characters {
+				// Assuming CharacterID is the key and Token is the value
+				identities.Tokens[charIdentity.Character.CharacterID] = charIdentity.Token
+			}
+		}
+
+		// Populate characters for each account
+		for i := range storeData.Accounts {
+			account := &storeData.Accounts[i]
+
+			// Pass the populated identities to PopulateIdentities
+			account.Characters, err = api.PopulateIdentities(identities) // Pass *model.Identities here
+			if err != nil {
+				return nil, fmt.Errorf("failed to populate identities: %w", err)
+			}
+		}
+
+		// Save the updated identities
+		if err = persist.SaveAccounts(sessionValues.LoggedInUser, accounts); err != nil {
 			return nil, fmt.Errorf("failed to save identities: %w", err)
 		}
 
-		session.Values[allAuthenticatedCharacters] = getAuthenticatedCharacterIDs(identities)
+		// Update the session with the authenticated characters
+		session.Values[allAuthenticatedCharacters] = getAuthenticatedCharacterIDs(storeData.Accounts)
 		session.Values[lastRefreshTime] = time.Now().Unix()
 	}
 
-	return identities, nil
+	// Return the updated accounts (the original storeData.Accounts slice)
+	return storeData.Accounts, nil
 }
 
-func getAuthenticatedCharacterIDs(identities map[int64]model.CharacterIdentity) []int64 {
-	authenticatedCharacters := make([]int64, 0, len(identities))
-	for id := range identities {
-		authenticatedCharacters = append(authenticatedCharacters, id)
+// Updated function to get all authenticated character IDs from accounts
+func getAuthenticatedCharacterIDs(accounts []model.Account) []int64 {
+	authenticatedCharacters := make([]int64, 0)
+	for _, account := range accounts {
+		for _, charIdentity := range account.Characters {
+			authenticatedCharacters = append(authenticatedCharacters, charIdentity.Character.CharacterID)
+		}
 	}
 	return authenticatedCharacters
 }
 
-func prepareHomeData(sessionValues SessionValues, identities map[int64]model.CharacterIdentity) model.HomeData {
-	skillPlans := getMatchingSkillPlans(identities, skillplan.SkillPlans, skilltype.SkillTypes)
+func prepareHomeData(sessionValues SessionValues, accounts []model.Account) model.HomeData {
+	skillPlans := getMatchingSkillPlans(accounts, skillplan.SkillPlans, skilltype.SkillTypes)
 
 	return model.HomeData{
 		LoggedIn:     true,
-		Identities:   identities,
+		Accounts:     accounts,   // Use accounts instead of identities
 		SkillPlans:   skillPlans, // Return the updated skill plans
 		MainIdentity: sessionValues.LoggedInUser,
 	}

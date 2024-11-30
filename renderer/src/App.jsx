@@ -1,10 +1,7 @@
-//App.jsx
-
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import MainContent from './components/MainContent';
-import AddSkillPlanModal from './components/AddSkillPlanModal';
 import Landing from './components/Landing';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer, toast } from 'react-toastify';
@@ -13,186 +10,119 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
+    const [unassignedCharacters, setUnassignedCharacters] = useState(null);  // State to hold unassigned characters
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('/api/home-data', {
-                    credentials: 'include', // Ensure cookies are sent
-                });
-                if (response.status === 401) {
-                    setIsAuthenticated(false);
-                    toast.warning("Please log in to access your data.");
-                } else if (response.ok) {
-                    const data = await response.json();
-                    console.log("Home Data:", data);
-                    setHomeData(data);
-                    setIsAuthenticated(true);
-                } else {
-                    const errorData = await response.json();
-                    toast.error(errorData.error || "An unexpected error occurred.");
-                    setIsAuthenticated(false);
-                }
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error fetching home data:", error);
-                toast.error("Failed to load data. Please try again later.");
+    // Fetch home data
+    const fetchHomeData = async () => {
+        try {
+            const response = await fetch('/api/home-data', {
+                credentials: 'include', // Ensure cookies are sent
+            });
+
+            if (response.status === 401) {
                 setIsAuthenticated(false);
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    const handleLogout = async () => {
-        try {
-            const response = await fetch('/api/logout', {
-                method: 'POST',
-                credentials: 'include',
-            });
-            if (response.ok) {
+                setHomeData(null);
+                setUnassignedCharacters(null);  // Clear unassigned characters if not authenticated
+                toast.warning("Please log in to access your data.");
+            } else if (response.ok) {
                 const data = await response.json();
-                if (data.success) {
-                    setIsAuthenticated(false);
-                    toast.success("Logged out successfully.");
-                } else {
-                    toast.error("Logout failed.");
-                }
+                console.log("Home Data:", data);
+                setHomeData(data);
+                setIsAuthenticated(true);
+                fetchUnassignedCharacters();  // Fetch unassigned characters after successful login
             } else {
-                const errorText = await response.text();
-                toast.error(`Logout failed: ${errorText}`);
+                const errorData = await response.json();
+                toast.error(errorData.error || "An unexpected error occurred.");
+                setIsAuthenticated(false);
             }
         } catch (error) {
-            console.error("Error during logout:", error);
-            toast.error("An error occurred during logout.");
+            console.error("Error fetching home data:", error);
+            toast.error("Failed to load data. Please try again later.");
+            setIsAuthenticated(false);
+        }
+        setIsLoading(false);
+    };
+
+    // Fetch unassigned characters
+    const fetchUnassignedCharacters = async () => {
+        console.log("Fetching unassigned characters..."); // Log to ensure the function is called
+        try {
+            const response = await fetch('/api/unassigned-characters', {
+                credentials: 'include', // Include credentials to make the request
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch unassigned characters");
+            }
+
+            const data = await response.json();
+            console.log("Unassigned characters data:", data); // Log the response data
+            setUnassignedCharacters(data);  // Update state with the unassigned characters
+        } catch (error) {
+            console.error("Error fetching unassigned characters:", error);
+            toast.error("Failed to load unassigned characters.");
+            setUnassignedCharacters([]);  // Set to an empty array if the fetch fails
+        }
+    };
+
+    // Function to handle assigning character to an account
+    const handleAssignCharacter = async (characterID, accountID) => {
+        try {
+            const response = await fetch('/api/assign-character', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    characterID,
+                    accountID,
+                }),
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to assign character.");
+            }
+
+            toast.success("Character assigned successfully!");
+            fetchUnassignedCharacters();  // Refresh unassigned characters list
+        } catch (error) {
+            console.error("Error assigning character:", error);
+            toast.error("Failed to assign character.");
         }
     };
 
     useEffect(() => {
-        const handleOpenSkillPlanModal = () => {
-            setIsSkillPlanModalOpen(true);
-        };
-
-        window.addEventListener('openAddSkillPlanModal', handleOpenSkillPlanModal);
-
-        return () => {
-            window.removeEventListener('openAddSkillPlanModal', handleOpenSkillPlanModal);
-        };
+        fetchHomeData();  // Fetch home data on initial load
     }, []);
 
-    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
-
-    const handleSaveSkillPlan = async (planName, planContents) => {
-        try {
-            const response = await fetch('/api/save-skill-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: planName, contents: planContents }),
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                toast.success("Skill Plan Saved!");
-                setIsSkillPlanModalOpen(false);
-
-                const updatedHomeDataResponse = await fetch('/api/home-data', {
-                    credentials: 'include',
-                });
-                if (updatedHomeDataResponse.ok) {
-                    const updatedData = await updatedHomeDataResponse.json();
-                    setHomeData(updatedData);
-                    setIsAuthenticated(true);
-                } else {
-                    toast.error("Failed to refresh data after saving skill plan.");
-                }
-            } else {
-                const errorText = await response.text();
-                toast.error(`Error saving skill plan: ${errorText}`);
-            }
-        } catch (error) {
-            console.error("Error saving skill plan:", error);
-            toast.error("Failed to save skill plan.");
-        }
-    };
-
-    // Convert the 'Identities' object to an array and preserve the full character structure
-    const identitiesArray = homeData?.Identities ? Object.values(homeData?.Identities) : [];
-
-    // Ensure all necessary properties are preserved for each identity
-    const sanitizedIdentities = identitiesArray.map((identity) => ({
-        ...identity,
-        CharacterID: identity.CharacterID || identity.Character?.CharacterID, // Ensure CharacterID exists
-        CharacterName: identity.CharacterName || identity.Character?.CharacterName,
-        CharacterSkillsResponse: identity.CharacterSkillsResponse || identity.Character?.CharacterSkillsResponse,
-        Location: identity.Location || identity.Character?.Location,
-        PendingPlans: identity.PendingPlans || identity.Character?.PendingPlans,
-        MissingSkills: identity.MissingSkills || identity.Character?.MissingSkills,
-        QualifiedPlans: identity.QualifiedPlans || identity.Character?.QualifiedPlans,
-        Token: identity.Token || identity.Character?.Token,
-        // Add any other necessary properties from the character
-    }));
-
-    console.log("Sanitized Identities Array:", sanitizedIdentities);
-
+    // Show loading message while data is being fetched
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 text-gray-100">
-                <div className="text-center">
-                    <svg
-                        className="animate-spin h-12 w-12 text-teal-400 mx-auto mb-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
-                        <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                        ></circle>
-                        <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8H4z"
-                        ></path>
-                    </svg>
-                    <p className="text-xl text-teal-200">Loading...</p>
-                </div>
-            </div>
-        );
+        return <div>Loading...</div>;
     }
 
+    // Show landing page if user is not authenticated
     if (!isAuthenticated) {
         return <Landing />;
     }
 
+    // Show main content with the unassigned characters and accounts
     return (
         <ErrorBoundary>
-            <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-800 to-gray-700 text-gray-100">
-                <Header
-                    title={homeData?.Title || "Can I Fly?"}
-                    loggedIn={homeData?.LoggedIn || false}
-                    handleLogout={handleLogout}
-                />
-                <MainContent
-                    identities={sanitizedIdentities} // Use the sanitized identities
-                    skillPlans={homeData?.SkillPlans || {}}  // Pass skill plans as usual
-                />
-                <Footer />
-                {isSkillPlanModalOpen && (
-                    <AddSkillPlanModal
-                        onClose={closeSkillPlanModal}
-                        onSave={handleSaveSkillPlan}
+            <div className="min-h-screen flex flex-col">
+                <Header loggedIn={isAuthenticated} handleLogout={() => setIsAuthenticated(false)} />
+                <main className="flex-grow">
+                    <MainContent
+                        accounts={homeData?.Accounts || []}  // Pass accounts to MainContent
+                        unassignedCharacters={unassignedCharacters}  // Pass unassigned characters here
+                        onAssignCharacter={handleAssignCharacter}  // Pass the assign handler to MainContent
                     />
-                )}
-                <ToastContainer />
+                </main>
+                <Footer />
             </div>
+            <ToastContainer />
         </ErrorBoundary>
     );
 };

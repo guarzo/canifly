@@ -1,119 +1,58 @@
-// MainContent.jsx
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import CharacterTable from './CharacterTable';
-import SkillPlanTable from './SkillPlanTable';
-import { toast } from 'react-toastify';
 
-const MainContent = ({ identities, skillPlans }) => {
-    const tabulatorRef = useRef(null);
-
-    // Function to handle delete or copy actions
-    useEffect(() => {
-        window.copySkillPlan = (planName) => {
-            const plan = skillPlans[planName];
-            if (!plan) {
-                console.error(`Skill plan not found: ${planName}`);
-                toast.warning(`Skill plan not found: ${planName}`, { autoClose: 1500 });
-                return;
-            }
-
-            const planSkills = plan.Skills || {};
-
-            if (Object.keys(planSkills).length === 0) {
-                console.warn(`No skills available to copy in the plan: ${planName}`);
-                toast.warning(`No skills available to copy in the plan: ${planName}.`, { autoClose: 1500 });
-                return;
-            }
-
-            const skillText = Object.entries(planSkills)
-                .map(([skill, detail]) => `${skill} ${detail.Level}`)
-                .join("\n");
-
-            navigator.clipboard.writeText(skillText)
-                .then(() => {
-                    toast.success(`Copied ${Object.keys(planSkills).length} skills from ${planName}.`, { autoClose: 1500 });
-                })
-                .catch((err) => {
-                    console.error("Copy to clipboard failed:", err);
-                    toast.error("Failed to copy skill plan.", { autoClose: 1500 });
-                });
-        };
-
-        window.deleteSkillPlan = async (planName) => {
-            try {
-                if (!tabulatorRef.current) {
-                    console.error("Tabulator instance is not ready yet.");
-                    return;
-                }
-
-                const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
-                    method: "DELETE",
-                });
-
-                if (response.ok) {
-                    toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-
-                    const row = tabulatorRef.current.getRow(planName);
-                    if (row) {
-                        row.delete();
-                        console.log(`Deleted row with planName '${planName}' from the table.`);
-                    } else {
-                        console.warn(`Row with planName '${planName}' not found in Tabulator.`);
-                    }
-                } else {
-                    const errorMessage = await response.text();
-                    toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
-                }
-            } catch (error) {
-                console.error("Error deleting skill plan:", error);
-                toast.error("An error occurred while deleting the skill plan.", { autoClose: 1500 });
-            }
-        };
-    }, [skillPlans]);
+const MainContent = ({ accounts, unassignedCharacters, onAssignCharacter }) => {
+    const characters = unassignedCharacters || [];
 
     return (
-        <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-16">
-            <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
-                {/* Character Table */}
-                <CharacterTable
-                    identities={identities}
-                    skillPlans={skillPlans}
-                    tabulatorRef={tabulatorRef}
-                />
+        <div className="container mx-auto p-6">
+            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Main Content</h1>
 
-                {/* Skill Plan Table */}
-                <SkillPlanTable
-                    skillPlans={skillPlans}
-                    identities={identities}
-                    tabulatorRef={tabulatorRef}
-                />
+            {/* Display Accounts */}
+            <div className="mb-12 bg-white shadow-lg rounded-lg p-6">
+                <h2 className="text-2xl font-semibold text-gray-700 mb-4">Accounts</h2>
+                {accounts && accounts.length > 0 ? (
+                    <ul className="list-disc pl-6">
+                        {accounts.map((account) => (
+                            <li key={account.id} className="text-md text-gray-700">
+                                {account.name}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-600">No accounts found.</p>
+                )}
             </div>
-        </main>
+
+            {/* Display Unassigned Characters */}
+            <div className="bg-white shadow-lg rounded-lg p-6">
+                <h2 className="text-2xl font-semibold text-gray-700 mb-4">Unassigned Characters</h2>
+                {characters.length > 0 ? (
+                    <ul className="list-disc pl-6">
+                        {characters.map((character) => (
+                            <li key={character.Character.CharacterID} className="flex justify-between items-center py-2">
+                                <span className="text-md text-gray-700">{character.Character.CharacterName}</span>
+                                <button
+                                    onClick={() => onAssignCharacter(character.Character.CharacterID, character.Character.AccountID)}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200"
+                                >
+                                    Assign
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-600">No unassigned characters found.</p>
+                )}
+            </div>
+        </div>
     );
 };
 
 MainContent.propTypes = {
-    identities: PropTypes.arrayOf(
-        PropTypes.shape({
-            CharacterID: PropTypes.number.isRequired,
-            CharacterName: PropTypes.string.isRequired,
-            Character: PropTypes.shape({
-                QualifiedPlans: PropTypes.object,
-                PendingPlans: PropTypes.object,
-                PendingFinishDates: PropTypes.object,
-                MissingSkills: PropTypes.object,
-            }),
-        })
-    ),
-    skillPlans: PropTypes.objectOf(
-        PropTypes.shape({
-            Name: PropTypes.string.isRequired,
-            QualifiedCharacters: PropTypes.arrayOf(PropTypes.string),
-            PendingCharacters: PropTypes.arrayOf(PropTypes.string),
-            Skills: PropTypes.object,
-        })
-    ),
+    accounts: PropTypes.array.isRequired,
+    unassignedCharacters: PropTypes.array,
+    onAssignCharacter: PropTypes.func.isRequired,  // Ensure this prop is passed
 };
 
 export default MainContent;
