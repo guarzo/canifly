@@ -1,58 +1,73 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { FaUserPlus } from 'react-icons/fa'; // Importing the assign icon
 
 const MainContent = ({ accounts, unassignedCharacters, onAssignCharacter }) => {
     const characters = unassignedCharacters || [];
 
     return (
-        <div className="container mx-auto p-6">
-            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Main Content</h1>
-
-            {/* Display Accounts */}
-            <div className="mb-12 bg-white shadow-lg rounded-lg p-6">
-                <h2 className="text-2xl font-semibold text-gray-700 mb-4">Accounts</h2>
+        <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-24">
+            {/* Accounts Section */}
+            <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md mb-8">
+                <h2 className="text-xl font-semibold text-teal-200 mb-4 border-b-2 border-teal-500 pb-2">Accounts</h2>
                 {accounts && accounts.length > 0 ? (
                     <ul className="list-disc pl-6">
                         {accounts.map((account) => (
-                            <li key={account.id} className="text-md text-gray-700">
+                            <li key={account.id} className="text-md text-gray-300">
                                 {account.name}
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-gray-600">No accounts found.</p>
+                    <p className="text-md text-gray-500">No accounts found.</p>
                 )}
             </div>
 
-            {/* Display Unassigned Characters */}
-            <div className="bg-white shadow-lg rounded-lg p-6">
-                <h2 className="text-2xl font-semibold text-gray-700 mb-4">Unassigned Characters</h2>
-                {characters.length > 0 ? (
+            {/* Unassigned Characters Section */}
+            <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
+                <h2 className="text-xl font-semibold text-teal-200 mb-4 border-b-2 border-teal-500 pb-2">Unassigned Characters</h2>
+                {characters && characters.length > 0 ? (
                     <ul className="list-disc pl-6">
                         {characters.map((character) => (
-                            <li key={character.Character.CharacterID} className="flex justify-between items-center py-2">
-                                <span className="text-md text-gray-700">{character.Character.CharacterName}</span>
+                            <li
+                                key={character.Character.CharacterID}
+                                className="text-md text-gray-300 flex items-center justify-between mb-2"
+                            >
+                                <span className="flex-grow">{character.Character.CharacterName}</span>
                                 <button
-                                    onClick={() => onAssignCharacter(character.Character.CharacterID, character.Character.AccountID)}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200"
+                                    onClick={() => onAssignCharacter(character.Character.CharacterID)}
+                                    className="flex items-center p-2 bg-teal-500 text-white rounded hover:bg-teal-600 focus:outline-none"
+                                    title="Assign Character"
                                 >
-                                    Assign
+                                    <FaUserPlus />
                                 </button>
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-gray-600">No unassigned characters found.</p>
+                    <p className="text-md text-gray-500">No unassigned characters found.</p>
                 )}
             </div>
-        </div>
+        </main>
     );
 };
 
 MainContent.propTypes = {
-    accounts: PropTypes.array.isRequired,
-    unassignedCharacters: PropTypes.array,
-    onAssignCharacter: PropTypes.func.isRequired,  // Ensure this prop is passed
+    accounts: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.number.isRequired,
+            name: PropTypes.string.isRequired,
+        })
+    ),
+    unassignedCharacters: PropTypes.arrayOf(
+        PropTypes.shape({
+            Character: PropTypes.shape({
+                CharacterID: PropTypes.number.isRequired,
+                CharacterName: PropTypes.string.isRequired,
+            }).isRequired,
+        })
+    ),
+    onAssignCharacter: PropTypes.func.isRequired,
 };
 
 export default MainContent;

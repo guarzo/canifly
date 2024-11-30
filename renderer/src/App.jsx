@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
-    const [unassignedCharacters, setUnassignedCharacters] = useState(null);  // State to hold unassigned characters
+    const [unassignedCharacters, setUnassignedCharacters] = useState([]); // State for unassigned characters
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -24,11 +24,10 @@ const App = () => {
             if (response.status === 401) {
                 setIsAuthenticated(false);
                 setHomeData(null);
-                setUnassignedCharacters(null);  // Clear unassigned characters if not authenticated
+                setUnassignedCharacters([]);
                 toast.warning("Please log in to access your data.");
             } else if (response.ok) {
                 const data = await response.json();
-                console.log("Home Data:", data);
                 setHomeData(data);
                 setIsAuthenticated(true);
                 fetchUnassignedCharacters();  // Fetch unassigned characters after successful login
@@ -47,10 +46,9 @@ const App = () => {
 
     // Fetch unassigned characters
     const fetchUnassignedCharacters = async () => {
-        console.log("Fetching unassigned characters..."); // Log to ensure the function is called
         try {
             const response = await fetch('/api/unassigned-characters', {
-                credentials: 'include', // Include credentials to make the request
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -58,27 +56,21 @@ const App = () => {
             }
 
             const data = await response.json();
-            console.log("Unassigned characters data:", data); // Log the response data
-            setUnassignedCharacters(data);  // Update state with the unassigned characters
+            setUnassignedCharacters(data);
         } catch (error) {
             console.error("Error fetching unassigned characters:", error);
             toast.error("Failed to load unassigned characters.");
-            setUnassignedCharacters([]);  // Set to an empty array if the fetch fails
+            setUnassignedCharacters([]); // Empty array if fetch fails
         }
     };
 
-    // Function to handle assigning character to an account
+    // Handle character assignment
     const handleAssignCharacter = async (characterID, accountID) => {
         try {
             const response = await fetch('/api/assign-character', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    characterID,
-                    accountID,
-                }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ characterID }),
                 credentials: 'include',
             });
 
@@ -87,7 +79,9 @@ const App = () => {
             }
 
             toast.success("Character assigned successfully!");
-            fetchUnassignedCharacters();  // Refresh unassigned characters list
+
+            // After assignment, re-fetch the unassigned characters
+            fetchUnassignedCharacters();
         } catch (error) {
             console.error("Error assigning character:", error);
             toast.error("Failed to assign character.");
@@ -98,26 +92,23 @@ const App = () => {
         fetchHomeData();  // Fetch home data on initial load
     }, []);
 
-    // Show loading message while data is being fetched
     if (isLoading) {
-        return <div>Loading...</div>;
+        return <div className="bg-gray-800 text-white p-4 rounded shadow-lg">Loading...</div>;
     }
 
-    // Show landing page if user is not authenticated
     if (!isAuthenticated) {
         return <Landing />;
     }
 
-    // Show main content with the unassigned characters and accounts
     return (
         <ErrorBoundary>
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-gray-900 text-teal-200">
                 <Header loggedIn={isAuthenticated} handleLogout={() => setIsAuthenticated(false)} />
-                <main className="flex-grow">
+                <main className="flex-grow bg-gray-800 p-4">
                     <MainContent
-                        accounts={homeData?.Accounts || []}  // Pass accounts to MainContent
-                        unassignedCharacters={unassignedCharacters}  // Pass unassigned characters here
-                        onAssignCharacter={handleAssignCharacter}  // Pass the assign handler to MainContent
+                        accounts={homeData?.Accounts || []}
+                        unassignedCharacters={unassignedCharacters} // Pass updated unassigned characters
+                        onAssignCharacter={handleAssignCharacter}  // Pass the assign handler
                     />
                 </main>
                 <Footer />

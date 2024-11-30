@@ -1,5 +1,3 @@
-//src/components/Header.jsx
-
 import React from 'react';
 import PropTypes from 'prop-types';
 const { ipcRenderer } = require('electron'); // Import ipcRenderer for communication with main process
@@ -38,13 +36,6 @@ const Header = ({ loggedIn, handleLogout }) => {
                             >
                                 <i className="fas fa-user-plus"></i>
                             </button>
-                            <button
-                                onClick={handleAddSkillPlan}
-                                className="flex items-center p-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
-                                title="Add Skill Plan"
-                            >
-                                <i className="fas fa-plus-circle"></i>
-                            </button>
                         </>
                     )}
                 </div>
@@ -72,6 +63,7 @@ const Header = ({ loggedIn, handleLogout }) => {
                     )}
                 </div>
             </div>
+            <div className="border-b border-teal-500 mt-4" /> {/* Border below header */}
         </header>
     );
 };

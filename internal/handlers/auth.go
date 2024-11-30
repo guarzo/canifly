@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"time"
@@ -234,6 +235,14 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
+		// Retrieve accounts for the logged-in user
+		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		if err != nil {
+			handleErrorWithRedirect(w, r, fmt.Sprintf("Error fetching accounts: %v", err), "/")
+			return
+		}
+		log.Printf("Accounts for user %d: %+v", mainIdentity, accounts)
+
 		// Retrieve unassigned characters from the file
 		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
 		if err != nil {
@@ -256,7 +265,20 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
-		// Retrieve the account to update (or create it if not found)
+		log.Printf("Character to assign: %+v", characterToAssign)
+
+		// If no account exists, create a new account for the user
+		if len(accounts) == 0 {
+			log.Printf("No accounts found for user %d, creating a new account", mainIdentity)
+			newAccount := model.Account{
+				Name:       "New Account", // You may want to customize this
+				Status:     "Alpha",       // Default status or based on your use case
+				Characters: []model.CharacterIdentity{*characterToAssign},
+			}
+			accounts = append(accounts, newAccount)
+		}
+
+		// Update account and unassigned characters
 		err = persist.UpdateAccounts(mainIdentity, func(account *model.Account) error {
 			// Add the character to the account
 			account.Characters = append(account.Characters, *characterToAssign)
@@ -278,6 +300,10 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 
 			return nil
 		})
+
+		newAccounts, _ := persist.FetchAccountByIdentity(mainIdentity)
+		newUnassigned, _ := persist.FetchUnassignedCharacters(mainIdentity)
+		xlog.Logf("afterwards -- accounts %v, newUnassigned %v", newAccounts, newUnassigned)
 
 		if err != nil {
 			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to update account: %v", err), "/")
