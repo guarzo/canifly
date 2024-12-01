@@ -1,9 +1,11 @@
 package persist
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/guarzo/canifly/internal/utils/crypto"
 	"github.com/guarzo/canifly/internal/utils/xlog"
@@ -28,46 +30,71 @@ func GetWritableDataPath() (string, error) {
 	return identityPath, nil
 }
 
-// FetchAccountByIdentity loads the identities from a writable data path.
+// FetchAccountByIdentity loads the identities from a writable data path without decryption.
 func FetchAccountByIdentity(mainIdentity int64) ([]model.Account, error) {
-	var accounts []model.Account
-	identityPath := getAccountFileName(mainIdentity)
+	filePath := getAccountFileName(mainIdentity)
 
-	fileInfo, err := os.Stat(identityPath)
-	if os.IsNotExist(err) || fileInfo.Size() == 0 {
+	var accounts []model.Account
+
+	fileInfo, err := os.Stat(filePath)
+	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
 		xlog.Logf("No identity file or file is empty for identity: %d", mainIdentity)
 		return accounts, nil
 	}
 
-	err = crypto.DecryptData(identityPath, &accounts)
+	err = LoadData(filePath, &accounts)
 	if err != nil {
-		xlog.Logf("Error decrypting data for identity %d: %v", mainIdentity, err)
-		os.Remove(identityPath) // Remove corrupted file
+		xlog.Logf("Error loading accounts: %v", err)
 		return nil, err
 	}
 
-	xlog.Logf("Successfully fetched accounts for identity: %d", mainIdentity)
 	return accounts, nil
 }
 
-// SaveAccounts encrypts and saves identities to the writable path.
+// SaveAccounts saves identities to the writable path without encryption.
 func SaveAccounts(mainIdentity int64, accounts []model.Account) error {
 	filePath := getAccountFileName(mainIdentity)
 	if filePath == "" {
 		return fmt.Errorf("invalid file path for saving accounts")
 	}
 
-	// Add logging for the file path being used
-	xlog.Logf("Saving accounts to %s", filePath)
-
-	// Encrypt the data
-	err := crypto.EncryptData(accounts, filePath)
+	// Save the data without encryption
+	err := SaveData(accounts, filePath)
 	if err != nil {
-		xlog.Logf("Error encrypting accounts data: %v", err)
-		return fmt.Errorf("error encrypting accounts: %v", err)
+		xlog.Logf("Error saving accounts data: %v", err)
+		return fmt.Errorf("error saving accounts: %v", err)
 	}
 
-	xlog.Log("Accounts saved successfully")
+	return nil
+}
+
+func SaveData(data interface{}, outputFile string) error {
+	outFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	encoder := json.NewEncoder(outFile)
+	if err := encoder.Encode(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func LoadData(inputFile string, data interface{}) error {
+	inFile, err := os.Open(inputFile)
+	if err != nil {
+		return err
+	}
+	defer inFile.Close()
+
+	decoder := json.NewDecoder(inFile)
+	if err := decoder.Decode(data); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -82,8 +109,6 @@ func getAccountFileName(mainIdentity int64) string {
 }
 
 func UpdateAccounts(mainIdentity int64, updateFunc func(*model.Account) error) error {
-	xlog.Logf("Starting update accounts for identity: %d", mainIdentity)
-
 	// Fetch existing accounts
 	accounts, err := FetchAccountByIdentity(mainIdentity)
 	if err != nil {
@@ -91,19 +116,28 @@ func UpdateAccounts(mainIdentity int64, updateFunc func(*model.Account) error) e
 		return err
 	}
 
-	// Log the accounts for debugging
-	xlog.Logf("Fetched accounts: %+v", accounts)
+	// If no accounts exist, create a new account
+	if len(accounts) == 0 {
+		xlog.Logf("No accounts found for identity: %d, creating new account", mainIdentity)
+		newAccount := model.Account{
+			Name:       "New Account",
+			Status:     "Alpha",
+			Characters: []model.CharacterIdentity{},
+			ID:         time.Now().Unix(), // Ensure each account has a unique ID
+		}
+		accounts = append(accounts, newAccount)
+	}
 
-	// Update the accounts using the provided updateFunc
+	// Update the first account (modify this if multiple accounts are supported)
 	for i := range accounts {
+		xlog.Logf("Updating account %d: %+v", i, accounts[i])
 		if err := updateFunc(&accounts[i]); err != nil {
 			xlog.Logf("Error updating account at index %d: %v", i, err)
 			return err
 		}
 	}
 
-	// Log after updating the accounts
-	xlog.Logf("Updated accounts: %+v", accounts)
+	xlog.Logf("Accounts after update: %+v", accounts)
 
 	// Save the updated accounts back to storage
 	err = SaveAccounts(mainIdentity, accounts)

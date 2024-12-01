@@ -98,15 +98,18 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 
 	// Flag to track if identities need to be populated
 	needIdentityPopulation := len(authenticatedUsers) == 0
-	for _, account := range storeData.Accounts {
-		// Extract character IDs from account.Characters for comparison
-		var accountCharacterIDs []int64
-		for _, charIdentity := range account.Characters {
-			accountCharacterIDs = append(accountCharacterIDs, charIdentity.Character.CharacterID)
+	if len(storeData.Accounts) != 0 {
+		for _, account := range storeData.Accounts {
+			// Extract character IDs from account.Characters for comparison
+			var accountCharacterIDs []int64
+			for _, charIdentity := range account.Characters {
+				accountCharacterIDs = append(accountCharacterIDs, charIdentity.Character.CharacterID)
+			}
+			// Check if we need to populate identities
+			needIdentityPopulation = needIdentityPopulation || !sameIdentities(authenticatedUsers, accountCharacterIDs)
 		}
-
-		// Check if we need to populate identities
-		needIdentityPopulation = needIdentityPopulation || !sameIdentities(authenticatedUsers, accountCharacterIDs)
+	} else {
+		needIdentityPopulation = true
 	}
 
 	// If identities need population, load and update
@@ -150,6 +153,8 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 		// Update the session with the authenticated characters
 		session.Values[allAuthenticatedCharacters] = getAuthenticatedCharacterIDs(storeData.Accounts)
 		session.Values[lastRefreshTime] = time.Now().Unix()
+
+		storeData.Accounts = accounts
 	}
 
 	// Return the updated accounts (the original storeData.Accounts slice)

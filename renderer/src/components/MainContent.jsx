@@ -1,64 +1,154 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { FaUserPlus } from 'react-icons/fa'; // Importing the assign icon
 
-const MainContent = ({ accounts, unassignedCharacters, onAssignCharacter }) => {
-    const characters = unassignedCharacters || [];
+/**
+ * MainContent Component
+ *
+ * Displays accounts and their associated characters, as well as unassigned characters.
+ */
+const MainContent = ({
+                         accounts,
+                         unassignedCharacters,
+                         onAssignCharacter,
+                         onUpdateCharacter,
+                         onToggleAccountStatus,
+                     }) => {
+    const [editingAccountId, setEditingAccountId] = useState(null);
+    const [accountNameEdits, setAccountNameEdits] = useState({});
+
+    // Handle inline editing for account names
+    const handleEditAccountName = (accountId, newName) => {
+        setAccountNameEdits({ ...accountNameEdits, [accountId]: newName });
+    };
+
+    const handleSaveAccountName = (accountId) => {
+        const newName = accountNameEdits[accountId];
+        if (newName) {
+            console.log('Saving account name:', newName, accountId);
+            setEditingAccountId(null);
+            // Trigger update logic here if needed
+        }
+    };
 
     return (
-        <main className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-800 to-gray-700 mt-24">
+        <div className="space-y-8">
             {/* Accounts Section */}
-            <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md mb-8">
-                <h2 className="text-xl font-semibold text-teal-200 mb-4 border-b-2 border-teal-500 pb-2">Accounts</h2>
-                {accounts && accounts.length > 0 ? (
-                    <ul className="list-disc pl-6">
-                        {accounts.map((account) => (
-                            <li key={account.id} className="text-md text-gray-300">
-                                {account.name}
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-md text-gray-500">No accounts found.</p>
-                )}
+            <div>
+                <h2 className="text-2xl font-bold text-teal-300 mb-4">Accounts</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {accounts.map((account) => (
+                        <div key={account.ID} className="bg-gray-800 p-4 rounded-lg shadow-lg">
+                            {/* Account Header */}
+                            <div className="flex items-center justify-between">
+                                {editingAccountId === account.ID ? (
+                                    <input
+                                        type="text"
+                                        value={accountNameEdits[account.ID] || account.Name}
+                                        onChange={(e) =>
+                                            handleEditAccountName(account.ID, e.target.value)
+                                        }
+                                        onBlur={() => handleSaveAccountName(account.ID)}
+                                        className="bg-gray-700 text-white px-2 py-1 rounded"
+                                    />
+                                ) : (
+                                    <h3
+                                        className="text-lg font-semibold text-teal-200 cursor-pointer"
+                                        onClick={() => setEditingAccountId(account.ID)}
+                                    >
+                                        {account.Name}
+                                    </h3>
+                                )}
+                                <button
+                                    className="text-sm text-teal-400 hover:text-teal-600"
+                                    onClick={() => onToggleAccountStatus(account.ID)}
+                                >
+                                    {account.Status === 'Alpha' ? 'Ω' : 'Α'}
+                                </button>
+                            </div>
+
+                            {/* Account Characters */}
+                            <div className="mt-4 space-y-2">
+                                {account.Characters.map((character) => (
+                                    <div
+                                        key={character.Character.CharacterID}
+                                        className="bg-gray-700 p-2 rounded flex justify-between items-center"
+                                    >
+                                        <div>
+                                            <p className="text-teal-200 font-medium">
+                                                {character.Character.CharacterName}
+                                            </p>
+                                            <p className="text-gray-400 text-sm">
+                                                Role: {character.Role || 'Unassigned'} |{' '}
+                                                {character.MCT ? 'MCT Active' : 'MCT Inactive'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            className="text-sm text-green-400 hover:text-green-600"
+                                            onClick={() =>
+                                                onUpdateCharacter(character.Character.CharacterID, {
+                                                    role: character.Role || 'New Role',
+                                                    MCT: !character.MCT,
+                                                })
+                                            }
+                                        >
+                                            Update
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Unassigned Characters Section */}
-            <div className="bg-gray-800 text-gray-100 p-6 rounded-md shadow-md">
-                <h2 className="text-xl font-semibold text-teal-200 mb-4 border-b-2 border-teal-500 pb-2">Unassigned Characters</h2>
-                {characters && characters.length > 0 ? (
-                    <ul className="list-disc pl-6">
-                        {characters.map((character) => (
-                            <li
+            {unassignedCharacters?.length > 0 && (
+                <div>
+                    <h2 className="text-2xl font-bold text-teal-300 mb-4">Unassigned Characters</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {unassignedCharacters.map((character) => (
+                            <div
                                 key={character.Character.CharacterID}
-                                className="text-md text-gray-300 flex items-center justify-between mb-2"
+                                className="bg-gray-800 p-4 rounded-lg shadow-lg flex justify-between items-center"
                             >
-                                <span className="flex-grow">{character.Character.CharacterName}</span>
+                                <p className="text-teal-200 font-medium">
+                                    {character.Character.CharacterName}
+                                </p>
                                 <button
-                                    onClick={() => onAssignCharacter(character.Character.CharacterID)}
-                                    className="flex items-center p-2 bg-teal-500 text-white rounded hover:bg-teal-600 focus:outline-none"
-                                    title="Assign Character"
+                                    className="text-sm text-green-400 hover:text-green-600"
+                                    onClick={() =>
+                                        onAssignCharacter(character.Character.CharacterID)
+                                    }
                                 >
-                                    <FaUserPlus />
+                                    Assign
                                 </button>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
-                ) : (
-                    <p className="text-md text-gray-500">No unassigned characters found.</p>
-                )}
-            </div>
-        </main>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
 MainContent.propTypes = {
     accounts: PropTypes.arrayOf(
         PropTypes.shape({
-            id: PropTypes.number.isRequired,
-            name: PropTypes.string.isRequired,
+            ID: PropTypes.number.isRequired,
+            Name: PropTypes.string.isRequired,
+            Status: PropTypes.string.isRequired,
+            Characters: PropTypes.arrayOf(
+                PropTypes.shape({
+                    Character: PropTypes.shape({
+                        CharacterID: PropTypes.number.isRequired,
+                        CharacterName: PropTypes.string.isRequired,
+                    }).isRequired,
+                    Role: PropTypes.string,
+                    MCT: PropTypes.bool,
+                })
+            ),
         })
-    ),
+    ).isRequired,
     unassignedCharacters: PropTypes.arrayOf(
         PropTypes.shape({
             Character: PropTypes.shape({
@@ -68,6 +158,8 @@ MainContent.propTypes = {
         })
     ),
     onAssignCharacter: PropTypes.func.isRequired,
+    onUpdateCharacter: PropTypes.func.isRequired,
+    onToggleAccountStatus: PropTypes.func.isRequired,
 };
 
 export default MainContent;

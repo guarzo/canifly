@@ -47,12 +47,6 @@ type CharacterSkillPlanStatus struct {
 	PendingFinishDate *time.Time
 }
 
-// CharacterIdentity structure contains nested Character struct
-//type CharacterIdentity struct {
-//	Token     oauth2.Token
-//	Character Character
-//}
-
 type Character struct {
 	BaseCharacterResponse
 	CharacterSkillsResponse `json:"CharacterSkillsResponse"`
@@ -166,8 +160,16 @@ type CloneLocation struct {
 }
 
 func init() {
-	// Register the base type for gob encoding/decoding
 	gob.Register(CharacterIdentity{})
-	// Register the slice type for gob encoding/decoding
 	gob.Register([]CharacterIdentity{})
+	gob.Register([]Account{})
+	gob.Register(Account{})
+	gob.Register(Character{})
+	gob.Register(BaseCharacterResponse{})
+	gob.Register(CharacterSkillsResponse{})
+	gob.Register(map[string]bool{})
+	gob.Register(map[string]*time.Time{})
+	gob.Register(map[string]map[string]int32{})
+	gob.Register([]SkillQueue{})
+
 }

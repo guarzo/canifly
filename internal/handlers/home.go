@@ -35,7 +35,7 @@ func HomeDataHandler(s *SessionService) http.HandlerFunc {
 
 		data := prepareHomeData(sessionValues, accounts)
 
-		etag, err = updateStoreAndSession(data, etag, session, r, w)
+		_, err = updateStoreAndSession(data, etag, session, r, w)
 		if err != nil {
 			xlog.Logf("Failed to update persist and session: %v", err)
 			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)

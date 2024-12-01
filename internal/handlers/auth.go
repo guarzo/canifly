@@ -241,7 +241,6 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			handleErrorWithRedirect(w, r, fmt.Sprintf("Error fetching accounts: %v", err), "/")
 			return
 		}
-		log.Printf("Accounts for user %d: %+v", mainIdentity, accounts)
 
 		// Retrieve unassigned characters from the file
 		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
@@ -265,17 +264,19 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("Character to assign: %+v", characterToAssign)
-
 		// If no account exists, create a new account for the user
 		if len(accounts) == 0 {
 			log.Printf("No accounts found for user %d, creating a new account", mainIdentity)
 			newAccount := model.Account{
-				Name:       "New Account", // You may want to customize this
-				Status:     "Alpha",       // Default status or based on your use case
+				Name:       "New Account",
+				Status:     "Alpha",
 				Characters: []model.CharacterIdentity{*characterToAssign},
+				ID:         time.Now().Unix(),
 			}
 			accounts = append(accounts, newAccount)
+		} else {
+			// Assign the character to the first account (or implement account selection logic)
+			accounts[0].Characters = append(accounts[0].Characters, *characterToAssign)
 		}
 
 		// Update account and unassigned characters
@@ -293,17 +294,13 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			}
 
 			// Save the updated unassigned characters back to the file
-			err := persist.SaveUnassignedCharacters(mainIdentity, unassignedCharacters)
+			err = persist.SaveUnassignedCharacters(mainIdentity, unassignedCharacters)
 			if err != nil {
 				return fmt.Errorf("failed to save unassigned characters: %v", err)
 			}
 
 			return nil
 		})
-
-		newAccounts, _ := persist.FetchAccountByIdentity(mainIdentity)
-		newUnassigned, _ := persist.FetchUnassignedCharacters(mainIdentity)
-		xlog.Logf("afterwards -- accounts %v, newUnassigned %v", newAccounts, newUnassigned)
 
 		if err != nil {
 			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to update account: %v", err), "/")
