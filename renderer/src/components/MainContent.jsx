@@ -1,133 +1,105 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
+import { Select, MenuItem, Tooltip } from "@mui/material";
 
-/**
- * MainContent Component
- *
- * Displays accounts and their associated characters, as well as unassigned characters.
- */
 const MainContent = ({
                          accounts,
                          unassignedCharacters,
                          onAssignCharacter,
-                         onUpdateCharacter,
                          onToggleAccountStatus,
+                         onUpdateCharacter,
+                         onUpdateAccountName,
                      }) => {
-    const [editingAccountId, setEditingAccountId] = useState(null);
-    const [accountNameEdits, setAccountNameEdits] = useState({});
-
-    // Handle inline editing for account names
-    const handleEditAccountName = (accountId, newName) => {
-        setAccountNameEdits({ ...accountNameEdits, [accountId]: newName });
-    };
-
-    const handleSaveAccountName = (accountId) => {
-        const newName = accountNameEdits[accountId];
-        if (newName) {
-            console.log('Saving account name:', newName, accountId);
-            setEditingAccountId(null);
-            // Trigger update logic here if needed
-        }
-    };
-
     return (
-        <div className="space-y-8">
+        <main className="container mx-auto px-4 py-6 space-y-6 mt-16">
             {/* Accounts Section */}
-            <div>
-                <h2 className="text-2xl font-bold text-teal-300 mb-4">Accounts</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {accounts.map((account) => (
-                        <div key={account.ID} className="bg-gray-800 p-4 rounded-lg shadow-lg">
-                            {/* Account Header */}
-                            <div className="flex items-center justify-between">
-                                {editingAccountId === account.ID ? (
-                                    <input
-                                        type="text"
-                                        value={accountNameEdits[account.ID] || account.Name}
-                                        onChange={(e) =>
-                                            handleEditAccountName(account.ID, e.target.value)
-                                        }
-                                        onBlur={() => handleSaveAccountName(account.ID)}
-                                        className="bg-gray-700 text-white px-2 py-1 rounded"
-                                    />
-                                ) : (
-                                    <h3
-                                        className="text-lg font-semibold text-teal-200 cursor-pointer"
-                                        onClick={() => setEditingAccountId(account.ID)}
-                                    >
-                                        {account.Name}
-                                    </h3>
-                                )}
+            <div className="space-y-6">
+                {accounts.map((account) => (
+                    <div
+                        key={account.ID}
+                        className="p-4 rounded-md shadow-lg bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200"
+                    >
+                        {/* Account Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <input
+                                className="bg-transparent border-b border-teal-400 text-lg font-bold focus:outline-none"
+                                defaultValue={account.Name}
+                                onBlur={(e) => onUpdateAccountName(account.ID, e.target.value)}
+                            />
+                            <Tooltip title="Toggle Account Status">
                                 <button
-                                    className="text-sm text-teal-400 hover:text-teal-600"
                                     onClick={() => onToggleAccountStatus(account.ID)}
+                                    className="text-2xl font-bold text-white"
                                 >
-                                    {account.Status === 'Alpha' ? 'Ω' : 'Α'}
+                                    {account.Status === "Alpha" ? "α" : "Ω"}
                                 </button>
-                            </div>
+                            </Tooltip>
+                        </div>
 
-                            {/* Account Characters */}
-                            <div className="mt-4 space-y-2">
-                                {account.Characters.map((character) => (
-                                    <div
-                                        key={character.Character.CharacterID}
-                                        className="bg-gray-700 p-2 rounded flex justify-between items-center"
-                                    >
-                                        <div>
-                                            <p className="text-teal-200 font-medium">
-                                                {character.Character.CharacterName}
-                                            </p>
-                                            <p className="text-gray-400 text-sm">
-                                                Role: {character.Role || 'Unassigned'} |{' '}
-                                                {character.MCT ? 'MCT Active' : 'MCT Inactive'}
-                                            </p>
-                                        </div>
+                        {/* Characters in Account */}
+                        <div className="space-y-4">
+                            {account.Characters.map((character, index) => (
+                                <div
+                                    key={`${character.Character.CharacterID}-${index}`}
+                                    className="p-3 rounded-md shadow-md bg-gray-800"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-semibold">{character.Character.CharacterName}</span>
                                         <button
-                                            className="text-sm text-green-400 hover:text-green-600"
                                             onClick={() =>
                                                 onUpdateCharacter(character.Character.CharacterID, {
-                                                    role: character.Role || 'New Role',
                                                     MCT: !character.MCT,
                                                 })
                                             }
+                                            className={`cursor-pointer ${
+                                                character.MCT ? "text-green-400" : "text-red-400"
+                                            }`}
                                         >
-                                            Update
+                                            MCT: {character.MCT ? "Enabled" : "Disabled"}
                                         </button>
                                     </div>
-                                ))}
-                            </div>
+                                    <div className="mt-2">Role: {character.Role || "None"}</div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
             </div>
 
             {/* Unassigned Characters Section */}
-            {unassignedCharacters?.length > 0 && (
+            {unassignedCharacters && unassignedCharacters.length > 0 && (
                 <div>
-                    <h2 className="text-2xl font-bold text-teal-300 mb-4">Unassigned Characters</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="border-b border-teal-500 my-4" />
+                    <div className="space-y-4">
                         {unassignedCharacters.map((character) => (
                             <div
                                 key={character.Character.CharacterID}
-                                className="bg-gray-800 p-4 rounded-lg shadow-lg flex justify-between items-center"
+                                className="p-4 rounded-md shadow-md bg-gray-800 text-teal-200"
                             >
-                                <p className="text-teal-200 font-medium">
-                                    {character.Character.CharacterName}
-                                </p>
-                                <button
-                                    className="text-sm text-green-400 hover:text-green-600"
-                                    onClick={() =>
-                                        onAssignCharacter(character.Character.CharacterID)
+                                <span className="font-semibold">{character.Character.CharacterName}</span>
+                                <Select
+                                    defaultValue=""
+                                    onChange={(e) =>
+                                        onAssignCharacter(character.Character.CharacterID, e.target.value)
                                     }
+                                    displayEmpty
+                                    className="mt-2 w-full"
                                 >
-                                    Assign
-                                </button>
+                                    <MenuItem value="" disabled>
+                                        Assign to Account
+                                    </MenuItem>
+                                    {accounts.map((account) => (
+                                        <MenuItem key={account.ID} value={account.ID}>
+                                            {account.Name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-        </div>
+        </main>
     );
 };
 
@@ -143,10 +115,10 @@ MainContent.propTypes = {
                         CharacterID: PropTypes.number.isRequired,
                         CharacterName: PropTypes.string.isRequired,
                     }).isRequired,
+                    MCT: PropTypes.bool.isRequired,
                     Role: PropTypes.string,
-                    MCT: PropTypes.bool,
                 })
-            ),
+            ).isRequired,
         })
     ).isRequired,
     unassignedCharacters: PropTypes.arrayOf(
@@ -156,10 +128,11 @@ MainContent.propTypes = {
                 CharacterName: PropTypes.string.isRequired,
             }).isRequired,
         })
-    ),
+    ).isRequired,
     onAssignCharacter: PropTypes.func.isRequired,
-    onUpdateCharacter: PropTypes.func.isRequired,
     onToggleAccountStatus: PropTypes.func.isRequired,
+    onUpdateCharacter: PropTypes.func.isRequired,
+    onUpdateAccountName: PropTypes.func.isRequired,
 };
 
 export default MainContent;
