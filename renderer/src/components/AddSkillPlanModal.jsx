@@ -1,5 +1,14 @@
+// AddSkillPlanModal.jsx
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Button,
+} from '@mui/material';
 
 const AddSkillPlanModal = ({ onClose, onSave }) => {
     const [planName, setPlanName] = useState('');
@@ -11,48 +20,53 @@ const AddSkillPlanModal = ({ onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-gradient-to-b from-gray-800 to-gray-700 text-gray-100 p-6 rounded-lg shadow-lg w-1/3">
-                <h2 className="text-xl font-bold mb-4 text-teal-200">Add Skill Plan</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-300 mb-2">Skill Plan Name</label>
-                        <input
-                            type="text"
-                            value={planName}
-                            onChange={(e) => setPlanName(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-teal-400 bg-gray-700 text-teal-200"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-300 mb-2">Skill Plan Contents</label>
-                        <textarea
-                            value={planContents}
-                            onChange={(e) => setPlanContents(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-teal-400 bg-gray-700 text-teal-200"
-                            rows="5"
-                            required
-                        ></textarea>
-                    </div>
-                    <div className="flex justify-end space-x-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 bg-gray-600 text-gray-100 rounded hover:bg-gray-700 focus:outline-none"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-teal-500 text-gray-100 rounded hover:bg-teal-400 focus:outline-none"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle className="bg-gray-800 text-teal-200">Add Skill Plan</DialogTitle>
+            <form onSubmit={handleSubmit}>
+                <DialogContent className="bg-gray-800">
+                    <TextField
+                        label="Skill Plan Name"
+                        value={planName}
+                        onChange={(e) => setPlanName(e.target.value)}
+                        fullWidth
+                        margin="normal"
+                        required
+                        InputProps={{
+                            className: 'text-teal-200',
+                        }}
+                        InputLabelProps={{
+                            className: 'text-gray-300',
+                        }}
+                        className="bg-gray-700"
+                    />
+                    <TextField
+                        label="Skill Plan Contents"
+                        value={planContents}
+                        onChange={(e) => setPlanContents(e.target.value)}
+                        fullWidth
+                        margin="normal"
+                        multiline
+                        rows={5}
+                        required
+                        InputProps={{
+                            className: 'text-teal-200',
+                        }}
+                        InputLabelProps={{
+                            className: 'text-gray-300',
+                        }}
+                        className="bg-gray-700"
+                    />
+                </DialogContent>
+                <DialogActions className="bg-gray-800">
+                    <Button onClick={onClose} className="text-gray-100">
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" className="bg-teal-500 text-gray-100 hover:bg-teal-400">
+                        Save
+                    </Button>
+                </DialogActions>
+            </form>
+        </Dialog>
     );
 };
 

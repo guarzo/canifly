@@ -1,18 +1,24 @@
+// App.jsx
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import MainContent from './components/MainContent';
+import Dashboard from './components/Dashboard';
+import SkillPlans from './components/SkillPlans';
 import Landing from './components/Landing';
+import AddSkillPlanModal from './components/AddSkillPlanModal';
+import { ThemeProvider } from '@mui/material/styles';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '@fortawesome/fontawesome-free/css/all.min.css'; // Include FontAwesome icons
+import theme from './components/theme';
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
     const [unassignedCharacters, setUnassignedCharacters] = useState([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
 
     // Fetch home data
     const fetchHomeData = async () => {
@@ -59,8 +65,13 @@ const App = () => {
     // Combined data fetching
     const fetchData = async () => {
         setIsLoading(true);
-        await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
-        setIsLoading(false);
+        try {
+            await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Handle logout
@@ -169,6 +180,33 @@ const App = () => {
         }
     };
 
+    // Skill Plan Modal Handlers
+    const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
+    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
+
+    const handleSaveSkillPlan = async (planName, planContents) => {
+        try {
+            const response = await fetch('/api/save-skill-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: planName, contents: planContents }),
+                credentials: 'include',
+            });
+
+            if (response.ok) {
+                toast.success('Skill Plan Saved!');
+                closeSkillPlanModal();
+                fetchData(); // Refresh data
+            } else {
+                const errorText = await response.text();
+                toast.error(`Error saving skill plan: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error saving skill plan:', error);
+            toast.error('Failed to save skill plan.');
+        }
+    };
+
     useEffect(() => {
         fetchData(); // Fetch data on initial load
     }, []);
@@ -181,29 +219,64 @@ const App = () => {
         );
     }
 
-    if (!isAuthenticated) {
-        return <Landing />;
-    }
+    const identities = homeData?.Accounts?.flatMap((account) => account.Characters) || [];
+    console.log(homeData)
+    console.log(identities)
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
-                <Header loggedIn={isAuthenticated} handleLogout={handleLogout} />
-                <main className="flex-grow container mx-auto px-4 py-8">
-                    <MainContent
-                        accounts={homeData?.Accounts || []}
-                        unassignedCharacters={unassignedCharacters || []}
-                        onAssignCharacter={handleAssignCharacter}
-                        onToggleAccountStatus={handleToggleAccountStatus}
-                        onUpdateCharacter={handleUpdateCharacter}
-                        onUpdateAccountName={handleUpdateAccountName}
+            <ThemeProvider theme={theme}>
+            <Router>
+                <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
+                    <Header
+                        loggedIn={isAuthenticated}
+                        handleLogout={handleLogout}
+                        openSkillPlanModal={openSkillPlanModal}
                     />
-                </main>
-                <Footer />
-                <ToastContainer />
-            </div>
+                    <main className="flex-grow container mx-auto px-4 py-8">
+                        {!isAuthenticated ? (
+                            <Landing />
+                        ) : (
+                            <Routes>
+                                <Route
+                                    path="/"
+                                    element={
+                                        <Dashboard
+                                            accounts={homeData?.Accounts || []}
+                                            unassignedCharacters={unassignedCharacters || []}
+                                            onAssignCharacter={handleAssignCharacter}
+                                            onToggleAccountStatus={handleToggleAccountStatus}
+                                            onUpdateCharacter={handleUpdateCharacter}
+                                            onUpdateAccountName={handleUpdateAccountName}
+                                        />
+                                    }
+                                />
+                                <Route
+                                    path="/skill-plans"
+                                    element={
+                                        <SkillPlans
+                                            identities={identities}
+                                            skillPlans={homeData?.SkillPlans || {}}
+                                        />
+                                    }
+                                />
+                            </Routes>
+                        )}
+                    </main>
+                    <Footer />
+                    {isSkillPlanModalOpen && (
+                        <AddSkillPlanModal
+                            onClose={closeSkillPlanModal}
+                            onSave={handleSaveSkillPlan}
+                        />
+                    )}
+                    <ToastContainer />
+                </div>
+            </Router>
+            </ThemeProvider>
         </ErrorBoundary>
     );
 };
 
 export default App;
+

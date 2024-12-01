@@ -1,10 +1,27 @@
 // CharacterTable.jsx
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import TabulatorTable from './TabulatorTable';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Collapse,
+    IconButton,
+    Typography,
+    Box,
+} from '@mui/material';
+import {
+    KeyboardArrowDown,
+    KeyboardArrowUp,
+    CheckCircle,
+    AccessTime,
+    Error as ErrorIcon,
+} from '@mui/icons-material';
 import { calculateDaysFromToday, formatNumberWithCommas } from './Utils';
 
-// CharacterTable.jsx
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];
     const pending = characterDetails.PendingPlans?.[planName];
@@ -12,70 +29,146 @@ const generatePlanStatus = (planName, characterDetails) => {
     const missingSkillsForPlan = characterDetails.MissingSkills?.[planName] || {};
     const missingCount = Object.keys(missingSkillsForPlan).length;
 
+    let status = {
+        statusIcon: null,
+        statusText: '',
+    };
+
     if (qualified) {
-        return `
-            <i class="fas fa-check-circle text-green-500"></i> Qualified
-        `;
+        status = {
+            statusIcon: <CheckCircle style={{ color: 'green' }} fontSize="small" />,
+            statusText: 'Qualified',
+        };
     } else if (pending) {
         const daysRemaining = calculateDaysFromToday(pendingFinishDate);
-        return `
-            <i class="fas fa-clock text-orange-500"></i> Pending ${daysRemaining ? `(${daysRemaining})` : ""}
-        `;
+        status = {
+            statusIcon: <AccessTime style={{ color: 'orange' }} fontSize="small" />,
+            statusText: `Pending ${daysRemaining ? `(${daysRemaining})` : ''}`,
+        };
     } else if (missingCount > 0) {
-        return `
-            <i class="fas fa-exclamation-circle text-red-500"></i> ${missingCount} missing
-        `;
+        status = {
+            statusIcon: <ErrorIcon style={{ color: 'red' }} fontSize="small" />,
+            statusText: `${missingCount} missing`,
+        };
     }
-    return '';
+
+    console.log(`Character: ${characterDetails.CharacterName}, Plan: ${planName}, Status:`, status);
+    return status;
 };
 
+const CharacterRow = ({ row }) => {
+    const [open, setOpen] = React.useState(false);
 
-const CharacterTable = ({ identities, skillPlans, tabulatorRef }) => {
+    console.log('Rendering CharacterRow for:', row.CharacterName, 'with plans:', row.plans);
+
+    return (
+        <React.Fragment>
+            <TableRow className="bg-gray-800">
+                <TableCell>
+                    {row.plans.length > 0 && (
+                        <IconButton
+                            size="small"
+                            onClick={() => setOpen(!open)}
+                            className="text-teal-200"
+                        >
+                            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                        </IconButton>
+                    )}
+                </TableCell>
+                <TableCell className="text-teal-200 font-semibold">
+                    {row.CharacterName}
+                </TableCell>
+                <TableCell>{row.TotalSP}</TableCell>
+            </TableRow>
+            {row.plans.length > 0 && (
+                <TableRow className="bg-gray-800">
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
+                        <Collapse in={open} timeout="auto" unmountOnExit>
+                            <Box margin={1}>
+                                <Table size="small" className="bg-gray-700">
+                                    <TableBody>
+                                        {row.plans.map((plan) => (
+                                            <TableRow key={plan.id}>
+                                                <TableCell className="pl-8 text-gray-300 flex items-center">
+                                                    {plan.statusIcon}
+                                                    <span className="ml-2">↳ {plan.planName}</span>
+                                                </TableCell>
+                                                <TableCell className="text-gray-300">
+                                                    {plan.statusText}
+                                                </TableCell>
+                                                <TableCell />
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Box>
+                        </Collapse>
+                    </TableCell>
+                </TableRow>
+            )}
+        </React.Fragment>
+    );
+};
+
+CharacterRow.propTypes = {
+    row: PropTypes.object.isRequired,
+};
+
+const CharacterTable = ({ identities, skillPlans }) => {
     const characterData = useMemo(() => {
-        return identities.map((identity) => {
+        const data = identities.map((identity) => {
             const characterDetails = identity.Character || {};
-            let TotalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0;
-            TotalSP = formatNumberWithCommas(TotalSP); // Format with commas
+            const TotalSP = formatNumberWithCommas(
+                characterDetails.CharacterSkillsResponse?.total_sp || 0
+            );
 
-            const children = Object.keys(skillPlans)
-                .map((planName) => ({
-                    CharacterName: planName,
-                    TotalSP: generatePlanStatus(planName, characterDetails),
-                }))
-                .filter(Boolean);
+            const plans = Object.keys(skillPlans).map((planName) => {
+                const status = generatePlanStatus(planName, characterDetails);
+                return {
+                    id: `${characterDetails.CharacterID}-${planName}`,
+                    planName,
+                    statusIcon: status.statusIcon,
+                    statusText: status.statusText,
+                };
+            });
+
+            console.log(`Processed Character: ${characterDetails.CharacterName}`, {
+                plans,
+            });
 
             return {
-                ...identity,
+                id: characterDetails.CharacterID,
+                CharacterName: characterDetails.CharacterName,
                 TotalSP,
-                _children: children,
+                plans,
             };
         });
+
+        console.log('Final CharacterData:', data);
+        return data;
     }, [identities, skillPlans]);
 
     return (
         <div className="mb-8 w-full">
-            <h2 className="text-2xl font-bold mb-4 text-teal-200">Character Table</h2>
-            <TabulatorTable
-                id="character-table"
-                data={characterData}
-                columns={[
-                    {
-                        title: "Character Name",
-                        field: "CharacterName",
-                        formatter: "html", // Use HTML for formatting
-                    },
-                    {
-                        title: "Total Skill Points",
-                        field: "TotalSP",
-                        formatter: "html",
-                    },
-                ]}
-                options={{
-                    dataTree: true,
-                    dataTreeStartExpanded: false,
-                }}
-                ref={tabulatorRef}
-            />
+            <Typography variant="h5" gutterBottom className="text-teal-200">
+                Character Table
+            </Typography>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow className="bg-gray-900">
+                            <TableCell />
+                            <TableCell className="text-teal-200">Character Name</TableCell>
+                            <TableCell className="text-teal-200">Total Skill Points</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {characterData.map((row) => (
+                            <CharacterRow key={row.id} row={row} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
         </div>
     );
 };
@@ -83,7 +176,6 @@ const CharacterTable = ({ identities, skillPlans, tabulatorRef }) => {
 CharacterTable.propTypes = {
     identities: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
-    tabulatorRef: PropTypes.object,
 };
 
 export default CharacterTable;

@@ -1,11 +1,30 @@
+// Header.jsx
 import React from 'react';
 import PropTypes from 'prop-types';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import CloseIcon from '@mui/icons-material/Close';
+import { Link, useLocation } from 'react-router-dom';
+import { AppBar, Toolbar, IconButton, Typography } from '@mui/material';
+import {
+    AddCircleOutline,
+    ExitToApp,
+    Close,
+    Dashboard as DashboardIcon,
+    ListAlt as SkillPlansIcon,
+    Settings as SettingsIcon, // Import SettingsIcon
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
 const { ipcRenderer } = require('electron');
 
-const Header = ({ loggedIn, handleLogout }) => {
+// Custom styled AppBar
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+    backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
+    color: '#14b8a6',
+    boxShadow: 'inset 0 -4px 0 0 #14b8a6',
+    borderBottom: '4px solid #14b8a6',
+}));
+
+const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
+    const location = useLocation();
+
     const handleAddCharacter = () => {
         window.location.href = 'http://localhost:8713/auth-character';
     };
@@ -15,53 +34,91 @@ const Header = ({ loggedIn, handleLogout }) => {
     };
 
     return (
-        <header
-            className="fixed top-0 left-0 right-0 bg-gradient-to-r from-gray-900 to-gray-800 shadow-md z-10 py-3"
-            style={{ WebkitAppRegion: 'drag' }}
-        >
-            <div className="container mx-auto px-4 flex justify-between items-center">
-                <div className="flex space-x-3" style={{ WebkitAppRegion: 'no-drag' }}>
-                    {loggedIn && (
-                        <button
-                            onClick={handleAddCharacter}
-                            className="p-2 text-green-400 hover:text-green-600"
-                            title="Add Character"
-                        >
-                            <AddCircleOutlineIcon />
-                        </button>
-                    )}
-                </div>
-
-                <h1 className="text-2xl font-bold text-teal-200 text-center flex-grow">Can I Fly?</h1>
-
-                <div className="flex space-x-3" style={{ WebkitAppRegion: 'no-drag' }}>
+        <StyledAppBar position="fixed">
+            <Toolbar style={{ WebkitAppRegion: 'drag' }}>
+                {/* Left Side Icons */}
+                <div
+                    className="flex items-center space-x-3"
+                    style={{ WebkitAppRegion: 'no-drag' }}
+                >
                     {loggedIn && (
                         <>
-                            <button
-                                onClick={handleLogout}
-                                className="p-2 text-red-400 hover:text-red-600"
-                                title="Logout"
-                            >
-                                <ExitToAppIcon />
-                            </button>
-                            <button
-                                onClick={handleCloseWindow}
-                                className="p-2 text-gray-400 hover:text-gray-600"
-                                title="Close"
-                            >
-                                <CloseIcon />
-                            </button>
+                            {/* Add Character Icon */}
+                            <IconButton onClick={handleAddCharacter} title="Add Character">
+                                <AddCircleOutline sx={{ color: '#22c55e' }} /> {/* Green color */}
+                            </IconButton>
+                            {/* Add Skill Plan Icon */}
+                            <IconButton onClick={openSkillPlanModal} title="Add Skill Plan">
+                                <SettingsIcon sx={{ color: '#f59e0b' }} /> {/* Amber color */}
+                            </IconButton>
                         </>
                     )}
                 </div>
-            </div>
-        </header>
+
+                {/* Title */}
+                <Typography
+                    variant="h6"
+                    className="flex-grow text-center"
+                    sx={{ color: '#14b8a6' }}
+                >
+                    Can I Fly?
+                </Typography>
+
+                {/* Navigation Icons */}
+                {loggedIn && (
+                    <nav
+                        className="mr-4 flex items-center space-x-2"
+                        style={{ WebkitAppRegion: 'no-drag' }}
+                    >
+                        <IconButton
+                            component={Link}
+                            to="/"
+                            title="Dashboard"
+                            sx={{
+                                color: location.pathname === '/' ? '#ffffff' : '#14b8a6',
+                                '&:hover': { color: '#ffffff' },
+                            }}
+                        >
+                            <DashboardIcon />
+                        </IconButton>
+                        <IconButton
+                            component={Link}
+                            to="/skill-plans"
+                            title="Skill Plans"
+                            sx={{
+                                color:
+                                    location.pathname === '/skill-plans' ? '#ffffff' : '#14b8a6',
+                                '&:hover': { color: '#ffffff' },
+                            }}
+                        >
+                            <SkillPlansIcon />
+                        </IconButton>
+                    </nav>
+                )}
+
+                {/* Right Side Icons */}
+                <div
+                    className="flex items-center space-x-3"
+                    style={{ WebkitAppRegion: 'no-drag' }}
+                >
+                    {loggedIn && (
+                        <IconButton onClick={handleLogout} title="Logout">
+                            <ExitToApp sx={{ color: '#ef4444' }} /> {/* Red color */}
+                        </IconButton>
+                    )}
+                    <IconButton onClick={handleCloseWindow} title="Close">
+                        <Close sx={{ color: '#9ca3af' }} /> {/* Gray color */}
+                    </IconButton>
+                </div>
+            </Toolbar>
+        </StyledAppBar>
     );
 };
 
 Header.propTypes = {
     loggedIn: PropTypes.bool.isRequired,
     handleLogout: PropTypes.func.isRequired,
+    openSkillPlanModal: PropTypes.func.isRequired,
 };
 
 export default Header;
