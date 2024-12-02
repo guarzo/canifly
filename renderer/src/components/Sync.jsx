@@ -270,12 +270,6 @@ const Sync = () => {
         <div>
             <ToastContainer />
             <Grid container spacing={2} justifyContent="center" alignItems="center">
-                <Grid item xs={12}>
-                    <Typography variant="h4" align="center" gutterBottom>
-                        EVE Settings Sync
-                    </Typography>
-                </Grid>
-
                 {/* Buttons */}
                 <Grid item xs={12} container spacing={2} justifyContent="center">
                     <Grid item>

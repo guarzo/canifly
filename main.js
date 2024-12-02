@@ -6,7 +6,7 @@ const path = require('path');
 const axios = require('axios');
 const tar = require('tar');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 // Determine if the app is in development mode
 const isDev = !app.isPackaged;

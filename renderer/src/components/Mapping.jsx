@@ -6,10 +6,9 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import 'react-toastify/dist/ReactToastify.css';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { Button, Grid, Typography, Card, CardContent, List, ListItem, ListItemText, IconButton, CircularProgress } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PeopleIcon from '@mui/icons-material/People';
+import { Grid, Typography, CircularProgress, useTheme } from '@mui/material';
+import AccountCard from './MapAccountCard';
+import CharacterCard from './MapCharacterCard';
 
 const MySwal = withReactContent(Swal);
 
@@ -18,7 +17,20 @@ const Mapping = () => {
     const [associations, setAssociations] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [lastModificationTimes, setLastModificationTimes] = useState({});
+    const [mtimeToColor, setMtimeToColor] = useState({});
+    const theme = useTheme();
+
+    // Predefined list of colors to assign to unique mtimes
+    const predefinedColors = [
+        theme.palette.primary.main,    // Teal
+        theme.palette.secondary.main,  // Red
+        '#f59e0b',                     // Amber
+        '#8b5cf6',                     // Violet
+        '#10b981',                     // Emerald
+        '#ec4899',                     // Pink
+        '#f97316',                     // Orange
+        '#3b82f6',                     // Blue
+    ];
 
     useEffect(() => {
         loadDataAndRender();
@@ -34,7 +46,7 @@ const Mapping = () => {
                 setMappings(data.mappings);
                 setAssociations(data.associations);
                 processAvailableCharacters(data.mappings, data.associations);
-                processLastModificationTimes(data.mappings);
+                assignColors(data.mappings, data.associations);
             } else {
                 toast.error('Failed to load mappings: No data received.');
             }
@@ -65,33 +77,46 @@ const Mapping = () => {
         // Sort available characters by mtime descending to have the latest first
         availableChars.sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
 
-        setAvailableCharacters(availableChars);
+        // Remove duplicates by keeping only the first occurrence (latest)
+        const uniqueAvailableChars = [];
+        const seenCharIds = new Set();
+
+        availableChars.forEach(char => {
+            if (!seenCharIds.has(char.charId)) {
+                uniqueAvailableChars.push(char);
+                seenCharIds.add(char.charId);
+            }
+        });
+
+        setAvailableCharacters(uniqueAvailableChars);
     };
 
-    // Process last modification times for color coding
-    const processLastModificationTimes = (mappingsData) => {
-        const times = {};
+    // Assign colors based on unique mtimes
+    const assignColors = (mappingsData, associationsData) => {
+        const uniqueMtims = new Set();
+
+        // Extract mtimes from accounts
         mappingsData.forEach(mapping => {
-            mapping.availableCharFiles.forEach(char => {
-                times[char.charId] = char.mtime;
+            mapping.availableUserFiles.forEach(user => {
+                uniqueMtims.add(user.mtime);
             });
         });
-        setLastModificationTimes(times);
-    };
 
-    // Determine border color based on modification time
-    const getBorderColor = (mtime) => {
-        const colors = [
-            '#4caf50', // Green
-            '#2196f3', // Blue
-            '#ff9800', // Orange
-            '#f44336', // Red
-            '#9c27b0', // Purple
-            '#00bcd4', // Cyan
-        ];
-        const uniqueTimes = Object.keys(lastModificationTimes).sort(); // Sort times for consistency
-        const index = uniqueTimes.indexOf(mtime);
-        return colors[index % colors.length] || '#000'; // Default to black if out of range
+        // Extract mtimes from characters
+        mappingsData.forEach(mapping => {
+            mapping.availableCharFiles.forEach(char => {
+                uniqueMtims.add(char.mtime);
+            });
+        });
+
+        const mtimeArray = Array.from(uniqueMtims);
+        const colorMapping = {};
+
+        mtimeArray.forEach((mtime, index) => {
+            colorMapping[mtime] = predefinedColors[index % predefinedColors.length];
+        });
+
+        setMtimeToColor(colorMapping);
     };
 
     // Handle drag start event for characters
@@ -175,22 +200,17 @@ const Mapping = () => {
     return (
         <div>
             <ToastContainer />
-            <Grid container spacing={2} justifyContent="center" alignItems="center">
+            <Grid container spacing={2} justifyContent="center" alignItems="flex-start">
+                {/* Header Spacer */}
                 <Grid item xs={12}>
-                    <Typography variant="h4" align="center" gutterBottom>
-                        Map Characters to Accounts
-                    </Typography>
-                </Grid>
-
-                {/* Navigation and Action Buttons */}
-                <Grid item xs={12} container spacing={2} justifyContent="center">
-                    {/* Removed navigation button as navigation is handled via the header */}
+                    {/* Spacer to maintain layout */}
+                    <div style={{ height: '60px' }}></div>
                 </Grid>
 
                 {/* Loading Spinner */}
                 {isLoading && (
                     <Grid item xs={12} container justifyContent="center">
-                        <CircularProgress />
+                        <CircularProgress color="primary" />
                     </Grid>
                 )}
 
@@ -199,86 +219,39 @@ const Mapping = () => {
                     <Grid container spacing={3}>
                         {/* Accounts Section */}
                         <Grid item xs={12} md={6}>
-                            <Typography variant="h5" gutterBottom>
+                            <Typography variant="h5" gutterBottom color="text.primary">
                                 Accounts
                             </Typography>
                             {mappings.map(mapping => (
-                                <Card
-                                    key={`${mapping.subDir}-account`}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={(e) => handleDrop(e, mapping.subDir)}
-                                    aria-label={`Drop character to associate with account ${mapping.subDir}`}
-                                    style={{
-                                        marginBottom: '16px',
-                                        border: `2px solid ${getBorderColor(associations.find(assoc => assoc.userId === mapping.subDir)?.mtime || '#000')}`
-                                    }}
-                                >
-                                    <CardContent>
-                                        <Typography variant="h6">
-                                            {mapping.subDir.replace('settings_', '')}
-                                        </Typography>
-                                        <List>
-                                            {associations
-                                                .filter(assoc => assoc.userId === mapping.subDir)
-                                                .map(assoc => (
-                                                    <ListItem
-                                                        key={assoc.charId} // Assuming charId is unique after filtering
-                                                        secondaryAction={
-                                                            <IconButton
-                                                                edge="end"
-                                                                aria-label="unassociate"
-                                                                onClick={() => handleUnassociate(mapping.subDir, assoc.charId, assoc.charName)}
-                                                            >
-                                                                <DeleteIcon />
-                                                            </IconButton>
-                                                        }
-                                                    >
-                                                        <ListItemText
-                                                            primary={`${assoc.charName} (${assoc.charId})`}
-                                                            secondary={`Last Modified: ${new Date(assoc.mtime).toLocaleString()}`}
-                                                        />
-                                                    </ListItem>
-                                                ))}
-                                        </List>
-                                    </CardContent>
-                                </Card>
+                                <AccountCard
+                                    key={`account-${mapping.subDir}`}
+                                    mapping={mapping}
+                                    associations={associations}
+                                    handleUnassociate={handleUnassociate}
+                                    handleDrop={handleDrop}
+                                    mtimeToColor={mtimeToColor}
+                                />
                             ))}
                         </Grid>
 
                         {/* Available Characters Section */}
                         <Grid item xs={12} md={6}>
-                            <Typography variant="h5" gutterBottom>
+                            <Typography variant="h5" gutterBottom color="text.primary">
                                 Available Characters
                             </Typography>
                             <Grid container spacing={2}>
                                 {availableCharacters.map(char => (
-                                    <Grid item xs={12} sm={6} key={char.charId}>
-                                        <Card
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, char.charId)}
-                                            aria-label={`Draggable character ${char.name}`}
-                                            title={`Drag to associate with an account`}
-                                            style={{
-                                                border: `2px solid ${getBorderColor(char.mtime)}`
-                                            }}
-                                        >
-                                            <CardContent>
-                                                <Typography variant="h6">
-                                                    {char.name}
-                                                </Typography>
-                                                <Typography variant="body2" color="textSecondary">
-                                                    ID: {char.charId}
-                                                </Typography>
-                                                <Typography variant="caption" color="textSecondary">
-                                                    Last Modified: {new Date(char.mtime).toLocaleString()}
-                                                </Typography>
-                                            </CardContent>
-                                        </Card>
+                                    <Grid item xs={12} sm={6} key={`char-${char.charId}`}>
+                                        <CharacterCard
+                                            char={char}
+                                            handleDragStart={handleDragStart}
+                                            mtimeToColor={mtimeToColor}
+                                        />
                                     </Grid>
                                 ))}
                                 {availableCharacters.length === 0 && !isLoading && (
                                     <Grid item xs={12}>
-                                        <Typography variant="body1" align="center">
+                                        <Typography variant="body1" align="center" color="text.secondary">
                                             No available characters to associate.
                                         </Typography>
                                     </Grid>
@@ -290,6 +263,7 @@ const Mapping = () => {
             </Grid>
         </div>
     );
+
 };
 
 export default Mapping;
