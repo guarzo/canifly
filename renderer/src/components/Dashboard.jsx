@@ -10,6 +10,8 @@ const Dashboard = ({
                        onToggleAccountStatus,
                        onUpdateCharacter,
                        onUpdateAccountName,
+                       onRemoveCharacter,
+                       roles,
                    }) => {
     return (
         <div className="space-y-6 mt-16">
@@ -21,6 +23,8 @@ const Dashboard = ({
                     onToggleAccountStatus={onToggleAccountStatus}
                     onUpdateAccountName={onUpdateAccountName}
                     onUpdateCharacter={onUpdateCharacter}
+                    onRemoveCharacter={onRemoveCharacter}
+                    roles={roles}
                 />
             ))}
 
@@ -43,6 +47,7 @@ Dashboard.propTypes = {
     onToggleAccountStatus: PropTypes.func.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
     onUpdateAccountName: PropTypes.func.isRequired,
+    onRemoveCharacter: PropTypes.func.isRequired,
 };
 
 export default Dashboard;

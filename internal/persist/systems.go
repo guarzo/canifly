@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"regexp"
+	"strconv"
 
 	"github.com/guarzo/canifly/internal/embed"
 )
@@ -50,4 +51,8 @@ func init() {
 			SysNameSuggestions = append(SysNameSuggestions, record[1])
 		}
 	}
+}
+
+func GetSystemName(systemID int64) string {
+	return SysIdToName[strconv.FormatInt(systemID, 10)]
 }

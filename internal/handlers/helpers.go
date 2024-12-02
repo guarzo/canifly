@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/api"
 	"github.com/guarzo/canifly/internal/model"
@@ -114,72 +113,83 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 
 	// If identities need population, load and update
 	if needIdentityPopulation {
-		// Load identities (model.Identities)
+		xlog.Logf("Need to populate identities")
 		accounts, err := persist.FetchAccountByIdentity(sessionValues.LoggedInUser)
 		if err != nil {
-			xlog.Logf("Failed to load identities: %v", err)
-			return nil, fmt.Errorf("failed to load identities: %w", err)
+			xlog.Logf("Failed to load accounts: %v", err)
+			return nil, fmt.Errorf("failed to load accounts: %w", err)
 		}
 
-		// Convert accounts (which is []model.Account) to *model.Identities
-		identities := &model.Identities{
-			Tokens: make(map[int64]oauth2.Token),
+		xlog.Logf("Fetched %d accounts", len(accounts))
+
+		// Process each account and its characters
+		for i := range accounts {
+			account := &accounts[i]
+			xlog.Logf("Processing account: %s", account.Name)
+
+			for j := range account.Characters {
+				charIdentity := &account.Characters[j]
+				xlog.Logf("Processing character: %s (ID: %d)", charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
+
+				// Process the character identity
+				updatedCharIdentity, err := api.ProcessIdentity(charIdentity)
+				if err != nil {
+					xlog.Logf("Failed to process identity for character %d: %v", charIdentity.Character.CharacterID, err)
+					continue
+				}
+
+				// Update the character identity in the account
+				account.Characters[j] = *updatedCharIdentity
+			}
+
+			xlog.Logf("Account %s has %d characters after processing", account.Name, len(account.Characters))
 		}
 
-		// Populate the Tokens map from the accounts in accounts
+		// Save the updated accounts
+		if err := persist.SaveAccounts(sessionValues.LoggedInUser, accounts); err != nil {
+			xlog.Logf("Failed to save accounts: %v", err)
+			return nil, fmt.Errorf("failed to save accounts: %w", err)
+		}
+
+		// Update storeData.Accounts with the new accounts
+		storeData.Accounts = accounts
+
+		// Collect character IDs for session update
+		var allCharacterIDs []int64
 		for _, account := range accounts {
 			for _, charIdentity := range account.Characters {
-				// Assuming CharacterID is the key and Token is the value
-				identities.Tokens[charIdentity.Character.CharacterID] = charIdentity.Token
+				allCharacterIDs = append(allCharacterIDs, charIdentity.Character.CharacterID)
 			}
-		}
-
-		// Populate characters for each account
-		for i := range storeData.Accounts {
-			account := &storeData.Accounts[i]
-
-			// Pass the populated identities to PopulateIdentities
-			account.Characters, err = api.PopulateIdentities(identities) // Pass *model.Identities here
-			if err != nil {
-				return nil, fmt.Errorf("failed to populate identities: %w", err)
-			}
-		}
-
-		// Save the updated identities
-		if err = persist.SaveAccounts(sessionValues.LoggedInUser, accounts); err != nil {
-			return nil, fmt.Errorf("failed to save identities: %w", err)
 		}
 
 		// Update the session with the authenticated characters
-		session.Values[allAuthenticatedCharacters] = getAuthenticatedCharacterIDs(storeData.Accounts)
+		session.Values[allAuthenticatedCharacters] = allCharacterIDs
 		session.Values[lastRefreshTime] = time.Now().Unix()
-
-		storeData.Accounts = accounts
 	}
 
-	// Return the updated accounts (the original storeData.Accounts slice)
+	// Return the updated accounts
 	return storeData.Accounts, nil
 }
 
-// Updated function to get all authenticated character IDs from accounts
-func getAuthenticatedCharacterIDs(accounts []model.Account) []int64 {
-	authenticatedCharacters := make([]int64, 0)
-	for _, account := range accounts {
-		for _, charIdentity := range account.Characters {
-			authenticatedCharacters = append(authenticatedCharacters, charIdentity.Character.CharacterID)
-		}
+func getConfigData(sessionValues SessionValues) model.ConfigData {
+	config, err := persist.FetchConfigData(sessionValues.LoggedInUser)
+	if err != nil {
+		xlog.Logf("error retrieving config data")
+		return model.ConfigData{}
 	}
-	return authenticatedCharacters
+	return *config
 }
 
 func prepareHomeData(sessionValues SessionValues, accounts []model.Account) model.HomeData {
 	skillPlans := getMatchingSkillPlans(accounts, skillplan.SkillPlans, skilltype.SkillTypes)
+	config := getConfigData(sessionValues)
 
 	return model.HomeData{
 		LoggedIn:     true,
 		Accounts:     accounts,   // Use accounts instead of identities
 		SkillPlans:   skillPlans, // Return the updated skill plans
 		MainIdentity: sessionValues.LoggedInUser,
+		ConfigData:   config,
 	}
 }
 

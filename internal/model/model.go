@@ -27,6 +27,11 @@ type HomeData struct {
 	Accounts     []Account // Add Accounts here
 	SkillPlans   map[string]SkillPlanWithStatus
 	MainIdentity int64
+	ConfigData
+}
+
+type ConfigData struct {
+	Roles []string `json:"Roles"`
 }
 
 // SkillPlanWithStatus holds detailed information about each skill plan
@@ -50,12 +55,14 @@ type CharacterSkillPlanStatus struct {
 type Character struct {
 	BaseCharacterResponse
 	CharacterSkillsResponse `json:"CharacterSkillsResponse"`
-	Location                int64                       `json:"Location"`
-	SkillQueue              []SkillQueue                `json:"SkillQueue"`
-	QualifiedPlans          map[string]bool             `json:"QualifiedPlans"`
-	PendingPlans            map[string]bool             `json:"PendingPlans"`
-	PendingFinishDates      map[string]*time.Time       `json:"PendingFinishDates"`
-	MissingSkills           map[string]map[string]int32 `json:"MissingSkills"`
+	Location                int64  `json:"Location"`
+	LocationName            string `json:"LocationName"`
+
+	SkillQueue         []SkillQueue                `json:"SkillQueue"`
+	QualifiedPlans     map[string]bool             `json:"QualifiedPlans"`
+	PendingPlans       map[string]bool             `json:"PendingPlans"`
+	PendingFinishDates map[string]*time.Time       `json:"PendingFinishDates"`
+	MissingSkills      map[string]map[string]int32 `json:"MissingSkills"`
 }
 
 // BaseCharacterResponse represents the user information returned by the EVE SSO

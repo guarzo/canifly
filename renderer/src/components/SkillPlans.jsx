@@ -6,7 +6,7 @@ import SkillPlanTable from './SkillPlanTable';
 import { toast } from 'react-toastify';
 import { Container, Paper } from '@mui/material';
 
-const SkillPlans = ({ identities, skillPlans }) => {
+const SkillPlans = ({ identities, skillPlans, setHomeData }) => {
     useEffect(() => {
         window.copySkillPlan = (planName) => {
             const plan = skillPlans[planName];
@@ -20,7 +20,9 @@ const SkillPlans = ({ identities, skillPlans }) => {
 
             if (Object.keys(planSkills).length === 0) {
                 console.warn(`No skills available to copy in the plan: ${planName}`);
-                toast.warning(`No skills available to copy in the plan: ${planName}.`, { autoClose: 1500 });
+                toast.warning(`No skills available to copy in the plan: ${planName}.`, {
+                    autoClose: 1500,
+                });
                 return;
             }
 
@@ -43,14 +45,22 @@ const SkillPlans = ({ identities, skillPlans }) => {
 
         window.deleteSkillPlan = async (planName) => {
             try {
-                const response = await fetch(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
-                    method: 'DELETE',
-                    credentials: 'include',
-                });
+                const response = await fetch(
+                    `/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`,
+                    {
+                        method: 'DELETE',
+                        credentials: 'include',
+                    }
+                );
 
                 if (response.ok) {
                     toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-                    // Refresh data or update state as necessary
+                    // Update the state to remove the deleted skill plan
+                    setHomeData((prevHomeData) => {
+                        const updatedSkillPlans = { ...prevHomeData.SkillPlans };
+                        delete updatedSkillPlans[planName];
+                        return { ...prevHomeData, SkillPlans: updatedSkillPlans };
+                    });
                 } else {
                     const errorMessage = await response.text();
                     toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
@@ -60,10 +70,7 @@ const SkillPlans = ({ identities, skillPlans }) => {
                 toast.error('An error occurred while deleting the skill plan.', { autoClose: 1500 });
             }
         };
-    }, [skillPlans]);
-
-    console.log('Identities in SkillPlans.jsx:', identities);
-    console.log('Skill Plans in SkillPlans.jsx:', skillPlans);
+    }, [skillPlans, setHomeData]);
 
     return (
         <Container maxWidth="lg" className="mt-20">
@@ -81,6 +88,7 @@ const SkillPlans = ({ identities, skillPlans }) => {
 SkillPlans.propTypes = {
     identities: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
+    setHomeData: PropTypes.func.isRequired,
 };
 
 export default SkillPlans;

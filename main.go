@@ -137,6 +137,10 @@ func setupRouter(secret string) *mux.Router {
 	r.HandleFunc("/api/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
 	r.HandleFunc("/api/unassigned-characters", flyHandlers.GetUnassignedCharactersHandler(sessionStore))
 	r.HandleFunc("/api/assign-character", flyHandlers.AssignCharacterHandler(sessionStore))
+	r.HandleFunc("/api/update-account-name", flyHandlers.UpdateAccountNameHandler(sessionStore))
+	r.HandleFunc("/api/update-character", flyHandlers.UpdateCharacterHandler(sessionStore))
+	r.HandleFunc("/api/toggle-account-status", flyHandlers.ToggleAccountStatusHandler(sessionStore))
+	r.HandleFunc("/api/remove-character", flyHandlers.RemoveCharacterHandler(sessionStore))
 
 	// Admin routes
 	r.HandleFunc("/reset-identities", flyHandlers.ResetIdentitiesHandler(sessionStore))

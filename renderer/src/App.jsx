@@ -12,6 +12,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import theme from './components/theme';
+import CharactersByLocation from './components/CharactersByLocation';
+import CharactersByRole from './components/CharactersByRole';
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
@@ -99,21 +101,33 @@ const App = () => {
     // Assign character to account
     const handleAssignCharacter = async (characterID, accountID) => {
         try {
+            const body = { characterID };
+            if (accountID) {
+                body.accountID = accountID;
+            }
             const response = await fetch('/api/assign-character', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ characterID, accountID }),
+                body: JSON.stringify(body),
                 credentials: 'include',
             });
-            if (response.ok) {
+
+            const result = await response.json();
+            if (response.ok && result.success) {
                 toast.success('Character assigned successfully!');
-                fetchData(); // Refresh data
+                // Update state: Remove character from unassignedCharacters
+                setUnassignedCharacters((prev) =>
+                    prev.filter((char) => char.Character.CharacterID !== characterID)
+                );
+                // Optionally, refresh home data to update accounts
+                fetchHomeData();
             } else {
-                throw new Error('Failed to assign character.');
+                // Handle error
+                toast.error(result.error || 'Failed to assign character.');
             }
         } catch (error) {
             console.error('Error assigning character:', error);
-            toast.error('Failed to assign character.');
+            toast.error('Error assigning character.');
         }
     };
 
@@ -126,9 +140,20 @@ const App = () => {
                 body: JSON.stringify({ accountID }),
                 credentials: 'include',
             });
+
             if (response.ok) {
                 toast.success('Account status toggled successfully!');
-                fetchData(); // Refresh data
+                // Update the account status locally
+                setHomeData((prevHomeData) => {
+                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                        if (account.ID === accountID) {
+                            const newStatus = account.Status === 'Alpha' ? 'Omega' : 'Alpha';
+                            return { ...account, Status: newStatus };
+                        }
+                        return account;
+                    });
+                    return { ...prevHomeData, Accounts: updatedAccounts };
+                });
             } else {
                 throw new Error('Failed to toggle account status.');
             }
@@ -138,7 +163,6 @@ const App = () => {
         }
     };
 
-    // Update character properties (Role, MCT, etc.)
     const handleUpdateCharacter = async (characterID, updates) => {
         try {
             const response = await fetch('/api/update-character', {
@@ -147,9 +171,37 @@ const App = () => {
                 body: JSON.stringify({ characterID, updates }),
                 credentials: 'include',
             });
+
             if (response.ok) {
                 toast.success('Character updated successfully!');
-                fetchData(); // Refresh data
+                // Update character and roles locally
+                setHomeData((prevHomeData) => {
+                    const updatedRoles = prevHomeData.ConfigData?.Roles
+                        ? [...prevHomeData.ConfigData.Roles]
+                        : [];
+                    if (updates.Role && !updatedRoles.includes(updates.Role)) {
+                        updatedRoles.push(updates.Role);
+                    }
+
+                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                        const updatedCharacters = account.Characters.map((character) => {
+                            if (character.Character.CharacterID === characterID) {
+                                return { ...character, ...updates };
+                            }
+                            return character;
+                        });
+                        return { ...account, Characters: updatedCharacters };
+                    });
+
+                    return {
+                        ...prevHomeData,
+                        Accounts: updatedAccounts,
+                        ConfigData: {
+                            ...prevHomeData.ConfigData,
+                            Roles: updatedRoles,
+                        },
+                    };
+                });
             } else {
                 throw new Error('Failed to update character.');
             }
@@ -159,26 +211,62 @@ const App = () => {
         }
     };
 
+
+
+    // Remove character from account
+    const handleRemoveCharacter = async (characterID) => {
+        try {
+            const response = await fetch('/api/remove-character', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ characterID }),
+                credentials: 'include',
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                toast.success('Character removed successfully!');
+                fetchData(); // Refresh data
+            } else {
+                // Handle error
+                toast.error(result.error || 'Failed to remove character.');
+            }
+        } catch (error) {
+            console.error('Error removing character:', error);
+            toast.error('Error removing character.');
+        }
+    };
+
     // Update account name
     const handleUpdateAccountName = async (accountID, newName) => {
         try {
             const response = await fetch('/api/update-account-name', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountID, newName }),
+                body: JSON.stringify({ accountID, accountName: newName }),
                 credentials: 'include',
             });
-            if (response.ok) {
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                // Update the account name in state
+                setHomeData((prevHomeData) => {
+                    const updatedAccounts = prevHomeData.Accounts.map((account) =>
+                        account.ID === accountID ? { ...account, Name: newName } : account
+                    );
+                    return { ...prevHomeData, Accounts: updatedAccounts };
+                });
                 toast.success('Account name updated successfully!');
-                fetchData(); // Refresh data
             } else {
-                throw new Error('Failed to update account name.');
+                // Handle error
+                toast.error(result.error || 'Failed to update account name.');
             }
         } catch (error) {
             console.error('Error updating account name:', error);
-            toast.error('Failed to update account name.');
+            toast.error('Error updating account name.');
         }
     };
+
 
     // Skill Plan Modal Handlers
     const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
@@ -206,6 +294,7 @@ const App = () => {
             toast.error('Failed to save skill plan.');
         }
     };
+
 
     useEffect(() => {
         fetchData(); // Fetch data on initial load
@@ -235,7 +324,11 @@ const App = () => {
                     />
                     <main className="flex-grow container mx-auto px-4 py-8">
                         {!isAuthenticated ? (
-                            <Landing />
+                            <Landing/>
+                        ) : isLoading || !homeData ? (
+                            <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
+                                <p>Loading...</p>
+                            </div>
                         ) : (
                             <Routes>
                                 <Route
@@ -248,6 +341,8 @@ const App = () => {
                                             onToggleAccountStatus={handleToggleAccountStatus}
                                             onUpdateCharacter={handleUpdateCharacter}
                                             onUpdateAccountName={handleUpdateAccountName}
+                                            onRemoveCharacter={handleRemoveCharacter}
+                                            roles={homeData?.ConfigData?.Roles || []}
                                         />
                                     }
                                 />
@@ -257,20 +352,40 @@ const App = () => {
                                         <SkillPlans
                                             identities={identities}
                                             skillPlans={homeData?.SkillPlans || {}}
+                                            setHomeData={setHomeData}
+                                        />
+                                    }
+                                />
+                                <Route
+                                    path="/characters-by-location"
+                                    element={
+                                        <CharactersByLocation
+                                            accounts={homeData?.Accounts || []}
+                                            unassignedCharacters={homeData?.UnassignedCharacters || []}
+                                        />
+                                    }
+                                />
+                                <Route
+                                    path="/characters-by-role"
+                                    element={
+                                        <CharactersByRole
+                                            accounts={homeData?.Accounts || []}
+                                            unassignedCharacters={homeData?.UnassignedCharacters || []}
+                                            roles={homeData?.ConfigData?.Roles || []}
                                         />
                                     }
                                 />
                             </Routes>
                         )}
                     </main>
-                    <Footer />
+                    <Footer/>
                     {isSkillPlanModalOpen && (
                         <AddSkillPlanModal
                             onClose={closeSkillPlanModal}
                             onSave={handleSaveSkillPlan}
                         />
                     )}
-                    <ToastContainer />
+                    <ToastContainer/>
                 </div>
             </Router>
             </ThemeProvider>

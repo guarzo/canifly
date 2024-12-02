@@ -1,15 +1,28 @@
 // Header.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, IconButton, Typography } from '@mui/material';
 import {
+    AppBar,
+    Toolbar,
+    IconButton,
+    Typography,
+    Drawer,
+    List,
+    ListItem,
+    ListItemIcon,
+    ListItemText,
+    Divider,
+} from '@mui/material';
+import {
+    Menu as MenuIcon,
     AddCircleOutline,
     ExitToApp,
     Close,
     Dashboard as DashboardIcon,
     ListAlt as SkillPlansIcon,
-    Settings as SettingsIcon, // Import SettingsIcon
+    Map as LocationIcon,
+    People as RoleIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 const { ipcRenderer } = require('electron');
@@ -24,6 +37,7 @@ const StyledAppBar = styled(AppBar)(({ theme }) => ({
 
 const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
     const location = useLocation();
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     const handleAddCharacter = () => {
         window.location.href = 'http://localhost:8713/auth-character';
@@ -33,85 +47,97 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
         ipcRenderer.send('close-window');
     };
 
+    const toggleDrawer = (open) => () => {
+        setDrawerOpen(open);
+    };
+
+    const navigationLinks = [
+        { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+        { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
+        { text: 'By Location', icon: <LocationIcon />, path: '/characters-by-location' },
+        { text: 'By Role', icon: <RoleIcon />, path: '/characters-by-role' },
+    ];
+
     return (
-        <StyledAppBar position="fixed">
-            <Toolbar style={{ WebkitAppRegion: 'drag' }}>
-                {/* Left Side Icons */}
-                <div
-                    className="flex items-center space-x-3"
-                    style={{ WebkitAppRegion: 'no-drag' }}
-                >
+        <>
+            <StyledAppBar position="fixed">
+                <Toolbar style={{ WebkitAppRegion: 'drag' }}>
+                    {/* Menu Icon */}
                     {loggedIn && (
-                        <>
-                            {/* Add Character Icon */}
-                            <IconButton onClick={handleAddCharacter} title="Add Character">
-                                <AddCircleOutline sx={{ color: '#22c55e' }} /> {/* Green color */}
-                            </IconButton>
-                            {/* Add Skill Plan Icon */}
-                            <IconButton onClick={openSkillPlanModal} title="Add Skill Plan">
-                                <SettingsIcon sx={{ color: '#f59e0b' }} /> {/* Amber color */}
-                            </IconButton>
-                        </>
+                        <IconButton
+                            edge="start"
+                            color="inherit"
+                            aria-label="menu"
+                            onClick={toggleDrawer(true)}
+                            style={{ WebkitAppRegion: 'no-drag' }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
                     )}
-                </div>
 
-                {/* Title */}
-                <Typography
-                    variant="h6"
-                    className="flex-grow text-center"
-                    sx={{ color: '#14b8a6' }}
-                >
-                    Can I Fly?
-                </Typography>
+                    {/* Title */}
+                    <Typography
+                        variant="h6"
+                        className="flex-grow text-center"
+                        sx={{ color: '#14b8a6' }}
+                    >
+                        Can I Fly?
+                    </Typography>
 
-                {/* Navigation Icons */}
-                {loggedIn && (
-                    <nav
-                        className="mr-4 flex items-center space-x-2"
+                    {/* Right Side Icons */}
+                    <div
+                        className="flex items-center space-x-3"
                         style={{ WebkitAppRegion: 'no-drag' }}
                     >
-                        <IconButton
-                            component={Link}
-                            to="/"
-                            title="Dashboard"
-                            sx={{
-                                color: location.pathname === '/' ? '#ffffff' : '#14b8a6',
-                                '&:hover': { color: '#ffffff' },
-                            }}
-                        >
-                            <DashboardIcon />
+                        {loggedIn && (
+                            <>
+                                {/* Add Character Icon */}
+                                <IconButton onClick={handleAddCharacter} title="Add Character">
+                                    <AddCircleOutline sx={{ color: '#22c55e' }} /> {/* Green color */}
+                                </IconButton>
+                                {/* Add Skill Plan Icon */}
+                                <IconButton onClick={openSkillPlanModal} title="Add Skill Plan">
+                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} /> {/* Amber color */}
+                                </IconButton>
+                                {/* Logout Icon */}
+                                <IconButton onClick={handleLogout} title="Logout">
+                                    <ExitToApp sx={{ color: '#ef4444' }} /> {/* Red color */}
+                                </IconButton>
+                            </>
+                        )}
+                        <IconButton onClick={handleCloseWindow} title="Close">
+                            <Close sx={{ color: '#9ca3af' }} /> {/* Gray color */}
                         </IconButton>
-                        <IconButton
-                            component={Link}
-                            to="/skill-plans"
-                            title="Skill Plans"
-                            sx={{
-                                color:
-                                    location.pathname === '/skill-plans' ? '#ffffff' : '#14b8a6',
-                                '&:hover': { color: '#ffffff' },
-                            }}
-                        >
-                            <SkillPlansIcon />
-                        </IconButton>
-                    </nav>
-                )}
+                    </div>
+                </Toolbar>
+            </StyledAppBar>
 
-                {/* Right Side Icons */}
+            {/* Navigation Drawer */}
+            <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
                 <div
-                    className="flex items-center space-x-3"
-                    style={{ WebkitAppRegion: 'no-drag' }}
+                    role="presentation"
+                    onClick={toggleDrawer(false)}
+                    onKeyDown={toggleDrawer(false)}
+                    style={{ width: 250 }}
                 >
-                    {loggedIn && (
-                        <IconButton onClick={handleLogout} title="Logout">
-                            <ExitToApp sx={{ color: '#ef4444' }} /> {/* Red color */}
-                        </IconButton>
-                    )}
-                    <IconButton onClick={handleCloseWindow} title="Close">
-                        <Close sx={{ color: '#9ca3af' }} /> {/* Gray color */}
-                    </IconButton>
+                    <List>
+                        {navigationLinks.map((item) => (
+                            <ListItem
+                                button
+                                key={item.text}
+                                component={Link}
+                                to={item.path}
+                                selected={location.pathname === item.path}
+                            >
+                                <ListItemIcon sx={{ color: '#14b8a6' }}>{item.icon}</ListItemIcon>
+                                <ListItemText primary={item.text} />
+                            </ListItem>
+                        ))}
+                    </List>
+                    <Divider />
                 </div>
-            </Toolbar>
-        </StyledAppBar>
+            </Drawer>
+        </>
     );
 };
 

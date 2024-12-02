@@ -3,8 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
+	"time"
 
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"golang.org/x/oauth2"
@@ -12,80 +13,62 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
-func PopulateIdentities(userConfig *model.Identities) ([]model.CharacterIdentity, error) {
-	var characterData []model.CharacterIdentity
-	var mu sync.Mutex
-	var wg sync.WaitGroup
+func ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
+	xlog.Logf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
 
-	// Iterate through each account and its characters
-	for id, token := range userConfig.Tokens {
-		wg.Add(1)
-		go func(id int64, token oauth2.Token) {
-			defer wg.Done()
-
-			// Process each character identity asynchronously
-			charIdentityProcessed, err := processIdentity(id, token, userConfig, &mu)
-			if err != nil {
-				xlog.Logf("Failed to process identity for character %d: %v", id, err)
-				return
-			}
-
-			mu.Lock()
-			// Add the processed identity to the list
-			characterData = append(characterData, *charIdentityProcessed)
-			mu.Unlock()
-		}(id, token)
-	}
-
-	wg.Wait()
-
-	return characterData, nil
-}
-
-func processIdentity(id int64, token oauth2.Token, userConfig *model.Identities, mu *sync.Mutex) (*model.CharacterIdentity, error) {
-	newToken, err := RefreshToken(token.RefreshToken)
+	newToken, err := RefreshToken(charIdentity.Token.RefreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token for character %d: %v", id, err)
+		xlog.Logf("Failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
+		return nil, fmt.Errorf("failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
 	}
-	token = *newToken
+	xlog.Logf("Token refreshed for character %d", charIdentity.Character.CharacterID)
+	charIdentity.Token = *newToken
 
-	mu.Lock()
-	userConfig.Tokens[id] = token
-	mu.Unlock()
-
-	skills, err := getCharacterSkills(id, &token)
+	// Fetch character skills
+	skills, err := getCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		xlog.Logf("temporarily only a warning - failed to get skills for character %d: %v", id, err)
+		xlog.Logf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
 		skills = &model.CharacterSkillsResponse{Skills: []model.SkillResponse{}}
 	}
+	xlog.Logf("Fetched %d skills for character %d", len(skills.Skills), charIdentity.Character.CharacterID)
 
-	skillQueue, err := getCharacterSkillQueue(id, &token)
+	// Fetch skill queue
+	skillQueue, err := getCharacterSkillQueue(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		xlog.Logf("temporarily only a warning - failed to get skills for character %d: %v", id, err)
+		xlog.Logf("Failed to get skill queue for character %d: %v", charIdentity.Character.CharacterID, err)
 		skillQueue = &[]model.SkillQueue{}
 	}
+	xlog.Logf("Fetched %d skill queue entries for character %d", len(*skillQueue), charIdentity.Character.CharacterID)
 
-	characterLocation, err := getCharacterLocationInfo(id, &token)
+	// Fetch character location
+	characterLocation, err := getCharacterLocationInfo(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get location for character %d: %v", id, err)
+		xlog.Logf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
+		characterLocation = 0
 	}
+	xlog.Logf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
 
-	user, err := GetUserInfo(&token)
+	// Fetch user info
+	user, err := GetUserInfo(&charIdentity.Token)
 	if err != nil {
+		xlog.Logf("Failed to get user info for character %d: %v", charIdentity.Character.CharacterID, err)
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
+	xlog.Logf("Fetched user info for character %s (ID: %d)", user.CharacterName, user.CharacterID)
 
-	character := model.Character{
-		BaseCharacterResponse:   *user,
-		CharacterSkillsResponse: *skills,
-		SkillQueue:              *skillQueue,
-		Location:                characterLocation,
-	}
+	// Update character data
+	charIdentity.Character.BaseCharacterResponse = *user
+	charIdentity.Character.CharacterSkillsResponse = *skills
+	charIdentity.Character.SkillQueue = *skillQueue
+	charIdentity.Character.Location = characterLocation
+	charIdentity.Character.LocationName = persist.GetSystemName(characterLocation)
+	// Initialize maps to avoid nil references
+	charIdentity.Character.QualifiedPlans = make(map[string]bool)
+	charIdentity.Character.PendingPlans = make(map[string]bool)
+	charIdentity.Character.PendingFinishDates = make(map[string]*time.Time)
+	charIdentity.Character.MissingSkills = make(map[string]map[string]int32)
 
-	return &model.CharacterIdentity{
-		Token:     token,
-		Character: character,
-	}, nil
+	return charIdentity, nil
 }
 
 func getCharacterLocationInfo(id int64, token *oauth2.Token) (int64, error) {
