@@ -1,7 +1,7 @@
 // Header.jsx
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
     AppBar,
     Toolbar,
@@ -13,6 +13,7 @@ import {
     ListItemIcon,
     ListItemText,
     Divider,
+    ListItemButton,
 } from '@mui/material';
 import {
     Menu as MenuIcon,
@@ -122,15 +123,15 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                 >
                     <List>
                         {navigationLinks.map((item) => (
-                            <ListItem
-                                button
-                                key={item.text}
-                                component={Link}
-                                to={item.path}
-                                selected={location.pathname === item.path}
-                            >
-                                <ListItemIcon sx={{ color: '#14b8a6' }}>{item.icon}</ListItemIcon>
-                                <ListItemText primary={item.text} />
+                            <ListItem key={item.text} disablePadding>
+                                <ListItemButton
+                                    component={Link}
+                                    to={item.path}
+                                    selected={location.pathname === item.path}
+                                >
+                                    <ListItemIcon sx={{ color: '#14b8a6' }}>{item.icon}</ListItemIcon>
+                                    <ListItemText primary={item.text} />
+                                </ListItemButton>
                             </ListItem>
                         ))}
                     </List>

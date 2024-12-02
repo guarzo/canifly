@@ -37,7 +37,7 @@ const AccountCard = ({
     };
 
     return (
-        <div className="p-2 rounded-md shadow-md bg-gray-800 text-teal-200">
+        <div className="p-2 rounded-md shadow-md bg-gray-800 text-teal-200 max-w-sm">
             {/* Account Header */}
             <div className="flex justify-between items-center mb-2">
                 {isEditingName ? (
@@ -106,10 +106,12 @@ const AccountCard = ({
                     return (
                         <div
                             key={character.Character.CharacterID}
-                            className="p-2 rounded-md shadow-sm bg-gray-700 relative"
+                            className="p-2 rounded-md shadow-sm bg-gray-700"
                         >
                             <div className="flex justify-between items-center">
-                                <span className="font-semibold text-sm">{character.Character.CharacterName}</span>
+                <span className="font-semibold text-sm">
+                  {character.Character.CharacterName}
+                </span>
                                 {/* MCT Toggle */}
                                 <div
                                     onClick={() =>
@@ -122,8 +124,9 @@ const AccountCard = ({
                                     }`}
                                 ></div>
                             </div>
-                            {/* Role and Location on the Same Line */}
-                            <div className="mt-1 flex justify-between items-center">
+                            {/* Role, Location, and Trash Can on the Same Line */}
+                            <div className="mt-1 flex items-center justify-between">
+                                {/* Role */}
                                 <div className="flex items-center">
                                     <span className="text-xs text-teal-400">Role:</span>
                                     {isAddingRole ? (
@@ -159,18 +162,19 @@ const AccountCard = ({
                                         </Select>
                                     )}
                                 </div>
+                                {/* Location */}
                                 <div className="text-xs text-teal-400">
                                     {character.Character.LocationName || 'Unknown'}
                                 </div>
+                                {/* Trash Can Icon */}
+                                <IconButton
+                                    size="small"
+                                    onClick={() => onRemoveCharacter(character.Character.CharacterID)}
+                                    className="text-red-500"
+                                >
+                                    <Delete fontSize="small" />
+                                </IconButton>
                             </div>
-                            {/* Remove Character Icon at Bottom Right */}
-                            <IconButton
-                                size="small"
-                                onClick={() => onRemoveCharacter(character.Character.CharacterID)}
-                                className="absolute bottom-1 right-1 text-red-500"
-                            >
-                                <Delete fontSize="small" />
-                            </IconButton>
                         </div>
                     );
                 })}

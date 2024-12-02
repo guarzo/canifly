@@ -1,4 +1,4 @@
-// CharactersByLocation.jsx
+// src/components/Characters/CharactersByLocation.jsx
 import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -29,6 +29,15 @@ const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
                 }))
             );
         });
+        // Optionally include unassigned characters
+        // if (unassignedCharacters && unassignedCharacters.length > 0) {
+        //   chars = chars.concat(
+        //     unassignedCharacters.map((char) => ({
+        //       ...char,
+        //       accountName: 'Unassigned',
+        //     }))
+        //   );
+        // }
         return chars;
     }, [accounts]);
 
@@ -72,7 +81,7 @@ const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
 
                     {sortedLocations.map((location, index) => (
                         <div key={location}>
-                            <Typography variant="h6" color="secondary">
+                            <Typography variant="h6" color="primary" gutterBottom>
                                 {location}
                             </Typography>
                             <List dense>
@@ -87,9 +96,7 @@ const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
                                     </ListItem>
                                 ))}
                             </List>
-                            {index < sortedLocations.length - 1 && (
-                                <Divider light sx={{ marginY: 2 }} />
-                            )}
+                            {index < sortedLocations.length - 1 && <Divider light sx={{ marginY: 2 }} />}
                         </div>
                     ))}
                 </CardContent>

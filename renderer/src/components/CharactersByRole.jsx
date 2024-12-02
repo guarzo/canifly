@@ -1,33 +1,45 @@
-// CharactersByRole.jsx
+// src/components/Characters/CharactersByRole.jsx
 import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
     Container,
-    Paper,
+    Card,
+    CardContent,
     Typography,
     List,
     ListItem,
     ListItemText,
-    Select,
-    MenuItem,
-    InputLabel,
-    FormControl,
+    IconButton,
+    Divider,
 } from '@mui/material';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
 const CharactersByRole = ({ accounts, unassignedCharacters, roles }) => {
-    const [selectedRole, setSelectedRole] = useState('');
+    const [sortOrder, setSortOrder] = useState('asc');
 
     // Combine all characters
     const allCharacters = useMemo(() => {
         let chars = [];
-        accounts.forEach((account) => {
-            chars = chars.concat(account.Characters);
+        (accounts || []).forEach((account) => {
+            const accountName = account.Name || 'Unknown Account';
+            chars = chars.concat(
+                (account.Characters || []).map((char) => ({
+                    ...char,
+                    accountName,
+                }))
+            );
         });
-        if (unassignedCharacters) {
-            chars = chars.concat(unassignedCharacters);
-        }
+        // Optionally include unassigned characters
+        // if (unassignedCharacters && unassignedCharacters.length > 0) {
+        //   chars = chars.concat(
+        //     unassignedCharacters.map((char) => ({
+        //       ...char,
+        //       accountName: 'Unassigned',
+        //     }))
+        //   );
+        // }
         return chars;
-    }, [accounts, unassignedCharacters]);
+    }, [accounts]);
 
     // Group characters by role
     const roleMap = useMemo(() => {
@@ -47,53 +59,53 @@ const CharactersByRole = ({ accounts, unassignedCharacters, roles }) => {
         return map;
     }, [allCharacters, roles]);
 
-    const displayedRoles = useMemo(() => {
-        return selectedRole ? [selectedRole] : Object.keys(roleMap);
-    }, [selectedRole, roleMap]);
+    const sortedRoles = useMemo(() => {
+        const roleList = Object.keys(roleMap);
+        roleList.sort((a, b) =>
+            sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+        );
+        return roleList;
+    }, [roleMap, sortOrder]);
+
+    const toggleSortOrder = () => {
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    };
 
     return (
         <Container maxWidth="md" className="mt-16">
-            <Paper elevation={3} className="p-6 bg-gray-800 text-gray-100">
-                <Typography variant="h4" gutterBottom>
-                    Characters by Role
-                </Typography>
-
-                {/* Role Filter */}
-                <FormControl variant="filled" size="small" sx={{ minWidth: 200, marginBottom: 2 }}>
-                    <InputLabel id="role-filter-label">Filter by Role</InputLabel>
-                    <Select
-                        labelId="role-filter-label"
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                        label="Filter by Role"
-                    >
-                        <MenuItem value="">
-                            <em>All Roles</em>
-                        </MenuItem>
-                        {roles.map((role) => (
-                            <MenuItem key={role} value={role}>
-                                {role}
-                            </MenuItem>
-                        ))}
-                        <MenuItem value="Unassigned">Unassigned</MenuItem>
-                    </Select>
-                </FormControl>
-
-                {displayedRoles.map((role) => (
-                    <div key={role} className="mb-4">
-                        <Typography variant="h6" color="primary">
-                            {role}
+            <Card elevation={3} className="bg-gray-800 text-gray-100">
+                <CardContent>
+                    <div className="flex items-center justify-between">
+                        <Typography variant="h4" gutterBottom>
+                            Characters by Role
                         </Typography>
-                        <List dense>
-                            {roleMap[role].map((character) => (
-                                <ListItem key={character.Character.CharacterID}>
-                                    <ListItemText primary={character.Character.CharacterName} />
-                                </ListItem>
-                            ))}
-                        </List>
+                        <IconButton onClick={toggleSortOrder} color="inherit">
+                            {sortOrder === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
+                        </IconButton>
                     </div>
-                ))}
-            </Paper>
+
+                    {sortedRoles.map((role, index) => (
+                        <div key={role}>
+                            <Typography variant="h6" color="primary" gutterBottom>
+                                {role}
+                            </Typography>
+                            <List dense>
+                                {roleMap[role].map((character) => (
+                                    <ListItem key={character.Character.CharacterID}>
+                                        <ListItemText
+                                            primary={character.Character.CharacterName}
+                                            secondary={`Account: ${character.accountName} | Location: ${
+                                                character.Character.LocationName || 'Unknown'
+                                            }`}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                            {index < sortedRoles.length - 1 && <Divider light sx={{ marginY: 2 }} />}
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
         </Container>
     );
 };
