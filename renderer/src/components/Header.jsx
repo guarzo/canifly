@@ -1,4 +1,5 @@
 // Header.jsx
+
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, Link } from 'react-router-dom';
@@ -24,9 +25,10 @@ import {
     ListAlt as SkillPlansIcon,
     Map as LocationIcon,
     People as RoleIcon,
+    Sync as SyncIcon,
+    AccountTree as MappingIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-const { ipcRenderer } = require('electron');
 
 // Custom styled AppBar
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
@@ -45,7 +47,11 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
     };
 
     const handleCloseWindow = () => {
-        ipcRenderer.send('close-window');
+        if (window.electronAPI && window.electronAPI.closeWindow) {
+            window.electronAPI.closeWindow();
+        } else {
+            console.error('Electron API not available');
+        }
     };
 
     const toggleDrawer = (open) => () => {
@@ -57,6 +63,8 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
         { text: 'By Location', icon: <LocationIcon />, path: '/characters-by-location' },
         { text: 'By Role', icon: <RoleIcon />, path: '/characters-by-role' },
+        { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
+        { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
     ];
 
     return (
@@ -94,20 +102,20 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                             <>
                                 {/* Add Character Icon */}
                                 <IconButton onClick={handleAddCharacter} title="Add Character">
-                                    <AddCircleOutline sx={{ color: '#22c55e' }} /> {/* Green color */}
+                                    <AddCircleOutline sx={{ color: '#22c55e' }} />
                                 </IconButton>
                                 {/* Add Skill Plan Icon */}
                                 <IconButton onClick={openSkillPlanModal} title="Add Skill Plan">
-                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} /> {/* Amber color */}
+                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} />
                                 </IconButton>
                                 {/* Logout Icon */}
                                 <IconButton onClick={handleLogout} title="Logout">
-                                    <ExitToApp sx={{ color: '#ef4444' }} /> {/* Red color */}
+                                    <ExitToApp sx={{ color: '#ef4444' }} />
                                 </IconButton>
                             </>
                         )}
                         <IconButton onClick={handleCloseWindow} title="Close">
-                            <Close sx={{ color: '#9ca3af' }} /> {/* Gray color */}
+                            <Close sx={{ color: '#9ca3af' }} />
                         </IconButton>
                     </div>
                 </Toolbar>

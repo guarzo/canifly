@@ -14,6 +14,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import theme from './components/theme';
 import CharactersByLocation from './components/CharactersByLocation';
 import CharactersByRole from './components/CharactersByRole';
+import Sync from './components/Sync';
+import Mapping from './components/Mapping'
+
 
 const App = () => {
     const [homeData, setHomeData] = useState(null);
@@ -374,6 +377,14 @@ const App = () => {
                                             roles={homeData?.ConfigData?.Roles || []}
                                         />
                                     }
+                                />
+                                <Route
+                                    path="/sync"
+                                    element={<Sync />}
+                                />
+                                <Route
+                                    path="/mapping"
+                                    element={<Mapping />}
                                 />
                             </Routes>
                         )}
