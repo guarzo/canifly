@@ -62,6 +62,7 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 						switch key {
 						case "Role":
 							if roleStr, ok := value.(string); ok {
+								updateRoles(roleStr, mainIdentity)
 								charIdentity.Role = roleStr
 							}
 						case "MCT":
@@ -97,6 +98,34 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 		// Respond with success
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"success": true}`))
+	}
+}
+
+func updateRoles(newRole string, id int64) {
+	// Fetch ConfigData
+	configData, err := persist.FetchConfigData(id)
+	if err != nil {
+		xlog.Logf("errro fetching config data %v", configData)
+		return
+	}
+
+	// Update the roles list if new role
+	roleExists := false
+	for _, role := range configData.Roles {
+		if role == newRole {
+			roleExists = true
+			xlog.Logf("role exists %s", newRole)
+			break
+		}
+	}
+	if !roleExists {
+		configData.Roles = append(configData.Roles, newRole)
+	}
+
+	// Save updated ConfigData
+	err = persist.SaveConfigData(id, configData)
+	if err != nil {
+		xlog.Logf("failed to save config data %v", err)
 	}
 }
 
