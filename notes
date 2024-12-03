@@ -1,4 +1,4 @@
-Need a .env file with these variables set
+.Need a .env file with these variables set
 
 EVE_CLIENT_ID=
 EVE_CLIENT_SECRET=
