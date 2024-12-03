@@ -1,6 +1,6 @@
 // Header.jsx
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -23,7 +23,6 @@ import {
     Close,
     Dashboard as DashboardIcon,
     ListAlt as SkillPlansIcon,
-    Map as LocationIcon,
     People as RoleIcon,
     Sync as SyncIcon,
     AccountTree as MappingIcon,
@@ -31,7 +30,7 @@ import {
 import { styled } from '@mui/material/styles';
 
 // Custom styled AppBar
-const StyledAppBar = styled(AppBar)(({ theme }) => ({
+const StyledAppBar = styled(AppBar)(() => ({
     backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
     color: '#14b8a6',
     boxShadow: 'inset 0 -4px 0 0 #14b8a6',
@@ -61,8 +60,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
     const navigationLinks = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
-        { text: 'By Location', icon: <LocationIcon />, path: '/characters-by-location' },
-        { text: 'By Role', icon: <RoleIcon />, path: '/characters-by-role' },
+        { text: 'Character Sort', icon: <RoleIcon />, path: '/character-sort' },
         { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
     ];

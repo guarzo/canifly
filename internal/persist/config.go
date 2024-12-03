@@ -15,6 +15,7 @@ func SaveConfigData(mainIdentity int64, configData *model.ConfigData) error {
 		return fmt.Errorf("invalid file path for saving config data")
 	}
 
+	xlog.Logf("saving config data %v")
 	// Save the data without encryption
 	err := SaveData(configData, filePath)
 	if err != nil {
@@ -41,6 +42,8 @@ func FetchConfigData(mainIdentity int64) (*model.ConfigData, error) {
 		xlog.Logf("Error loading config data: %v", err)
 		return nil, err
 	}
+
+	xlog.Logf("loaded config %v", configData)
 
 	return &configData, nil
 }

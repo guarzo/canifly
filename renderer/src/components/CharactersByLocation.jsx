@@ -29,15 +29,6 @@ const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
                 }))
             );
         });
-        // Optionally include unassigned characters
-        // if (unassignedCharacters && unassignedCharacters.length > 0) {
-        //   chars = chars.concat(
-        //     unassignedCharacters.map((char) => ({
-        //       ...char,
-        //       accountName: 'Unassigned',
-        //     }))
-        //   );
-        // }
         return chars;
     }, [accounts]);
 

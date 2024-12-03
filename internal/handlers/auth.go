@@ -117,8 +117,19 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 				},
 			}
 
-			// Add to the unassigned characters list
-			unassignedCharacters = append(unassignedCharacters, newCharacter)
+			existingUnassigned := false
+			for i := range unassignedCharacters {
+				if unassignedCharacters[i].Character.CharacterID == user.CharacterID {
+					// If the character is found in an account, we update the token
+					unassignedCharacters[i].Token = *token
+					existingUnassigned = true
+					break
+				}
+			}
+
+			if !existingUnassigned {
+				unassignedCharacters = append(unassignedCharacters, newCharacter)
+			}
 
 			// Save the updated unassigned characters to the file
 			err := persist.SaveUnassignedCharacters(mainIdentity, unassignedCharacters)
@@ -159,7 +170,7 @@ func LogoutHandler(s *SessionService) http.HandlerFunc {
 	}
 }
 
-func ResetIdentitiesHandler(s *SessionService) http.HandlerFunc {
+func ResetAccountsHandler(s *SessionService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, _ := s.Get(r, sessionName)
 		mainIdentity, ok := session.Values[loggedInUser].(int64)

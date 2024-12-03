@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"net/http"
 
 	"github.com/guarzo/canifly/internal/persist"
@@ -52,6 +53,7 @@ func UpdateCharacterRoleHandler(s *SessionService) http.HandlerFunc {
 		for _, role := range configData.Roles {
 			if role == request.Role {
 				roleExists = true
+				xlog.Logf("role exists %s", request.Role)
 				break
 			}
 		}

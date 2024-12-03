@@ -1,6 +1,12 @@
-.Need a .env file with these variables set
+.env file with these variables set
 
 EVE_CLIENT_ID=
 EVE_CLIENT_SECRET=
 EVE_CALLBACK_URL=
 SECRET_KEY=
+
+
+todo
+- on first login - failed to get unassigned characters
+- ensure no duplicate characters
+- does mainidentity need to exist?

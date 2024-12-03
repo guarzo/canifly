@@ -143,7 +143,7 @@ func setupRouter(secret string) *mux.Router {
 	r.HandleFunc("/api/remove-character", flyHandlers.RemoveCharacterHandler(sessionStore))
 
 	// Admin routes
-	r.HandleFunc("/reset-identities", flyHandlers.ResetIdentitiesHandler(sessionStore))
+	r.HandleFunc("/reset-identities", flyHandlers.ResetAccountsHandler(sessionStore))
 
 	// Serve static files from the embedded filesystem
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))

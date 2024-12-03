@@ -1,5 +1,5 @@
 // App.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -12,8 +12,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import theme from './components/theme';
-import CharactersByLocation from './components/CharactersByLocation';
-import CharactersByRole from './components/CharactersByRole';
+import CharacterSort from './components/CharacterSort.jsx';
 import Sync from './components/Sync';
 import Mapping from './components/Mapping'
 
@@ -123,7 +122,7 @@ const App = () => {
                     prev.filter((char) => char.Character.CharacterID !== characterID)
                 );
                 // Optionally, refresh home data to update accounts
-                fetchHomeData();
+                await fetchHomeData();
             } else {
                 // Handle error
                 toast.error(result.error || 'Failed to assign character.');
@@ -229,7 +228,7 @@ const App = () => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Character removed successfully!');
-                fetchData(); // Refresh data
+                await fetchData(); // Refresh data
             } else {
                 // Handle error
                 toast.error(result.error || 'Failed to remove character.');
@@ -287,7 +286,7 @@ const App = () => {
             if (response.ok) {
                 toast.success('Skill Plan Saved!');
                 closeSkillPlanModal();
-                fetchData(); // Refresh data
+                await fetchData(); // Refresh data
             } else {
                 const errorText = await response.text();
                 toast.error(`Error saving skill plan: ${errorText}`);
@@ -360,20 +359,10 @@ const App = () => {
                                     }
                                 />
                                 <Route
-                                    path="/characters-by-location"
+                                    path="/character-sort"
                                     element={
-                                        <CharactersByLocation
+                                        <CharacterSort
                                             accounts={homeData?.Accounts || []}
-                                            unassignedCharacters={homeData?.UnassignedCharacters || []}
-                                        />
-                                    }
-                                />
-                                <Route
-                                    path="/characters-by-role"
-                                    element={
-                                        <CharactersByRole
-                                            accounts={homeData?.Accounts || []}
-                                            unassignedCharacters={homeData?.UnassignedCharacters || []}
                                             roles={homeData?.ConfigData?.Roles || []}
                                         />
                                     }

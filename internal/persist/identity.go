@@ -116,6 +116,8 @@ func UpdateAccounts(mainIdentity int64, updateFunc func(*model.Account) error) e
 		return err
 	}
 
+	xlog.Logf("accounts: %v", accounts)
+
 	// If no accounts exist, create a new account
 	if len(accounts) == 0 {
 		xlog.Logf("No accounts found for identity: %d, creating new account", mainIdentity)
@@ -159,6 +161,7 @@ func DeleteAccount(mainIdentity int64) error {
 // SaveUnassignedCharacters encrypts and saves unassigned characters to a writable path.
 func SaveUnassignedCharacters(mainIdentity int64, unassignedCharacters []model.CharacterIdentity) error {
 	filePath := getUnassignedCharactersFileName(mainIdentity)
+	xlog.Logf("saving unassigned %v", unassignedCharacters)
 	return crypto.EncryptData(unassignedCharacters, filePath)
 }
 

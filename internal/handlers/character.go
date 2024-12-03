@@ -120,7 +120,7 @@ func GetUnassignedCharactersHandler(s *SessionService) http.HandlerFunc {
 			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
 			return
 		}
-
+		xlog.Logf("%v", unassignedCharacters)
 		// Return the unassigned characters in the response
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(unassignedCharacters)
