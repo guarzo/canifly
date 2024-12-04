@@ -51,6 +51,9 @@ const CharacterSort = ({ accounts, roles }) => {
     const [sortOrder, setSortOrder] = useState('asc');
     const [tabIndex, setTabIndex] = useState(0); // 0: By Role, 1: By Location
 
+    console.log(accounts)
+    console.log(roles)
+
     // Combine all characters from accounts, excluding unassigned characters
     const allCharacters = useMemo(() => {
         let chars = [];

@@ -161,7 +161,6 @@ func DeleteAccount() error {
 // SaveUnassignedCharacters encrypts and saves unassigned characters to a writable path.
 func SaveUnassignedCharacters(unassignedCharacters []model.CharacterIdentity) error {
 	filePath := getUnassignedCharactersFileName()
-	xlog.Logf("saving unassigned %v", unassignedCharacters)
 	return crypto.EncryptData(unassignedCharacters, filePath)
 }
 

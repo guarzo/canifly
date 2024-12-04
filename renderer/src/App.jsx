@@ -178,8 +178,8 @@ const App = () => {
                 toast.success('Character updated successfully!');
                 // Update character and roles locally
                 setHomeData((prevHomeData) => {
-                    const updatedRoles = prevHomeData.ConfigData?.Roles
-                        ? [...prevHomeData.ConfigData.Roles]
+                    const updatedRoles = prevHomeData?.Roles
+                        ? [...prevHomeData.Roles]
                         : [];
                     if (updates.Role && !updatedRoles.includes(updates.Role)) {
                         updatedRoles.push(updates.Role);
@@ -198,10 +198,7 @@ const App = () => {
                     return {
                         ...prevHomeData,
                         Accounts: updatedAccounts,
-                        ConfigData: {
-                            ...prevHomeData.ConfigData,
-                            Roles: updatedRoles,
-                        },
+                        Roles: updatedRoles,
                     };
                 });
             } else {
@@ -388,7 +385,7 @@ const App = () => {
                                     element={
                                         <CharacterSort
                                             accounts={homeData?.Accounts || []}
-                                            roles={homeData?.ConfigData?.Roles || []}
+                                            roles={homeData?.Roles || []}
                                         />
                                     }
                                 />
