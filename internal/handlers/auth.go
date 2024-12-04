@@ -41,6 +41,8 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
 
+		xlog.Logf("%v, %v", code, state)
+
 		// Exchange the code for a token
 		token, err := api.ExchangeCode(code)
 		if err != nil {
@@ -80,20 +82,22 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Retrieve the unassigned characters for the logged-in user
-		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
+		unassignedCharacters, err := persist.FetchUnassignedCharacters()
 		if err != nil {
+			xlog.Logf("error fetching unassigned characters")
 			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
 			return
 		}
 
 		// Check if the character is already assigned to an account
 		var characterAssigned bool
-		err = persist.UpdateAccounts(mainIdentity, func(account *model.Account) error {
+		err = persist.UpdateAccounts(func(account *model.Account) error {
 			for i := range account.Characters {
 				if account.Characters[i].Character.CharacterID == user.CharacterID {
 					// If the character is found in an account, we update the token
 					account.Characters[i].Token = *token
 					characterAssigned = true
+					xlog.Logf("found character: %d", user.CharacterID)
 					break
 				}
 			}
@@ -123,6 +127,7 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 					// If the character is found in an account, we update the token
 					unassignedCharacters[i].Token = *token
 					existingUnassigned = true
+					xlog.Logf("found character: %d, in unassigned", user.CharacterID)
 					break
 				}
 			}
@@ -132,7 +137,7 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 			}
 
 			// Save the updated unassigned characters to the file
-			err := persist.SaveUnassignedCharacters(mainIdentity, unassignedCharacters)
+			err = persist.SaveUnassignedCharacters(unassignedCharacters)
 			if err != nil {
 				http.Error(w, "Error saving unassigned characters", http.StatusInternalServerError)
 				return
@@ -180,7 +185,7 @@ func ResetAccountsHandler(s *SessionService) http.HandlerFunc {
 			return
 		}
 
-		err := persist.DeleteAccount(mainIdentity)
+		err := persist.DeleteAccount()
 		if err != nil {
 			xlog.Logf("Failed to delete identity %d: %v", mainIdentity, err)
 		}

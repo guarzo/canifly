@@ -122,7 +122,7 @@ const App = () => {
                     prev.filter((char) => char.Character.CharacterID !== characterID)
                 );
                 // Optionally, refresh home data to update accounts
-                await fetchHomeData();
+                fetchHomeData();
             } else {
                 // Handle error
                 toast.error(result.error || 'Failed to assign character.');
@@ -228,9 +228,33 @@ const App = () => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Character removed successfully!');
-                await fetchData(); // Refresh data
+
+                // Update homeData: Remove character from the account
+                setHomeData((prevHomeData) => {
+                    let removedCharacter = null;
+                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                        const filteredCharacters = account.Characters.filter((character) => {
+                            if (character.Character.CharacterID === characterID) {
+                                removedCharacter = character; // Capture the removed character
+                                return false; // Exclude this character from the account
+                            }
+                            return true;
+                        });
+
+                        return { ...account, Characters: filteredCharacters };
+                    });
+
+                    // Add removed character back to unassignedCharacters
+                    if (removedCharacter) {
+                        setUnassignedCharacters((prevUnassigned) => [
+                            ...prevUnassigned,
+                            removedCharacter,
+                        ]);
+                    }
+
+                    return { ...prevHomeData, Accounts: updatedAccounts };
+                });
             } else {
-                // Handle error
                 toast.error(result.error || 'Failed to remove character.');
             }
         } catch (error) {
@@ -238,6 +262,7 @@ const App = () => {
             toast.error('Error removing character.');
         }
     };
+
 
     // Update account name
     const handleUpdateAccountName = async (accountID, newName) => {
@@ -286,7 +311,7 @@ const App = () => {
             if (response.ok) {
                 toast.success('Skill Plan Saved!');
                 closeSkillPlanModal();
-                await fetchData(); // Refresh data
+                fetchData(); // Refresh data
             } else {
                 const errorText = await response.text();
                 toast.error(`Error saving skill plan: ${errorText}`);

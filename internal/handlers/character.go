@@ -45,7 +45,7 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch accounts for the user
-		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -62,7 +62,7 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 						switch key {
 						case "Role":
 							if roleStr, ok := value.(string); ok {
-								updateRoles(roleStr, mainIdentity)
+								updateRoles(roleStr)
 								charIdentity.Role = roleStr
 							}
 						case "MCT":
@@ -89,7 +89,7 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Save the updated accounts
-		err = persist.SaveAccounts(mainIdentity, accounts)
+		err = persist.SaveAccounts(accounts)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -98,34 +98,6 @@ func UpdateCharacterHandler(s *SessionService) http.HandlerFunc {
 		// Respond with success
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"success": true}`))
-	}
-}
-
-func updateRoles(newRole string, id int64) {
-	// Fetch ConfigData
-	configData, err := persist.FetchConfigData(id)
-	if err != nil {
-		xlog.Logf("errro fetching config data %v", configData)
-		return
-	}
-
-	// Update the roles list if new role
-	roleExists := false
-	for _, role := range configData.Roles {
-		if role == newRole {
-			roleExists = true
-			xlog.Logf("role exists %s", newRole)
-			break
-		}
-	}
-	if !roleExists {
-		configData.Roles = append(configData.Roles, newRole)
-	}
-
-	// Save updated ConfigData
-	err = persist.SaveConfigData(id, configData)
-	if err != nil {
-		xlog.Logf("failed to save config data %v", err)
 	}
 }
 
@@ -144,12 +116,11 @@ func GetUnassignedCharactersHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch the unassigned characters for the logged-in user
-		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
+		unassignedCharacters, err := persist.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
 			return
 		}
-		xlog.Logf("%v", unassignedCharacters)
 		// Return the unassigned characters in the response
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(unassignedCharacters)
@@ -187,13 +158,13 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch accounts and unassigned characters
-		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
+		unassignedCharacters, err := persist.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
 			return
@@ -207,19 +178,24 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 				break
 			}
 		}
+		xlog.Logf("character to assign %s", characterToAssign.Character.CharacterName)
 
 		if characterToAssign == nil {
 			http.Error(w, "Character not found in unassigned characters", http.StatusNotFound)
 			return
 		}
 
+		xlog.Logf("characters in first unaccount %d", len(accounts[0].Characters))
 		// Assign to existing account or create a new one
 		if request.AccountID != nil {
 			// Assign to existing account
 			var accountFound bool
 			for i, account := range accounts {
 				if account.ID == *request.AccountID {
+
+					xlog.Logf("%d characters in account before update", len(accounts[i].Characters))
 					accounts[i].Characters = append(accounts[i].Characters, *characterToAssign)
+					xlog.Logf("%d characters in account after update", len(accounts[i].Characters))
 					accountFound = true
 					break
 				}
@@ -238,6 +214,7 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 			}
 			accounts = append(accounts, newAccount)
 		}
+		xlog.Logf("characters in first unaccount %d", len(accounts[0].Characters))
 
 		// Remove the character from unassigned characters
 		var updatedUnassigned []model.CharacterIdentity
@@ -248,13 +225,13 @@ func AssignCharacterHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Save the updated accounts and unassigned characters
-		err = persist.SaveAccounts(mainIdentity, accounts)
+		err = persist.SaveAccounts(accounts)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		err = persist.SaveUnassignedCharacters(mainIdentity, updatedUnassigned)
+		err = persist.SaveUnassignedCharacters(updatedUnassigned)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
 			return
@@ -298,13 +275,13 @@ func RemoveCharacterHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch accounts and unassigned characters
-		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		unassignedCharacters, err := persist.FetchUnassignedCharacters(mainIdentity)
+		unassignedCharacters, err := persist.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
 			return
@@ -345,13 +322,13 @@ func RemoveCharacterHandler(s *SessionService) http.HandlerFunc {
 		unassignedCharacters = append(unassignedCharacters, *characterToRemove)
 
 		// Save the updated accounts and unassigned characters
-		err = persist.SaveAccounts(mainIdentity, accounts)
+		err = persist.SaveAccounts(accounts)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		err = persist.SaveUnassignedCharacters(mainIdentity, unassignedCharacters)
+		err = persist.SaveUnassignedCharacters(unassignedCharacters)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
 			return

@@ -9,8 +9,8 @@ import (
 	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
-func SaveConfigData(mainIdentity int64, configData *model.ConfigData) error {
-	filePath := getConfigDataFileName(mainIdentity)
+func SaveConfigData(configData *model.ConfigData) error {
+	filePath := getConfigDataFileName()
 	if filePath == "" {
 		return fmt.Errorf("invalid file path for saving config data")
 	}
@@ -23,20 +23,20 @@ func SaveConfigData(mainIdentity int64, configData *model.ConfigData) error {
 		return fmt.Errorf("error saving config data: %v", err)
 	}
 
-	savedConfig, _ := FetchConfigData(mainIdentity)
+	savedConfig, _ := FetchConfigData()
 	xlog.Logf("saved config data is %v", savedConfig)
 
 	return nil
 }
 
-func FetchConfigData(mainIdentity int64) (*model.ConfigData, error) {
-	filePath := getConfigDataFileName(mainIdentity)
+func FetchConfigData() (*model.ConfigData, error) {
+	filePath := getConfigDataFileName()
 
 	var configData model.ConfigData
 
 	fileInfo, err := os.Stat(filePath)
 	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
-		xlog.Logf("No config data file or file is empty for identity: %d", mainIdentity)
+		xlog.Logf("No config data file")
 		return &configData, nil // Return an empty ConfigData struct
 	}
 
@@ -51,11 +51,11 @@ func FetchConfigData(mainIdentity int64) (*model.ConfigData, error) {
 	return &configData, nil
 }
 
-func getConfigDataFileName(mainIdentity int64) string {
-	dataPath, err := GetWritableDataPath()
+func getConfigDataFileName() string {
+	dataPath, err := GetWritableIdentityPath()
 	if err != nil {
 		xlog.Logf("Error retrieving writable data path: %v\n", err)
 		return ""
 	}
-	return filepath.Join(dataPath, fmt.Sprintf("%d_config_data.json", mainIdentity))
+	return filepath.Join(dataPath, fmt.Sprintf("config_data.json"))
 }

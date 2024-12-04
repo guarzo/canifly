@@ -3,6 +3,8 @@ package api
 import (
 	"errors"
 	"fmt"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 	"io"
 	"math/rand"
 	"net/http"
@@ -114,6 +116,24 @@ func getResults(address string, token *oauth2.Token) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed to convert result to byte slice")
 	}
+
+	return bodyBytes, nil
+}
+
+func getResultsWithCache(address string, token *oauth2.Token) ([]byte, error) {
+	// Check the cache first
+	if cachedData, found := persist.ApiCache.Get(address); found {
+		xlog.Logf("cache item found for %s", address)
+		return cachedData, nil // Return cached data
+	}
+
+	bodyBytes, err := getResults(address, token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the result in the cache
+	persist.ApiCache.Set(address, bodyBytes, persist.DefaultExpiration)
 
 	return bodyBytes, nil
 }

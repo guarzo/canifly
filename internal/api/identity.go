@@ -103,7 +103,7 @@ func GetUserInfo(token *oauth2.Token) (*model.BaseCharacterResponse, error) {
 func getCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skills/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResults(url, token)
+	bodyBytes, err := getResultsWithCache(url, token)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func getCharacterSkills(characterID int64, token *oauth2.Token) (*model.Characte
 func getCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skillqueue/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResults(url, token)
+	bodyBytes, err := getResultsWithCache(url, token)
 	if err != nil {
 		return nil, err
 	}

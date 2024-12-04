@@ -43,7 +43,7 @@ func UpdateAccountNameHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch accounts for the logged-in user
-		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -67,7 +67,7 @@ func UpdateAccountNameHandler(s *SessionService) http.HandlerFunc {
 		accountToUpdate.Name = request.AccountName
 
 		// Save the updated accounts
-		err = persist.SaveAccounts(mainIdentity, accounts)
+		err = persist.SaveAccounts(accounts)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -111,7 +111,7 @@ func ToggleAccountStatusHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Fetch accounts for the user
-		accounts, err := persist.FetchAccountByIdentity(mainIdentity)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -137,7 +137,7 @@ func ToggleAccountStatusHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Save the updated accounts
-		err = persist.SaveAccounts(mainIdentity, accounts)
+		err = persist.SaveAccounts(accounts)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return

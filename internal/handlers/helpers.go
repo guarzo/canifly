@@ -114,7 +114,7 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 	// If identities need population, load and update
 	if needIdentityPopulation {
 		xlog.Logf("Need to populate identities")
-		accounts, err := persist.FetchAccountByIdentity(sessionValues.LoggedInUser)
+		accounts, err := persist.FetchAccountByIdentity()
 		if err != nil {
 			xlog.Logf("Failed to load accounts: %v", err)
 			return nil, fmt.Errorf("failed to load accounts: %w", err)
@@ -146,7 +146,7 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 		}
 
 		// Save the updated accounts
-		if err := persist.SaveAccounts(sessionValues.LoggedInUser, accounts); err != nil {
+		if err := persist.SaveAccounts(accounts); err != nil {
 			xlog.Logf("Failed to save accounts: %v", err)
 			return nil, fmt.Errorf("failed to save accounts: %w", err)
 		}
@@ -165,14 +165,15 @@ func validateAccounts(session *sessions.Session, sessionValues SessionValues, st
 		// Update the session with the authenticated characters
 		session.Values[allAuthenticatedCharacters] = allCharacterIDs
 		session.Values[lastRefreshTime] = time.Now().Unix()
+		_ = persist.ApiCache.SaveToFile()
 	}
 
 	// Return the updated accounts
 	return storeData.Accounts, nil
 }
 
-func getConfigData(sessionValues SessionValues) model.ConfigData {
-	config, err := persist.FetchConfigData(sessionValues.LoggedInUser)
+func getConfigData() model.ConfigData {
+	config, err := persist.FetchConfigData()
 	if err != nil {
 		xlog.Logf("error retrieving config data")
 		return model.ConfigData{}
@@ -182,7 +183,7 @@ func getConfigData(sessionValues SessionValues) model.ConfigData {
 
 func prepareHomeData(sessionValues SessionValues, accounts []model.Account) model.HomeData {
 	skillPlans := getMatchingSkillPlans(accounts, skillplan.SkillPlans, skilltype.SkillTypes)
-	config := getConfigData(sessionValues)
+	config := getConfigData()
 
 	return model.HomeData{
 		LoggedIn:     true,
