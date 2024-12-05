@@ -1,6 +1,5 @@
-// CharacterCard.jsx
-
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Card, Typography, CardContent, useTheme } from '@mui/material';
 
 const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
@@ -12,8 +11,6 @@ const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
         <Card
             draggable
             onDragStart={(e) => handleDragStart(e, char.charId)}
-            aria-label={`Draggable character ${char.name}`}
-            title={`Drag to associate with an account`}
             sx={{
                 borderLeft: `4px solid ${borderColor}`,
                 backgroundColor: theme.palette.background.paper,
@@ -21,6 +18,8 @@ const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
                 cursor: 'grab',
                 '&:hover': {
                     backgroundColor: theme.palette.action.hover,
+                    transform: 'scale(1.02)',
+                    transition: 'transform 0.2s ease-in-out',
                 },
             }}
         >
@@ -37,6 +36,16 @@ const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
             </CardContent>
         </Card>
     );
+};
+
+CharacterCard.propTypes = {
+    char: PropTypes.shape({
+        name: PropTypes.string.isRequired,
+        charId: PropTypes.string.isRequired,
+        mtime: PropTypes.string.isRequired,
+    }).isRequired,
+    handleDragStart: PropTypes.func.isRequired,
+    mtimeToColor: PropTypes.objectOf(PropTypes.string).isRequired,
 };
 
 export default CharacterCard;
