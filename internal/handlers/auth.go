@@ -60,8 +60,9 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 		// Start or retrieve the session
 		session, _ := s.Get(r, sessionName)
 
-		// Handle main identity state
-		if state[:4] == "main" {
+		// Retrieve the main identity from the session
+		loggedIn, ok := session.Values[loggedInUser].(int64)
+		if !ok || loggedIn == 0 {
 			session.Values[loggedInUser] = user.CharacterID
 		}
 
@@ -72,13 +73,6 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 			}
 		} else {
 			session.Values[allAuthenticatedCharacters] = []int64{user.CharacterID}
-		}
-
-		// Retrieve the main identity from the session
-		mainIdentity, ok := session.Values[loggedInUser].(int64)
-		if !ok || mainIdentity == 0 {
-			handleErrorWithRedirect(w, r, fmt.Sprintf("main identity not found, current session: %v", session.Values), "/logout")
-			return
 		}
 
 		// Retrieve the unassigned characters for the logged-in user
@@ -178,16 +172,16 @@ func LogoutHandler(s *SessionService) http.HandlerFunc {
 func ResetAccountsHandler(s *SessionService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, _ := s.Get(r, sessionName)
-		mainIdentity, ok := session.Values[loggedInUser].(int64)
+		loggedIn, ok := session.Values[loggedInUser].(int64)
 
-		if !ok || mainIdentity == 0 {
+		if !ok || loggedIn == 0 {
 			handleErrorWithRedirect(w, r, "Attempt to reset identities without a main identity", "/logout")
 			return
 		}
 
 		err := persist.DeleteAccount()
 		if err != nil {
-			xlog.Logf("Failed to delete identity %d: %v", mainIdentity, err)
+			xlog.Logf("Failed to delete identity %d: %v", loggedIn, err)
 		}
 
 		http.Redirect(w, r, "/logout", http.StatusSeeOther)

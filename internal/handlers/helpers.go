@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -186,11 +187,10 @@ func prepareHomeData(sessionValues SessionValues, accounts []model.Account) mode
 	config := getConfigData()
 
 	return model.HomeData{
-		LoggedIn:     true,
-		Accounts:     accounts,   // Use accounts instead of identities
-		SkillPlans:   skillPlans, // Return the updated skill plans
-		MainIdentity: sessionValues.LoggedInUser,
-		ConfigData:   config,
+		LoggedIn:   true,
+		Accounts:   accounts,   // Use accounts instead of identities
+		SkillPlans: skillPlans, // Return the updated skill plans
+		ConfigData: config,
 	}
 }
 
@@ -200,8 +200,13 @@ func updateStoreAndSession(data model.HomeData, etag string, session *sessions.S
 		return etag, fmt.Errorf("failed to generate etag: %w", err)
 	}
 
+	loggedIn, ok := session.Values[loggedInUser].(int64)
+	if !ok || loggedIn == 0 {
+		return etag, errors.New("user not logged in")
+	}
+
 	if newEtag != etag {
-		etag, err = persist.Store.Set(data.MainIdentity, data)
+		etag, err = persist.Store.Set(loggedIn, data)
 		if err != nil {
 			return etag, fmt.Errorf("failed to update persist: %w", err)
 		}

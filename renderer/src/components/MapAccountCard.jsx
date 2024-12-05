@@ -1,15 +1,17 @@
-import React from 'react';
+// MapAccountCard.jsx
+
 import PropTypes from 'prop-types';
-import { Card, Typography, List, ListItem, ListItemText, IconButton, useTheme } from '@mui/material';
+import { Card, Typography, List, ListItem, ListItemText, IconButton, useTheme, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { formatDate } from './dateFormatter';
 
 const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mtimeToColor }) => {
     const theme = useTheme();
-    const userId = mapping.subDir;
-    const userName = mapping.availableUserFiles?.[0]?.name || `Account ${userId.replace('settings_', '')}`;
+    const userId = mapping.userId;
+    const userName = mapping.name || `Account ${userId}`;
     const associatedChars = associations.filter(assoc => assoc.userId === userId);
 
-    const accountMtime = mapping.availableUserFiles?.[0]?.mtime || new Date().toISOString();
+    const accountMtime = mapping.mtime || new Date().toISOString();
     const borderColor = mtimeToColor[accountMtime] || theme.palette.primary.main;
 
     return (
@@ -23,8 +25,11 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                 borderRadius: 2,
                 paddingLeft: 2,
                 cursor: 'pointer',
+                boxShadow: 3, // Added shadow to the account card
+                transition: 'background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                 '&:hover': {
                     backgroundColor: theme.palette.action.hover,
+                    boxShadow: 4, // Increased shadow on hover
                 },
             }}
         >
@@ -32,7 +37,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                 {userName}
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-                {new Date(accountMtime).toLocaleString()}
+                {formatDate(accountMtime)}
             </Typography>
             <List>
                 {associatedChars.map(assoc => (
@@ -43,16 +48,25 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                                 edge="end"
                                 aria-label={`Unassociate ${assoc.charName}`}
                                 onClick={() => handleUnassociate(userId, assoc.charId, assoc.charName)}
+                                sx={{
+                                    color: theme.palette.error.main, // Use error color for delete actions
+                                }}
                             >
-                                <DeleteIcon color="secondary" />
+                                <DeleteIcon />
                             </IconButton>
                         }
+                        sx={{
+                            borderRadius: 1,
+                            marginBottom: 1,
+                            backgroundColor: theme.palette.background.default,
+                            boxShadow: 1, // Subtle shadow around each associated character
+                        }}
                     >
                         <ListItemText
-                            primary={`${assoc.charName} (${assoc.charId})`}
+                            primary={`${assoc.charName}`}
                             secondary={
                                 assoc.mtime
-                                    ? new Date(assoc.mtime).toLocaleString()
+                                    ? formatDate(assoc.mtime)
                                     : 'Date not available'
                             }
                             primaryTypographyProps={{ color: 'text.primary' }}
@@ -67,13 +81,9 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
 
 AccountCard.propTypes = {
     mapping: PropTypes.shape({
-        subDir: PropTypes.string.isRequired,
-        availableUserFiles: PropTypes.arrayOf(
-            PropTypes.shape({
-                name: PropTypes.string,
-                mtime: PropTypes.string,
-            })
-        ),
+        userId: PropTypes.string.isRequired,
+        name: PropTypes.string,
+        mtime: PropTypes.string,
     }).isRequired,
     associations: PropTypes.arrayOf(
         PropTypes.shape({

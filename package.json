@@ -1,7 +1,7 @@
 {
   "name": "canifly",
   "version": "0.0.40",
-  "description": "Electron app for managing character skill plans in Eve online",
+  "description": "Can I Fly?",
   "main": "main.js",
   "scripts": {
     "go:build:mac": "GOOS=darwin GOARCH=amd64 go build -o ./dist/mac/canifly-backend",
@@ -15,17 +15,23 @@
     "shutdown": "echo 'Shutting down processes' && pkill -f 'electron'",
     "build": "npm run go:build && cd renderer && npm run build",
     "bump": "bash scripts/bump.sh",
-    "dist": "npm run build && electron-builder --win --x64"
+    "dist": "npm run build && electron-builder --win --x64",
+    "package:renderer": "cd renderer && npm install && npm run build",
+    "package:app": "npm run package:renderer && npm run dist"
   },
   "build": {
-    "appId": "com.github.gambtho.canifly",
+    "appId": "com.github.guarzo.canifly",
     "files": [
       "main.js",
+      "preload.js",
       "static/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "renderer/dist/**/*"
     ],
     "asar": true,
     "asarUnpack": [
+      "renderer/dist/assets/**/*",
+      "renderer/dist/images/**/*",
       "dist/win/canifly-backend.exe",
       "dist/linux/canifly-backend",
       "dist/mac/canifly-backend"
@@ -67,13 +73,15 @@
   },
   "keywords": [],
   "author": {
-    "name": "gambtho",
-    "email": "thomasgamble2@gmail.com"
+    "name": "guarzo",
+    "email": "guarzo.eve2@gmail.com"
   },
   "license": "ISC",
   "dependencies": {
     "@electron/remote": "^2.1.2",
-    "dotenv": "^16.4.5"
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.5",
+    "tar": "^7.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

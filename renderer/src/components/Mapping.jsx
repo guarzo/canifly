@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+// Mapping.jsx
+
+import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify'; // Removed ToastContainer
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import 'react-toastify/dist/ReactToastify.css';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { Grid, CircularProgress, Box } from '@mui/material';
 import AccountCard from './MapAccountCard';
@@ -11,9 +12,9 @@ import CharacterCard from './MapCharacterCard';
 const MySwal = withReactContent(Swal);
 
 const Mapping = () => {
-    const [mappings, setMappings] = useState([]);
-    const [associations, setAssociations] = useState([]);
-    const [availableCharacters, setAvailableCharacters] = useState([]);
+    const [mappings, setMappings] = useState([]); // Unique Accounts
+    const [associations, setAssociations] = useState([]); // Associations
+    const [availableCharacters, setAvailableCharacters] = useState([]); // Available Characters
     const [isLoading, setIsLoading] = useState(true);
     const [mtimeToColor, setMtimeToColor] = useState({});
 
@@ -21,19 +22,67 @@ const Mapping = () => {
         loadDataAndRender();
     }, []);
 
+    // Normalization Function
+    const normalizeAssociation = (assoc) => {
+        return {
+            ...assoc,
+            charId: typeof assoc.charId === 'string' ? assoc.charId : (assoc.charId?.charId || 'Unknown'),
+            charName: typeof assoc.charName === 'string' ? assoc.charName : (assoc.charId?.charName || 'Unknown'),
+            mtime: assoc.mtime || (typeof assoc.charId === 'object' ? assoc.charId.mtime : new Date().toISOString()),
+            userId: typeof assoc.userId === 'string' ? assoc.userId : 'Unknown',
+        };
+    };
+
     const loadDataAndRender = async () => {
         try {
             setIsLoading(true);
             const data = await window.electronAPI.loadMappings();
             if (data && data.mappings) {
-                setMappings(data.mappings);
-                setAssociations(
-                    data.associations.map(assoc => ({
-                        ...assoc,
-                        mtime: assoc.mtime || new Date().toISOString(), // Ensure mtime is valid
-                    }))
-                );
-                processAvailableCharacters(data.mappings, data.associations);
+                // Step 1: Map each subDir to its latest user based on mtime
+                const subDirToLatestUserId = {};
+
+                data.mappings.forEach(mapping => {
+                    mapping.availableUserFiles.forEach(userFile => {
+                        const { userId, mtime, name } = userFile;
+                        if (
+                            !subDirToLatestUserId[mapping.subDir] ||
+                            new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)
+                        ) {
+                            subDirToLatestUserId[mapping.subDir] = { userId, mtime, name };
+                        }
+                    });
+                });
+
+                // Step 2: Create a list of unique accounts based on userId
+                const uniqueAccountsMap = {};
+
+                Object.values(subDirToLatestUserId).forEach(({ userId, mtime, name }) => {
+                    if (!uniqueAccountsMap[userId] || new Date(mtime) > new Date(uniqueAccountsMap[userId].mtime)) {
+                        uniqueAccountsMap[userId] = { userId, mtime, name };
+                    }
+                });
+
+                const uniqueAccounts = Object.values(uniqueAccountsMap);
+                console.log('Unique Accounts:', uniqueAccounts);
+                setMappings(uniqueAccounts);
+
+                // Step 3: Normalize associations
+                const mappedAssociations = data.associations.map(assoc => normalizeAssociation(assoc));
+
+                // Debugging: Verify the structure of mapped associations
+                console.log('Mapped Associations:', mappedAssociations);
+                mappedAssociations.forEach(assoc => {
+                    console.assert(typeof assoc.charId === 'string', `charId is not a string: ${assoc.charId}`);
+                    console.assert(typeof assoc.userId === 'string' && assoc.userId !== 'Unknown', `userId is invalid: ${assoc.userId}`);
+                    console.assert(typeof assoc.charName === 'string', `charName is not a string: ${assoc.charName}`);
+                });
+
+                setAssociations(mappedAssociations);
+
+                // Step 4: Process available characters using mappedAssociations
+                processAvailableCharacters(data.mappings, mappedAssociations);
+
+                // Step 5: Assign colors
                 assignColors(data.mappings);
             } else {
                 toast.error('Failed to load mappings: No data received.');
@@ -48,6 +97,9 @@ const Mapping = () => {
 
     const processAvailableCharacters = (mappingsData, associationsData) => {
         const associatedCharIds = new Set(associationsData.map(a => a.charId));
+
+        // Debugging: Verify associatedCharIds
+        console.log('Associated Character IDs:', associatedCharIds);
 
         // Flatten characters and sort by `mtime`
         const availableChars = mappingsData
@@ -72,8 +124,8 @@ const Mapping = () => {
         }
 
         setAvailableCharacters(uniqueAvailableChars);
+        console.log('Unique Available Characters:', uniqueAvailableChars);
     };
-
 
     const assignColors = (mappingsData) => {
         const predefinedColors = ['#4caf50', '#f44336', '#ff9800', '#9c27b0', '#00bcd4', '#e91e63'];
@@ -90,6 +142,7 @@ const Mapping = () => {
         }, {});
 
         setMtimeToColor(colorMapping);
+        console.log('Mtime to Color Mapping:', colorMapping);
     };
 
     const handleDragStart = (event, charId) => {
@@ -108,7 +161,7 @@ const Mapping = () => {
 
         const confirmAssoc = await MySwal.fire({
             title: 'Confirm Association',
-            text: `Associate "${char.name}" (${charId}) with account ${userId}?`,
+            text: `Associate "${char.name}" (${charId}) with account "${userId}"?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, associate it!',
@@ -120,18 +173,18 @@ const Mapping = () => {
         try {
             setIsLoading(true);
 
-            // Pass mtime with association request
-            const result = await window.electronAPI.associateCharacter(userId, {
-                charId,
-                charName: char.name,
-                mtime: char.mtime,
-            });
+            // Pass only charId as a string
+            const result = await window.electronAPI.associateCharacter(userId, charId);
+
+            // Ensure result.message is a string
+            const successMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
+            const errorMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
 
             if (result.success) {
-                toast.success(result.message);
+                toast.success(successMessage);
                 await loadDataAndRender();
             } else {
-                toast.error(`Association failed: ${result.message}`);
+                toast.error(`Association failed: ${errorMessage}`);
             }
         } catch (error) {
             console.error('Error associating character:', error);
@@ -144,7 +197,7 @@ const Mapping = () => {
     const handleUnassociate = async (userId, charId, charName) => {
         const confirmUnassoc = await MySwal.fire({
             title: 'Confirm Unassociation',
-            text: `Unassociate "${charName}" (${charId}) from account ${userId}?`,
+            text: `Unassociate "${charName}" (${charId}) from account "${userId}"?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, unassociate it!',
@@ -156,11 +209,16 @@ const Mapping = () => {
         try {
             setIsLoading(true);
             const result = await window.electronAPI.unassociateCharacter(userId, charId);
+
+            // Ensure result.message is a string
+            const successMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
+            const errorMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
+
             if (result.success) {
-                toast.success(result.message);
+                toast.success(successMessage);
                 await loadDataAndRender();
             } else {
-                toast.error(`Unassociation failed: ${result.message}`);
+                toast.error(`Unassociation failed: ${errorMessage}`);
             }
         } catch (error) {
             console.error('Error unassociating character:', error);
@@ -172,48 +230,47 @@ const Mapping = () => {
 
     return (
         <div className="pt-16">
-        <Box sx={{ paddingTop: '64px', padding: 2, minHeight: '100vh' }}>
-            <ToastContainer />
-            {isLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-                    <CircularProgress color="primary" />
-                </Box>
-            ) : (
-                <Grid container spacing={4}>
-                    <Grid item xs={12} md={6}>
-                        {mappings.map(mapping => (
-                            <AccountCard
-                                key={mapping.subDir}
-                                mapping={mapping}
-                                associations={associations}
-                                handleUnassociate={handleUnassociate}
-                                handleDrop={handleDrop}
-                                mtimeToColor={mtimeToColor}
-                            />
-                        ))}
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Grid container spacing={2}>
-                            {availableCharacters.length ? (
-                                availableCharacters.map(char => (
-                                    <Grid item xs={12} sm={6} key={char.charId}>
-                                        <CharacterCard
-                                            char={char}
-                                            handleDragStart={handleDragStart}
-                                            mtimeToColor={mtimeToColor}
-                                        />
-                                    </Grid>
-                                ))
-                            ) : (
-                                <Box textAlign="center" width="100%">
-                                    No available characters to associate.
-                                </Box>
-                            )}
+            <Box sx={{ paddingTop: '64px', padding: 2, minHeight: '100vh' }}>
+                {isLoading ? (
+                    <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+                        <CircularProgress color="primary" />
+                    </Box>
+                ) : (
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={6}>
+                            {mappings.map(mapping => (
+                                <AccountCard
+                                    key={mapping.userId}
+                                    mapping={mapping}
+                                    associations={associations}
+                                    handleUnassociate={handleUnassociate}
+                                    handleDrop={handleDrop}
+                                    mtimeToColor={mtimeToColor}
+                                />
+                            ))}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Grid container spacing={2}>
+                                {availableCharacters.length ? (
+                                    availableCharacters.map(char => (
+                                        <Grid item xs={12} sm={6} key={char.charId}>
+                                            <CharacterCard
+                                                char={char}
+                                                handleDragStart={handleDragStart}
+                                                mtimeToColor={mtimeToColor}
+                                            />
+                                        </Grid>
+                                    ))
+                                ) : (
+                                    <Box textAlign="center" width="100%">
+                                        No available characters to associate.
+                                    </Box>
+                                )}
+                            </Grid>
                         </Grid>
                     </Grid>
-                </Grid>
-            )}
-        </Box>
+                )}
+            </Box>
         </div>
     );
 };

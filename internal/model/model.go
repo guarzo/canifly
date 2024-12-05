@@ -22,11 +22,10 @@ type CharacterIdentity struct {
 }
 
 type HomeData struct {
-	Title        string
-	LoggedIn     bool
-	Accounts     []Account // Add Accounts here
-	SkillPlans   map[string]SkillPlanWithStatus
-	MainIdentity int64
+	Title      string
+	LoggedIn   bool
+	Accounts   []Account // Add Accounts here
+	SkillPlans map[string]SkillPlanWithStatus
 	ConfigData
 }
 
@@ -128,11 +127,6 @@ type SkillType struct {
 	TypeID      string
 	TypeName    string
 	Description string
-}
-
-type Identities struct {
-	MainIdentity string                 `json:"main_identity"`
-	Tokens       map[int64]oauth2.Token `json:"identities"`
 }
 
 type Station struct {

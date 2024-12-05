@@ -36,8 +36,8 @@ func UpdateAccountNameHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Retrieve the logged-in user (main identity)
-		mainIdentity, ok := session.Values[loggedInUser].(int64)
-		if !ok || mainIdentity == 0 {
+		loggedIn, ok := session.Values[loggedInUser].(int64)
+		if !ok || loggedIn == 0 {
 			http.Error(w, "Main identity not found in session", http.StatusUnauthorized)
 			return
 		}
@@ -104,8 +104,8 @@ func ToggleAccountStatusHandler(s *SessionService) http.HandlerFunc {
 		}
 
 		// Retrieve the logged-in user
-		mainIdentity, ok := session.Values[loggedInUser].(int64)
-		if !ok || mainIdentity == 0 {
+		loggedIn, ok := session.Values[loggedInUser].(int64)
+		if !ok || loggedIn == 0 {
 			http.Error(w, "User not authenticated", http.StatusUnauthorized)
 			return
 		}
