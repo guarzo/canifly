@@ -1,47 +1,85 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
-
-	"github.com/guarzo/canifly/internal/utils/xlog"
+	"github.com/sirupsen/logrus"
 )
 
-func AuthMiddleware(s *SessionService) mux.MiddlewareFunc {
+type contextKey string
+
+const userKey contextKey = "loggedInUser"
+
+func AuthMiddleware(s *SessionService, logger *logrus.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// List of public routes that don't require authentication
+			// Define public routes that don't require authentication
 			publicRoutes := map[string]bool{
-				"/static":   true,
-				"/landing":  true,
-				"/login":    true,
-				"/logout":   true,
-				"/callback": true,
+				"/static":         true,
+				"/landing":        true,
+				"/login":          true,
+				"/logout":         true,
+				"/callback":       true,
+				"/auth-character": true,
 			}
 
-			// Check if the path starts with one of the public routes
+			// Allow access if the request matches a public route
 			for publicRoute := range publicRoutes {
 				if strings.HasPrefix(r.URL.Path, publicRoute) {
+					logger.WithFields(logrus.Fields{
+						"path":   r.URL.Path,
+						"public": true,
+					}).Info("Public route accessed")
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
 
-			xlog.Log("Proceeding to authentication check")
+			logger.WithField("path", r.URL.Path).Info("Authentication required for private route")
 
-			session, _ := s.Get(r, sessionName)
-			sessionValues := getSessionValues(session)
-
-			// Check if logged_in_user is present
-			currentUser := sessionValues.LoggedInUser
-			if currentUser == 0 {
-				xlog.Logf("User not logged in, redirecting to /landing")
-				http.Error(w, `{"error":"user is not logged in"}`, http.StatusUnauthorized)
+			// Retrieve the session
+			session, err := s.Get(r, sessionName)
+			if err != nil {
+				logger.WithError(err).Error("Failed to retrieve session")
+				http.Error(w, `{"error":"failed to retrieve session"}`, http.StatusInternalServerError)
+				return
 			}
 
+			// Get logged-in user from session
+			sessionValues := getSessionValues(session)
+			currentUser := sessionValues.LoggedInUser
+			if currentUser == 0 {
+				logger.Warn("Unauthenticated access attempt")
+				http.Error(w, `{"error":"user is not logged in"}`, http.StatusUnauthorized)
+				return
+			}
+
+			logger.WithFields(logrus.Fields{
+				"user": currentUser,
+				"path": r.URL.Path,
+			}).Info("User authenticated")
+
+			// Add user info to request context
+			r = r.WithContext(setUserInContext(r.Context(), currentUser))
+
+			// Proceed to the next handler
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// setUserInContext adds the logged-in user to the request context
+func setUserInContext(ctx context.Context, userID int64) context.Context {
+	return context.WithValue(ctx, userKey, userID)
+}
+
+// getUserFromContext retrieves the logged-in user from the request context
+func getUserFromContext(ctx context.Context) int64 {
+	if user, ok := ctx.Value(userKey).(int64); ok {
+		return user
+	}
+	return 0
 }

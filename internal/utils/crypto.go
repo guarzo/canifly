@@ -1,4 +1,4 @@
-package crypto
+package utils
 
 import (
 	"crypto/aes"
@@ -96,4 +96,12 @@ func DecryptData(inputFile string, data interface{}) error {
 // isKeyInitialized checks if the encryption key is set.
 func isKeyInitialized() bool {
 	return len(key) > 0
+}
+
+func GenerateSecret() ([]byte, error) {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return nil, err
+	}
+	return key, nil
 }

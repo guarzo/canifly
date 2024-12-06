@@ -1,4 +1,4 @@
-package skillplan
+package persist
 
 import (
 	"bufio"

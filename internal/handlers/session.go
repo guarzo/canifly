@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"net/http"
 
 	"github.com/gorilla/sessions"
@@ -64,12 +63,4 @@ func NewSessionService(secret string) *SessionService {
 
 func (s *SessionService) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return s.store.Get(r, name)
-}
-
-func GenerateSecret() ([]byte, error) {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return nil, err
-	}
-	return key, nil
 }

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/guarzo/canifly/internal/utils/crypto"
+	"github.com/guarzo/canifly/internal/utils"
 	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"github.com/guarzo/canifly/internal/model"
@@ -161,7 +161,7 @@ func DeleteAccount() error {
 // SaveUnassignedCharacters encrypts and saves unassigned characters to a writable path.
 func SaveUnassignedCharacters(unassignedCharacters []model.CharacterIdentity) error {
 	filePath := getUnassignedCharactersFileName()
-	return crypto.EncryptData(unassignedCharacters, filePath)
+	return utils.EncryptData(unassignedCharacters, filePath)
 }
 
 // FetchUnassignedCharacters loads the unassigned characters from a writable data path.
@@ -175,7 +175,7 @@ func FetchUnassignedCharacters() ([]model.CharacterIdentity, error) {
 		return unassignedCharacters, nil
 	}
 
-	err = crypto.DecryptData(identityPath, &unassignedCharacters)
+	err = utils.DecryptData(identityPath, &unassignedCharacters)
 	if err != nil {
 		xlog.Log("error in decrypt")
 		os.Remove(identityPath) // Remove corrupted file

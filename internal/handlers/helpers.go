@@ -12,8 +12,6 @@ import (
 	"github.com/guarzo/canifly/internal/api"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/service/skillplan"
-	"github.com/guarzo/canifly/internal/service/skilltype"
 	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
@@ -183,7 +181,7 @@ func getConfigData() model.ConfigData {
 }
 
 func prepareHomeData(sessionValues SessionValues, accounts []model.Account) model.HomeData {
-	skillPlans := getMatchingSkillPlans(accounts, skillplan.SkillPlans, skilltype.SkillTypes)
+	skillPlans := getMatchingSkillPlans(accounts, persist.SkillPlans, persist.SkillTypes)
 	config := getConfigData()
 
 	return model.HomeData{

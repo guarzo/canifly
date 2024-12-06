@@ -1,4 +1,4 @@
-package skilltype
+package persist
 
 import (
 	"encoding/csv"

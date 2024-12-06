@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guarzo/canifly/internal/service/skillplan"
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"github.com/guarzo/canifly/internal/model"
@@ -34,7 +34,7 @@ func SkillPlanFileHandler(w http.ResponseWriter, r *http.Request) {
 	xlog.Logf("Attempting to serve skill plan file: %s", planName)
 
 	// Get the writable plans directory path
-	skillPlanDir, err := skillplan.GetWritablePlansPath()
+	skillPlanDir, err := persist.GetWritablePlansPath()
 	if err != nil {
 		xlog.Logf("Failed to retrieve skill plan directory: %v", err)
 		http.Error(w, fmt.Sprintf("Failed to retrieve skill plan directory: %v", err), http.StatusInternalServerError)
@@ -88,7 +88,7 @@ func SaveSkillPlanHandler(w http.ResponseWriter, r *http.Request) {
 	skills := parseSkillPlanContents(contents)
 
 	// Save the skill plan
-	if err := skillplan.SaveSkillPlan(planName, skills); err != nil {
+	if err := persist.SaveSkillPlan(planName, skills); err != nil {
 		xlog.Logf("Failed to save skill plan: %v", err)
 		http.Error(w, "Failed to save skill plan", http.StatusInternalServerError)
 		return
@@ -311,7 +311,7 @@ func DeleteSkillPlanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the skill plan
-	if err := skillplan.DeleteSkillPlan(planName); err != nil {
+	if err := persist.DeleteSkillPlan(planName); err != nil {
 		xlog.Logf("Failed to delete skill plan: %v", err)
 		http.Error(w, "Failed to delete skill plan", http.StatusInternalServerError)
 		return
