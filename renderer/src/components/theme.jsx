@@ -9,9 +9,15 @@ const theme = createTheme({
         secondary: {
             main: '#ef4444', // Tailwind 'red-500'
         },
+        info: {
+            main: '#3b82f6', // Tailwind 'blue-500'
+        },
+        warning: {
+            main: '#f59e0b', // Tailwind 'yellow-500'
+        },
         background: {
             default: '#1f2937', // Tailwind 'gray-800'
-            paper: '#1f2937',
+            paper: '#2d3748', // Slightly lighter for contrast
         },
         text: {
             primary: '#d1d5db', // Tailwind 'gray-300'
@@ -20,21 +26,37 @@ const theme = createTheme({
     },
     typography: {
         fontFamily: 'Roboto, sans-serif',
+        h6: {
+            fontWeight: 600,
+        },
     },
     components: {
         MuiCard: {
             styleOverrides: {
                 root: {
-                    // Ensure consistent card styling
-                    transition: 'box-shadow 0.3s ease-in-out',
+                    transition: 'box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out',
                 },
             },
         },
         MuiListItem: {
             styleOverrides: {
                 root: {
-                    // Ensure consistent list item styling
                     borderRadius: 4,
+                },
+            },
+        },
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    textTransform: 'none', // Prevent uppercase transformation
+                },
+            },
+        },
+        MuiSelect: {
+            styleOverrides: {
+                select: {
+                    backgroundColor: 'background.paper',
+                    borderRadius: 1,
                 },
             },
         },
