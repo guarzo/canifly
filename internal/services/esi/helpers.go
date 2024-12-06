@@ -1,14 +1,19 @@
-package api
+// esi/helpers.go
+
+package esi
 
 import (
 	"errors"
 	"fmt"
-	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 	"io"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/guarzo/canifly/internal/auth"
+	errors2 "github.com/guarzo/canifly/internal/errors"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 
 	"golang.org/x/oauth2"
 )
@@ -31,7 +36,7 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 		}
 
 		// Retry only on specific error types
-		var customErr *CustomError
+		var customErr *errors2.CustomError
 		if !errors.As(err, &customErr) || (customErr.StatusCode != http.StatusServiceUnavailable && customErr.StatusCode != http.StatusGatewayTimeout) && customErr.StatusCode != http.StatusInternalServerError {
 			break
 		}
@@ -70,7 +75,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		// Refresh the token
-		newToken, err := RefreshToken(token.RefreshToken)
+		newToken, err := auth.RefreshToken(token.RefreshToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to refresh token: %v", err)
 		}
@@ -80,7 +85,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 		return makeRequest(url, newToken)
 	}
 
-	if customErr, exists := httpStatusErrors[resp.StatusCode]; exists {
+	if customErr, exists := errors2.HttpStatusErrors[resp.StatusCode]; exists {
 		return nil, customErr
 	}
 
@@ -90,7 +95,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, NewCustomError(resp.StatusCode, "failed request")
+		return nil, errors2.NewCustomError(resp.StatusCode, "failed request")
 	}
 
 	return bodyBytes, nil

@@ -10,10 +10,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
-	"github.com/guarzo/canifly/internal/api"
+	"github.com/guarzo/canifly/internal/auth"
 	"github.com/guarzo/canifly/internal/embed"
+	httpServices "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/server"
+	"github.com/guarzo/canifly/internal/services"
+	"github.com/guarzo/canifly/internal/services/esi"
 	"github.com/guarzo/canifly/internal/utils"
 )
 
@@ -25,17 +28,21 @@ func Start() {
 
 	server.LoadEnv(logger)
 
-	// Initialize application components
 	secret := server.GetSecretKey(logger)
 	initializeComponents(secret, logger)
 
-	// Set up router and server
-	r := server.SetupRouter(secret, logger)
+	// Initialize dependencies
+	httpClient := httpServices.NewAPIClient("https://esi.evetech.net", "", logger)
+	authClient := auth.NewAuthClient()
+	esiService := esi.NewESIService(httpClient, authClient)
+	configService := services.NewConfigService(logger)
+	skillService := services.NewSkillService(logger)
+
+	r := server.SetupRouter(secret, logger, esiService, skillService, configService)
 	port := server.GetPort()
 	startServer(r, port, logger)
 }
 
-// initializeComponents sets up the app's core components (crypto, OAuth, skill plans, skill types).
 func initializeComponents(secret string, logger *logrus.Logger) {
 	key, err := base64.StdEncoding.DecodeString(secret)
 	if err != nil {
@@ -49,7 +56,8 @@ func initializeComponents(secret string, logger *logrus.Logger) {
 	if clientID == "" || clientSecret == "" || callbackURL == "" {
 		logger.Fatal("EVE_CLIENT_ID, EVE_CLIENT_SECRET, and EVE_CALLBACK_URL must be set")
 	}
-	api.InitializeOAuth(clientID, clientSecret, callbackURL)
+
+	auth.InitializeOAuth(clientID, clientSecret, callbackURL)
 
 	if err = persist.ProcessSkillPlans(); err != nil {
 		logger.WithError(err).Fatal("Failed to load skill plans.")
@@ -67,7 +75,6 @@ func initializeComponents(secret string, logger *logrus.Logger) {
 	logger.WithField("path", writeable).Info("Writable path initialized.")
 }
 
-// startServer starts the HTTP server with CORS middleware
 func startServer(r *mux.Router, port string, logger *logrus.Logger) {
 	logger.Infof("Listening on port %s", port)
 	corsOptions := handlers.AllowedOrigins([]string{"*"})

@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"bytes"
@@ -10,6 +10,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
+
+// HTTPClient interface that can be used by the esi package
+type HTTPClient interface {
+	DoRequest(method, endpoint string, body interface{}, target interface{}) error
+}
 
 type APIClient struct {
 	BaseURL    string
@@ -30,8 +35,8 @@ func NewAPIClient(baseURL, token string, logger *logrus.Logger) *APIClient {
 	}
 }
 
-// doRequest sends an HTTP request and parses the response
-func (c *APIClient) doRequest(method, endpoint string, body interface{}, target interface{}) error {
+// DoRequest sends an HTTP request and parses the response
+func (c *APIClient) DoRequest(method, endpoint string, body interface{}, target interface{}) error {
 	url := fmt.Sprintf("%s%s", c.BaseURL, endpoint)
 
 	var reqBody io.Reader
@@ -50,13 +55,11 @@ func (c *APIClient) doRequest(method, endpoint string, body interface{}, target 
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add headers
 	req.Header.Set("Content-Type", "application/json")
 	if c.Token != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
 	}
 
-	// Perform the request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		c.Logger.WithError(err).Error("Failed to execute request")
@@ -64,7 +67,6 @@ func (c *APIClient) doRequest(method, endpoint string, body interface{}, target 
 	}
 	defer resp.Body.Close()
 
-	// Check for errors in the response
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		body, _ := io.ReadAll(resp.Body)
 		c.Logger.WithFields(logrus.Fields{
@@ -74,7 +76,6 @@ func (c *APIClient) doRequest(method, endpoint string, body interface{}, target 
 		return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, body)
 	}
 
-	// Parse the response into the target object
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		c.Logger.WithError(err).Error("Failed to read response body")

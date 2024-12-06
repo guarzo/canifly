@@ -1,4 +1,6 @@
-package api
+//esi/errors.go
+
+package errors
 
 import (
 	"fmt"
@@ -20,7 +22,7 @@ func NewCustomError(statusCode int, message string) *CustomError {
 }
 
 // Map of HTTP status codes to custom errors
-var httpStatusErrors = map[int]*CustomError{
+var HttpStatusErrors = map[int]*CustomError{
 	http.StatusForbidden:           ErrForbidden,
 	http.StatusServiceUnavailable:  ErrServiceUnavailable,
 	http.StatusGatewayTimeout:      ErrGatewayTimeout,

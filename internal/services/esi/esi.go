@@ -1,22 +1,43 @@
-package api
+package esi
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/utils/xlog"
-
 	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
-func ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
+type esiService struct {
+	httpClient HTTPClient
+	auth       AuthClient // We will define an AuthClient interface below
+}
+
+// AuthClient interface for auth actions we need. We previously called auth.RefreshToken directly.
+// Defining an interface for auth means we can mock it in tests.
+type AuthClient interface {
+	RefreshToken(refreshToken string) (*oauth2.Token, error)
+}
+
+// NewESIService creates a new ESIService with the given dependencies.
+func NewESIService(httpClient HTTPClient, auth AuthClient) ESIService {
+	return &esiService{
+		httpClient: httpClient,
+		auth:       auth,
+	}
+}
+
+// The methods below are adapted from identity.go, location.go, etc.
+// We'll now implement them as methods on esiService.
+
+func (s *esiService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
 	xlog.Logf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
 
-	newToken, err := RefreshToken(charIdentity.Token.RefreshToken)
+	newToken, err := s.auth.RefreshToken(charIdentity.Token.RefreshToken)
 	if err != nil {
 		xlog.Logf("Failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
 		return nil, fmt.Errorf("failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
@@ -24,45 +45,40 @@ func ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIde
 	xlog.Logf("Token refreshed for character %d", charIdentity.Character.CharacterID)
 	charIdentity.Token = *newToken
 
-	// Fetch character skills
-	skills, err := getCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
+	skills, err := s.GetCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
 		xlog.Logf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
 		skills = &model.CharacterSkillsResponse{Skills: []model.SkillResponse{}}
 	}
 	xlog.Logf("Fetched %d skills for character %d", len(skills.Skills), charIdentity.Character.CharacterID)
 
-	// Fetch skill queue
-	skillQueue, err := getCharacterSkillQueue(charIdentity.Character.CharacterID, &charIdentity.Token)
+	skillQueue, err := s.GetCharacterSkillQueue(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
 		xlog.Logf("Failed to get skill queue for character %d: %v", charIdentity.Character.CharacterID, err)
 		skillQueue = &[]model.SkillQueue{}
 	}
 	xlog.Logf("Fetched %d skill queue entries for character %d", len(*skillQueue), charIdentity.Character.CharacterID)
 
-	// Fetch character location
-	characterLocation, err := getCharacterLocationInfo(charIdentity.Character.CharacterID, &charIdentity.Token)
+	characterLocation, err := s.GetCharacterLocation(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
 		xlog.Logf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
 		characterLocation = 0
 	}
 	xlog.Logf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
 
-	// Fetch user info
-	user, err := GetUserInfo(&charIdentity.Token)
+	user, err := s.GetUserInfo(&charIdentity.Token)
 	if err != nil {
 		xlog.Logf("Failed to get user info for character %d: %v", charIdentity.Character.CharacterID, err)
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
 	xlog.Logf("Fetched user info for character %s (ID: %d)", user.CharacterName, user.CharacterID)
 
-	// Update character data
-	charIdentity.Character.BaseCharacterResponse = *user
+	charIdentity.Character.UserInfoResponse = *user
 	charIdentity.Character.CharacterSkillsResponse = *skills
 	charIdentity.Character.SkillQueue = *skillQueue
 	charIdentity.Character.Location = characterLocation
 	charIdentity.Character.LocationName = persist.GetSystemName(characterLocation)
-	// Initialize maps to avoid nil references
+
 	charIdentity.Character.QualifiedPlans = make(map[string]bool)
 	charIdentity.Character.PendingPlans = make(map[string]bool)
 	charIdentity.Character.PendingFinishDates = make(map[string]*time.Time)
@@ -71,28 +87,18 @@ func ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIde
 	return charIdentity, nil
 }
 
-func getCharacterLocationInfo(id int64, token *oauth2.Token) (int64, error) {
-	characterLocation, err := getCharacterLocation(id, token)
-	if err != nil {
-		return 0, err
-	}
-
-	return characterLocation, nil
-}
-
-func GetUserInfo(token *oauth2.Token) (*model.BaseCharacterResponse, error) {
+func (s *esiService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error) {
 	if token.AccessToken == "" {
 		return nil, fmt.Errorf("no access token provided")
 	}
 
 	requestURL := "https://login.eveonline.com/oauth/verify"
-
 	bodyBytes, err := getResults(requestURL, token)
 	if err != nil {
 		return nil, err
 	}
 
-	var user model.BaseCharacterResponse
+	var user model.UserInfoResponse
 	if err := json.Unmarshal(bodyBytes, &user); err != nil {
 		return nil, fmt.Errorf("failed to decode response body: %v", err)
 	}
@@ -100,7 +106,7 @@ func GetUserInfo(token *oauth2.Token) (*model.BaseCharacterResponse, error) {
 	return &user, nil
 }
 
-func getCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
+func (s *esiService) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skills/?datasource=tranquility", characterID)
 
 	bodyBytes, err := getResultsWithCache(url, token)
@@ -116,7 +122,7 @@ func getCharacterSkills(characterID int64, token *oauth2.Token) (*model.Characte
 	return &skills, nil
 }
 
-func getCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
+func (s *esiService) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skillqueue/?datasource=tranquility", characterID)
 
 	bodyBytes, err := getResultsWithCache(url, token)
@@ -130,4 +136,22 @@ func getCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.Sk
 	}
 
 	return &skills, nil
+}
+
+func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error) {
+	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/location/?datasource=tranquility", characterID)
+	xlog.Logf("Getting character location for %d", characterID)
+
+	bodyBytes, err := getResultsWithCache(url, token)
+	if err != nil {
+		return 0, err
+	}
+
+	var location model.CharacterLocation
+	if err := json.Unmarshal(bodyBytes, &location); err != nil {
+		return 0, fmt.Errorf("failed to decode response body: %v", err)
+	}
+
+	xlog.Logf("Character %d location: %v", characterID, location)
+	return location.SolarSystemID, nil
 }

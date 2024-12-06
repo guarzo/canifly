@@ -7,88 +7,100 @@ import (
 	"slices"
 	"time"
 
-	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/utils/xlog"
+	"github.com/sirupsen/logrus"
 
-	"github.com/guarzo/canifly/internal/api"
+	"github.com/guarzo/canifly/internal/auth"
+	http2 "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/services/esi"
+	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Surrogate-Control", "no-store")
-
-	state := fmt.Sprintf("main-%d", time.Now().UnixNano())
-	xlog.Logf("Login handler - getting auth url")
-	url := api.GetAuthURL(state)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+// AuthHandler holds dependencies needed by auth-related handlers.
+type AuthHandler struct {
+	sessionService *http2.SessionService
+	esiService     esi.ESIService
+	logger         *logrus.Logger
 }
 
-func AuthCharacterHandler(w http.ResponseWriter, r *http.Request) {
-	state := fmt.Sprintf("character-%d", time.Now().UnixNano())
-	xlog.Logf(state)
-	url := api.GetAuthURL(state)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+func NewAuthHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger) *AuthHandler {
+	return &AuthHandler{
+		sessionService: s,
+		esiService:     e,
+		logger:         l,
+	}
 }
 
-func CallbackHandler(s *SessionService) http.HandlerFunc {
+func (h *AuthHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		xlog.Logf("callback request received")
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		w.Header().Set("Surrogate-Control", "no-store")
 
-		// Get the authorization code and state
+		state := fmt.Sprintf("main-%d", time.Now().UnixNano())
+		xlog.Logf("Login handler - getting auth url")
+		url := auth.GetAuthURL(state)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state := fmt.Sprintf("character-%d", time.Now().UnixNano())
+		url := auth.GetAuthURL(state)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (h *AuthHandler) CallBack() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.logger.Info("callback request received")
+
 		code := r.URL.Query().Get("code")
-		state := r.URL.Query().Get("state")
 
-		xlog.Logf("%v, %v", code, state)
-
-		// Exchange the code for a token
-		token, err := api.ExchangeCode(code)
+		token, err := auth.ExchangeCode(code)
 		if err != nil {
-			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to exchange token for code: %s, state: %s, %v", code, state, err), "/")
+			h.logger.Errorf("Failed to exchange token for code: %s, %v", code, err)
+			handleErrorWithRedirect(w, r, "/")
 			return
 		}
 
-		// Get the user info
-		user, err := api.GetUserInfo(token)
+		// Use h.esiService instead of esi.GetUserInfo
+		user, err := h.esiService.GetUserInfo(token)
 		if err != nil {
-			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to get user info: %v", err), "/")
+			h.logger.Errorf("Failed to get user info: %v", err)
+			handleErrorWithRedirect(w, r, "/")
 			return
 		}
 
-		// Start or retrieve the session
-		session, _ := s.Get(r, sessionName)
+		session, _ := h.sessionService.Get(r, http2.SessionName)
 
-		// Retrieve the main identity from the session
-		loggedIn, ok := session.Values[loggedInUser].(int64)
+		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
 		if !ok || loggedIn == 0 {
-			session.Values[loggedInUser] = user.CharacterID
+			session.Values[http2.LoggedInUser] = user.CharacterID
 		}
 
-		// Add the character to the authenticated list if not already present
-		if _, ok := session.Values[allAuthenticatedCharacters].([]int64); ok {
-			if !slices.Contains(session.Values[allAuthenticatedCharacters].([]int64), user.CharacterID) {
-				session.Values[allAuthenticatedCharacters] = append(session.Values[allAuthenticatedCharacters].([]int64), user.CharacterID)
+		if _, ok := session.Values[http2.AllAuthenticatedCharacters].([]int64); ok {
+			if !slices.Contains(session.Values[http2.AllAuthenticatedCharacters].([]int64), user.CharacterID) {
+				session.Values[http2.AllAuthenticatedCharacters] = append(session.Values[http2.AllAuthenticatedCharacters].([]int64), user.CharacterID)
 			}
 		} else {
-			session.Values[allAuthenticatedCharacters] = []int64{user.CharacterID}
+			session.Values[http2.AllAuthenticatedCharacters] = []int64{user.CharacterID}
 		}
 
-		// Retrieve the unassigned characters for the logged-in user
 		unassignedCharacters, err := persist.FetchUnassignedCharacters()
 		if err != nil {
-			xlog.Logf("error fetching unassigned characters")
+			h.logger.Error("error fetching unassigned characters")
 			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
 			return
 		}
 
-		// Check if the character is already assigned to an account
 		var characterAssigned bool
 		err = persist.UpdateAccounts(func(account *model.Account) error {
 			for i := range account.Characters {
 				if account.Characters[i].Character.CharacterID == user.CharacterID {
-					// If the character is found in an account, we update the token
 					account.Characters[i].Token = *token
 					characterAssigned = true
 					xlog.Logf("found character: %d", user.CharacterID)
@@ -99,16 +111,16 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 		})
 
 		if err != nil {
-			handleErrorWithRedirect(w, r, fmt.Sprintf("Failed to update account model: %v", err), "/")
+			h.logger.Errorf("Failed to update account model: %v", err)
+			handleErrorWithRedirect(w, r, "/")
 			return
 		}
 
-		// If the character is not assigned to any account, add it to unassigned characters
 		if !characterAssigned {
 			newCharacter := model.CharacterIdentity{
 				Token: *token,
 				Character: model.Character{
-					BaseCharacterResponse: model.BaseCharacterResponse{
+					UserInfoResponse: model.UserInfoResponse{
 						CharacterID:   user.CharacterID,
 						CharacterName: user.CharacterName,
 					},
@@ -118,10 +130,9 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 			existingUnassigned := false
 			for i := range unassignedCharacters {
 				if unassignedCharacters[i].Character.CharacterID == user.CharacterID {
-					// If the character is found in an account, we update the token
 					unassignedCharacters[i].Token = *token
 					existingUnassigned = true
-					xlog.Logf("found character: %d, in unassigned", user.CharacterID)
+					h.logger.Infof("found character: %d, in unassigned", user.CharacterID)
 					break
 				}
 			}
@@ -130,58 +141,53 @@ func CallbackHandler(s *SessionService) http.HandlerFunc {
 				unassignedCharacters = append(unassignedCharacters, newCharacter)
 			}
 
-			// Save the updated unassigned characters to the file
-			err = persist.SaveUnassignedCharacters(unassignedCharacters)
-			if err != nil {
+			if err = persist.SaveUnassignedCharacters(unassignedCharacters); err != nil {
 				http.Error(w, "Error saving unassigned characters", http.StatusInternalServerError)
 				return
 			}
-
 		}
 
-		// Save the session state
 		if err := session.Save(r, w); err != nil {
 			xlog.Logf("Error saving session: %v", err)
 		}
 
-		// Redirect to the React app
 		http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
 	}
 }
 
-func LogoutHandler(s *SessionService) http.HandlerFunc {
+func (h *AuthHandler) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, err := s.Get(r, sessionName)
+		session, err := h.sessionService.Get(r, http2.SessionName)
 		if err != nil {
 			http.Error(w, "Failed to get session", http.StatusInternalServerError)
 			return
 		}
 
-		clearSession(s, w, r)
+		clearSession(h.sessionService, w, r, h.logger)
 		if err := session.Save(r, w); err != nil {
 			http.Error(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}
 
-		// Respond with JSON instead of redirect
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }
 
-func ResetAccountsHandler(s *SessionService) http.HandlerFunc {
+func (h *AuthHandler) ResetAccounts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, _ := s.Get(r, sessionName)
-		loggedIn, ok := session.Values[loggedInUser].(int64)
+		session, _ := h.sessionService.Get(r, http2.SessionName)
+		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
 
 		if !ok || loggedIn == 0 {
-			handleErrorWithRedirect(w, r, "Attempt to reset identities without a main identity", "/logout")
+			h.logger.Error("Attempt to reset identities without a main identity")
+			handleErrorWithRedirect(w, r, "/logout")
 			return
 		}
 
 		err := persist.DeleteAccount()
 		if err != nil {
-			xlog.Logf("Failed to delete identity %d: %v", loggedIn, err)
+			h.logger.Errorf("Failed to delete identity %d: %v", loggedIn, err)
 		}
 
 		http.Redirect(w, r, "/logout", http.StatusSeeOther)

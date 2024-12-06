@@ -8,32 +8,41 @@ import (
 
 	"github.com/guarzo/canifly/internal/embed"
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
+	http2 "github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/services"
+	"github.com/guarzo/canifly/internal/services/esi"
 )
 
 // SetupRouter configures and returns the app’s router
-func SetupRouter(secret string, logger *logrus.Logger) *mux.Router {
-	sessionStore := flyHandlers.NewSessionService(secret)
+func SetupRouter(secret string, logger *logrus.Logger, esiService esi.ESIService, skillService *services.SkillService, configService *services.ConfigService) *mux.Router {
+	sessionStore := http2.NewSessionService(secret)
 	r := mux.NewRouter()
 
 	// Add authentication middleware
-	r.Use(flyHandlers.AuthMiddleware(sessionStore, logger))
+	r.Use(http2.AuthMiddleware(sessionStore, logger))
+	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, esiService, logger, skillService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, esiService, logger)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger)
+	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, configService)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, skillService)
 
 	// Define routes
-	r.HandleFunc("/callback/", flyHandlers.CallbackHandler(sessionStore))
-	r.HandleFunc("/login", flyHandlers.LoginHandler)
-	r.HandleFunc("/auth-character", flyHandlers.AuthCharacterHandler)
-	r.HandleFunc("/api/home-data", flyHandlers.HomeDataHandler(sessionStore))
-	r.HandleFunc("/api/logout", flyHandlers.LogoutHandler(sessionStore))
-	r.HandleFunc("/api/get-skill-plan", flyHandlers.SkillPlanFileHandler)
-	r.HandleFunc("/api/save-skill-plan", flyHandlers.SaveSkillPlanHandler)
-	r.HandleFunc("/api/delete-skill-plan", flyHandlers.DeleteSkillPlanHandler)
-	r.HandleFunc("/api/unassigned-characters", flyHandlers.GetUnassignedCharactersHandler(sessionStore))
-	r.HandleFunc("/api/assign-character", flyHandlers.AssignCharacterHandler(sessionStore))
-	r.HandleFunc("/api/update-account-name", flyHandlers.UpdateAccountNameHandler(sessionStore))
-	r.HandleFunc("/api/update-character", flyHandlers.UpdateCharacterHandler(sessionStore))
-	r.HandleFunc("/api/toggle-account-status", flyHandlers.ToggleAccountStatusHandler(sessionStore))
-	r.HandleFunc("/api/remove-character", flyHandlers.RemoveCharacterHandler(sessionStore))
-	r.HandleFunc("/reset-identities", flyHandlers.ResetAccountsHandler(sessionStore))
+	r.HandleFunc("/callback/", authHandler.CallBack())
+	r.HandleFunc("/login", authHandler.Login())
+	r.HandleFunc("/logout", authHandler.Logout())
+	r.HandleFunc("/auth-character", authHandler.AddCharacterHandler())
+	r.HandleFunc("/api/home-data", dashboardHandler.GetDashboardData()).Methods("GET")
+	r.HandleFunc("/api/logout", authHandler.Logout())
+	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
+	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
+	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
+	r.HandleFunc("/api/unassigned-characters", characterHandler.GetUnassignedCharacters())
+	r.HandleFunc("/api/assign-character", characterHandler.AssignCharacter())
+	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
+	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter())
+	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
+	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter())
+	r.HandleFunc("/reset-identities", authHandler.ResetAccounts())
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))

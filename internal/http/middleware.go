@@ -1,4 +1,5 @@
-package handlers
+// http/middleware.go
+package http
 
 import (
 	"context"
@@ -8,10 +9,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
-
-type contextKey string
-
-const userKey contextKey = "loggedInUser"
 
 func AuthMiddleware(s *SessionService, logger *logrus.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
@@ -41,7 +38,7 @@ func AuthMiddleware(s *SessionService, logger *logrus.Logger) mux.MiddlewareFunc
 			logger.WithField("path", r.URL.Path).Info("Authentication required for private route")
 
 			// Retrieve the session
-			session, err := s.Get(r, sessionName)
+			session, err := s.Get(r, SessionName)
 			if err != nil {
 				logger.WithError(err).Error("Failed to retrieve session")
 				http.Error(w, `{"error":"failed to retrieve session"}`, http.StatusInternalServerError)
@@ -49,7 +46,7 @@ func AuthMiddleware(s *SessionService, logger *logrus.Logger) mux.MiddlewareFunc
 			}
 
 			// Get logged-in user from session
-			sessionValues := getSessionValues(session)
+			sessionValues := GetSessionValues(session)
 			currentUser := sessionValues.LoggedInUser
 			if currentUser == 0 {
 				logger.Warn("Unauthenticated access attempt")
@@ -73,12 +70,12 @@ func AuthMiddleware(s *SessionService, logger *logrus.Logger) mux.MiddlewareFunc
 
 // setUserInContext adds the logged-in user to the request context
 func setUserInContext(ctx context.Context, userID int64) context.Context {
-	return context.WithValue(ctx, userKey, userID)
+	return context.WithValue(ctx, LoggedInUser, userID)
 }
 
 // getUserFromContext retrieves the logged-in user from the request context
 func getUserFromContext(ctx context.Context) int64 {
-	if user, ok := ctx.Value(userKey).(int64); ok {
+	if user, ok := ctx.Value(LoggedInUser).(int64); ok {
 		return user
 	}
 	return 0

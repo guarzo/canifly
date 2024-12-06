@@ -1,0 +1,224 @@
+package services
+
+import (
+	"bufio"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/guarzo/canifly/internal/model"
+)
+
+type SkillService struct {
+	logger *logrus.Logger
+}
+
+// NewConfigService returns a new ConfigService with a logger
+func NewSkillService(logger *logrus.Logger) *SkillService {
+	return &SkillService{
+		logger: logger,
+	}
+}
+
+var romanToInt = map[string]int{
+	"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
+}
+
+// ParseSkillPlanContents takes the contents as a string and parses it into a map of skills.
+func (s *SkillService) ParseSkillPlanContents(contents string) map[string]model.Skill {
+	skills := make(map[string]model.Skill)
+	scanner := bufio.NewScanner(strings.NewReader(contents))
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if line == "" {
+			continue // Skip empty lines
+		}
+
+		// Find the last whitespace to separate skill name from skill level
+		lastSpaceIndex := strings.LastIndex(line, " ")
+		if lastSpaceIndex == -1 {
+			continue // Skip lines that don't have a space
+		}
+
+		// Separate skill name and level
+		skillName := line[:lastSpaceIndex]
+		skillLevelStr := line[lastSpaceIndex+1:]
+
+		// Parse skill level, handling Roman numerals if necessary
+		skillLevel, err := parseSkillLevel(skillLevelStr)
+		if err != nil {
+			s.logger.Warnf("Invalid skill level '%s'; skipping line.\n", skillLevelStr)
+			continue // Skip lines with invalid levels
+		}
+
+		// Check if the skill already exists and add/update if necessary
+		if currentSkill, exists := skills[skillName]; !exists || skillLevel > currentSkill.Level {
+			skills[skillName] = model.Skill{Name: skillName, Level: skillLevel}
+		}
+	}
+
+	return skills
+}
+
+// parseSkillLevel converts either a Roman numeral or integer string to an integer.
+func parseSkillLevel(levelStr string) (int, error) {
+	if val, ok := romanToInt[levelStr]; ok {
+		return val, nil
+	}
+	return strconv.Atoi(levelStr) // Fall back to numeric conversion
+}
+
+func (s *SkillService) GetMatchingSkillPlans(
+	accounts []model.Account,
+	skillPlans map[string]model.SkillPlan,
+	skillTypes map[string]model.SkillType,
+) map[string]model.SkillPlanWithStatus {
+
+	updatedSkillPlans := make(map[string]model.SkillPlanWithStatus)
+
+	// Initialize updatedSkillPlans with empty QualifiedCharacters, PendingCharacters, and Characters
+	for planName, plan := range skillPlans {
+		updatedSkillPlans[planName] = model.SkillPlanWithStatus{
+			Name:                plan.Name,
+			Skills:              plan.Skills,
+			QualifiedCharacters: []string{},
+			PendingCharacters:   []string{},
+			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills
+			Characters:          []model.CharacterSkillPlanStatus{},
+		}
+	}
+
+	// Process each account and its characters
+	for _, account := range accounts {
+		for _, characterData := range account.Characters {
+			character := characterData.Character
+			characterSkills := make(map[int32]int32)
+
+			// Map character's current skills for lookup
+			for _, skill := range character.Skills {
+				characterSkills[skill.SkillID] = skill.TrainedSkillLevel
+			}
+
+			// Track skill queue levels for pending skills
+			skillQueueLevels := make(map[int32]struct {
+				level      int32
+				finishDate *time.Time
+			})
+			for _, queuedSkill := range character.SkillQueue {
+				if current, exists := skillQueueLevels[queuedSkill.SkillID]; !exists || queuedSkill.FinishedLevel > current.level {
+					skillQueueLevels[queuedSkill.SkillID] = struct {
+						level      int32
+						finishDate *time.Time
+					}{level: queuedSkill.FinishedLevel, finishDate: queuedSkill.FinishDate}
+				}
+			}
+
+			// Initialize QualifiedPlans, PendingPlans, and MissingSkills for the character
+			if character.QualifiedPlans == nil {
+				character.QualifiedPlans = make(map[string]bool)
+			}
+			if character.PendingPlans == nil {
+				character.PendingPlans = make(map[string]bool)
+			}
+			if character.MissingSkills == nil {
+				character.MissingSkills = make(map[string]map[string]int32)
+			}
+
+			// Check matching skill plans for the current character
+			for planName, plan := range skillPlans {
+				qualifies := true
+				pending := false
+				missingSkills := make(map[string]int32)
+				var latestFinishDate *time.Time
+
+				for skillName, requiredSkill := range plan.Skills {
+					// Map skillName to skillID via skillTypes
+					skillType, exists := skillTypes[skillName]
+					if !exists {
+						s.logger.Errorf("Error: Skill '%s' does not exist in skill types", skillName)
+						qualifies = false
+						continue
+					}
+
+					skillID, err := strconv.Atoi(skillType.TypeID)
+					if err != nil {
+						s.logger.Errorf("Error: Converting skill type ID '%s' for skill '%s': %v", skillType.TypeID, skillName, err)
+						qualifies = false
+						continue
+					}
+
+					requiredLevel := int32(requiredSkill.Level)
+					characterLevel, hasSkill := characterSkills[int32(skillID)]
+					queued, inQueue := skillQueueLevels[int32(skillID)]
+
+					// Compare current skill and skill queue for qualification
+					if hasSkill && characterLevel >= requiredLevel {
+						continue // Qualified for this skill
+					} else if inQueue && queued.level >= requiredLevel {
+						pending = true
+						if latestFinishDate == nil || (queued.finishDate != nil && queued.finishDate.After(*latestFinishDate)) {
+							latestFinishDate = queued.finishDate
+						}
+					} else {
+						qualifies = false
+						missingSkills[skillName] = requiredLevel
+					}
+				}
+
+				// Add this character's status to the skill plan's Characters list
+				characterSkillStatus := model.CharacterSkillPlanStatus{
+					CharacterName:     character.CharacterName,
+					Status:            getStatus(qualifies, pending),
+					MissingSkills:     missingSkills, // Store missing skills correctly
+					PendingFinishDate: latestFinishDate,
+				}
+
+				modifiedPlan := updatedSkillPlans[planName]
+
+				// If qualifies and not pending, add to QualifiedCharacters
+				if qualifies && !pending {
+					modifiedPlan.QualifiedCharacters = append(modifiedPlan.QualifiedCharacters, character.CharacterName)
+					character.QualifiedPlans[planName] = true // Update the character's QualifiedPlans
+				}
+
+				// If pending, add to PendingCharacters
+				if pending {
+					modifiedPlan.PendingCharacters = append(modifiedPlan.PendingCharacters, character.CharacterName)
+					characterSkillStatus.PendingFinishDate = latestFinishDate
+					character.PendingPlans[planName] = true // Update the character's PendingPlans
+					character.PendingFinishDates[planName] = latestFinishDate
+				}
+
+				// If there are missing skills, store them in the MissingSkills map
+				if len(missingSkills) > 0 {
+					if modifiedPlan.MissingSkills == nil {
+						modifiedPlan.MissingSkills = make(map[string]map[string]int32)
+					}
+					modifiedPlan.MissingSkills[character.CharacterName] = missingSkills
+					character.MissingSkills[planName] = missingSkills // Update MissingSkills for the character
+				}
+
+				// Add the character's skill status to the plan's character list
+				modifiedPlan.Characters = append(modifiedPlan.Characters, characterSkillStatus)
+
+				// Update the skill plan with the new status
+				updatedSkillPlans[planName] = modifiedPlan
+			}
+		}
+	}
+
+	return updatedSkillPlans
+}
+
+func getStatus(qualifies bool, pending bool) string {
+	if qualifies && !pending {
+		return "Qualified"
+	} else if pending {
+		return "Pending"
+	}
+	return "Not Qualified"
+}

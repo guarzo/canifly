@@ -1,3 +1,4 @@
+// persist/store.go
 package persist
 
 import (
@@ -11,22 +12,22 @@ import (
 
 var Store *HomeDataStore
 
-// HomeDataStore stores HomeData in memory
+// HomeDataStore stores UIData in memory
 type HomeDataStore struct {
 	sync.RWMutex
-	store map[int64]model.HomeData
+	store map[int64]model.UIData
 	ETag  string
 }
 
 // NewHomeDataStore creates a new HomeDataStore
 func NewHomeDataStore() *HomeDataStore {
 	return &HomeDataStore{
-		store: make(map[int64]model.HomeData),
+		store: make(map[int64]model.UIData),
 		ETag:  "",
 	}
 }
 
-func (s *HomeDataStore) Set(id int64, homeData model.HomeData) (string, error) {
+func (s *HomeDataStore) Set(id int64, homeData model.UIData) (string, error) {
 	s.Lock()
 	defer s.Unlock()
 	s.store[id] = homeData
@@ -39,7 +40,7 @@ func (s *HomeDataStore) Set(id int64, homeData model.HomeData) (string, error) {
 	return etag, nil
 }
 
-func (s *HomeDataStore) Get(id int64) (model.HomeData, string, bool) {
+func (s *HomeDataStore) Get(id int64) (model.UIData, string, bool) {
 	s.RLock()
 	defer s.RUnlock()
 	homeData, ok := s.store[id]
@@ -53,7 +54,7 @@ func (s *HomeDataStore) Delete(id int64) {
 	delete(s.store, id)
 }
 
-func GenerateETag(homeData model.HomeData) (string, error) {
+func GenerateETag(homeData model.UIData) (string, error) {
 	data, err := json.Marshal(homeData)
 	if err != nil {
 		return "", err

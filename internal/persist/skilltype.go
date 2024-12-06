@@ -1,3 +1,4 @@
+// persist/skilltype.go
 package persist
 
 import (
