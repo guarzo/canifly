@@ -3,34 +3,56 @@ package model
 import (
 	"encoding/gob"
 	"time"
-
-	"golang.org/x/oauth2"
 )
 
-type Account struct {
-	Name       string
-	Status     string // "Omega", "Alpha"
-	Characters []CharacterIdentity
-	ID         int64 // dynamically generated for now
-}
-
-type CharacterIdentity struct {
-	Token     oauth2.Token // existing field
-	Character Character    // existing field
-	Role      string       // new field for categorization
-	MCT       bool         // new field, useful for sorting
-}
-
-type UIData struct {
+type AppState struct {
 	Title      string
 	LoggedIn   bool
 	Accounts   []Account // Add Accounts here
 	SkillPlans map[string]SkillPlanWithStatus
 	ConfigData
+	SubDirs []SubDirData
+	UserSelections
+}
+
+type UserSelection struct {
+	CharId string `json:"charId"`
+	UserId string `json:"userId"`
+}
+
+type UserSelections map[string]UserSelection
+
+type SubDirData struct {
+	SubDir             string     `json:"subDir"`
+	AvailableCharFiles []CharFile `json:"availableCharFiles"`
+	AvailableUserFiles []UserFile `json:"availableUserFiles"`
 }
 
 type ConfigData struct {
-	Roles []string `json:"Roles"`
+	Roles        []string      `json:"Roles"`
+	SettingsDir  string        `json:"SettingsDir"`
+	SettingsData []SubDirData  `json:"settingsData"`
+	Associations []Association `json:"associations"`
+}
+
+type CharFile struct {
+	File   string `json:"file"`
+	CharId string `json:"charId"`
+	Name   string `json:"name"`
+	Mtime  string `json:"mtime"`
+}
+
+type UserFile struct {
+	File   string `json:"file"`
+	UserId string `json:"userId"`
+	Name   string `json:"name"`
+	Mtime  string `json:"mtime"`
+}
+
+type Association struct {
+	UserId   string `json:"userId"`
+	CharId   string `json:"charId"`
+	CharName string `json:"charName"`
 }
 
 func init() {

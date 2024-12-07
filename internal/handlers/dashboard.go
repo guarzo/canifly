@@ -20,16 +20,20 @@ type DashboardHandler struct {
 	sessionService *http2.SessionService
 	esiService     esi.ESIService
 	skillService   *services.SkillService
+	dataStore      *persist.DataStore
 	logger         *logrus.Logger
+	configService  *services.ConfigService
 }
 
 // NewDashboardHandler creates a new DashboardHandler with the given session and ESI services.
-func NewDashboardHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, skill *services.SkillService) *DashboardHandler {
+func NewDashboardHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, skill *services.SkillService, data *persist.DataStore, configService *services.ConfigService) *DashboardHandler {
 	return &DashboardHandler{
 		sessionService: s,
 		esiService:     e,
 		logger:         l,
 		skillService:   skill,
+		dataStore:      data,
+		configService:  configService,
 	}
 }
 
@@ -60,7 +64,7 @@ func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 			return
 		}
 
-		data := prepareHomeData(accounts, h.logger, h.skillService)
+		data := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
 
 		_, err = updateStoreAndSession(data, etag, session, r, w)
 		if err != nil {
@@ -79,7 +83,7 @@ func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 
 // validateAccounts is now a method on DashboardHandler, allowing access to h.esiService.
 // It replaces the direct calls to esi.ProcessIdentity with h.esiService.ProcessIdentity.
-func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData model.UIData) ([]model.Account, error) {
+func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData model.AppState) ([]model.Account, error) {
 	authenticatedUsers, ok := session.Values[http2.AllAuthenticatedCharacters].([]int64)
 	if !ok {
 		h.logger.Errorf("Failed to retrieve authenticated users from session")
@@ -101,7 +105,7 @@ func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData
 
 	if needIdentityPopulation {
 		h.logger.Infof("Need to populate identities")
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccountByIdentity()
 		if err != nil {
 			h.logger.Errorf("Failed to load accounts: %v", err)
 			return nil, fmt.Errorf("failed to load accounts: %w", err)
@@ -132,7 +136,7 @@ func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData
 		}
 
 		// Save the updated accounts
-		if err := persist.SaveAccounts(accounts); err != nil {
+		if err := h.dataStore.SaveAccounts(accounts); err != nil {
 			h.logger.Errorf("Failed to save accounts: %v", err)
 			return nil, fmt.Errorf("failed to save accounts: %w", err)
 		}
@@ -147,7 +151,7 @@ func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData
 		}
 
 		session.Values[http2.AllAuthenticatedCharacters] = allCharacterIDs
-		_ = persist.ApiCache.SaveToFile()
+		_ = h.dataStore.SaveApiCache()
 	}
 
 	return storeData.Accounts, nil

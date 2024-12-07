@@ -4,7 +4,6 @@ package persist
 import (
 	"encoding/csv"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -13,24 +12,24 @@ import (
 
 const skillTypeFile = "static/invTypes.csv"
 
-// SkillTypes is a map of skill types loaded from the CSV.
-var SkillTypes map[string]model.SkillType
-
-// LoadSkillTypes reads the skill types CSV file and populates the SkillTypes map.
-func LoadSkillTypes() error {
-	// Proceed with loading the CSV file
-	skillTypes, err := readSkillTypes(skillTypeFile)
+func (ds *DataStore) LoadSkillTypes() error {
+	ds.logger.Infof("Loading skill types from %s", skillTypeFile)
+	skillTypes, err := ds.readSkillTypes(skillTypeFile)
 	if err != nil {
-		return fmt.Errorf("failed to load skill types: %w", err)
+		ds.logger.WithError(err).Error("Failed to load skill types")
+		return err
 	}
-
-	SkillTypes = skillTypes
+	ds.skillTypes = skillTypes
+	ds.logger.Infof("Loaded %d skill types", len(ds.skillTypes))
 	return nil
 }
 
-// readSkillTypes reads the CSV file and returns a map of SkillType objects.
-func readSkillTypes(filePath string) (map[string]model.SkillType, error) {
-	file, err := embed.StaticFiles.Open(filePath) // Open file from embedded FS
+func (ds *DataStore) GetSkillTypes() map[string]model.SkillType {
+	return ds.skillTypes
+}
+
+func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType, error) {
+	file, err := embed.StaticFiles.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
 	}
@@ -39,7 +38,6 @@ func readSkillTypes(filePath string) (map[string]model.SkillType, error) {
 	reader := csv.NewReader(file)
 	skillTypes := make(map[string]model.SkillType)
 
-	// Read header row and map column indices
 	headers, err := reader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read header row from file %s: %w", filePath, err)
@@ -69,7 +67,7 @@ func readSkillTypes(filePath string) (map[string]model.SkillType, error) {
 			if err.Error() == "EOF" {
 				break
 			}
-			log.Printf("Warning: skipping row %d due to parsing error: %v\n", lineNumber, err)
+			ds.logger.WithError(err).Warnf("Skipping row %d due to parsing error", lineNumber)
 			continue
 		}
 
@@ -87,7 +85,7 @@ func readSkillTypes(filePath string) (map[string]model.SkillType, error) {
 				Description: description,
 			}
 		} else {
-			log.Printf("Skipping row %d due to missing typeID or typeName\n", lineNumber)
+			ds.logger.Warnf("Skipping row %d due to missing typeID or typeName", lineNumber)
 		}
 	}
 

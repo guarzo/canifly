@@ -391,11 +391,11 @@ const App = () => {
                                 />
                                 <Route
                                     path="/sync"
-                                    element={<Sync />}
+                                    element={<Sync settingsData={homeData?.SubDirs || []} />}
                                 />
                                 <Route
                                     path="/mapping"
-                                    element={<Mapping />}
+                                    element={<Mapping associations={homeData?.Associations || []} subDirs={homeData?.SubDirs || []} />}
                                 />
                             </Routes>
                         )}

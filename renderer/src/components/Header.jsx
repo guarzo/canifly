@@ -28,8 +28,9 @@ import {
     AccountTree as MappingIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { toast } from 'react-toastify';
+import AccountPromptModal from './AccountPromptModal';
 
-// Custom styled AppBar
 const StyledAppBar = styled(AppBar)(() => ({
     backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
     color: '#14b8a6',
@@ -40,10 +41,7 @@ const StyledAppBar = styled(AppBar)(() => ({
 const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
-
-    const handleAddCharacter = () => {
-        window.location.href = 'http://localhost:8713/auth-character';
-    };
+    const [modalOpen, setModalOpen] = useState(false);
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
@@ -65,11 +63,46 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
     ];
 
+    const handleAddCharacterClick = () => {
+        // Instead of direct redirect, open the modal to get account name
+        setModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setModalOpen(false);
+    };
+
+    const handleAddCharacterSubmit = async (account) => {
+        try {
+            const response = await fetch('/api/add-character', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({account}),
+                credentials: 'include',
+            })
+                if (response.ok) {
+                const data = await response.json();
+                if (data.redirectURL) {
+                    window.location.href = data.redirectURL;
+                } else {
+                    toast.error("No redirect URL received from server.");
+                }
+            } else {
+                const errorText = await response.text();
+                toast.error(`Failed to initiate login: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error initiating add character:', error);
+            toast.error('An error occurred while adding character.');
+        } finally {
+            setModalOpen(false);
+        }
+    };
+
     return (
         <>
             <StyledAppBar position="fixed">
                 <Toolbar style={{ WebkitAppRegion: 'drag' }}>
-                    {/* Menu Icon */}
                     {loggedIn && (
                         <IconButton
                             edge="start"
@@ -82,7 +115,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                         </IconButton>
                     )}
 
-                    {/* Title */}
                     <Typography
                         variant="h6"
                         className="flex-grow text-center"
@@ -91,7 +123,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                         Can I Fly?
                     </Typography>
 
-                    {/* Right Side Icons */}
                     <div
                         className="flex items-center space-x-3"
                         style={{ WebkitAppRegion: 'no-drag' }}
@@ -99,7 +130,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                         {loggedIn && (
                             <>
                                 {/* Add Character Icon */}
-                                <IconButton onClick={handleAddCharacter} title="Add Character">
+                                <IconButton onClick={handleAddCharacterClick} title="Add Character">
                                     <AddCircleOutline sx={{ color: '#22c55e' }} />
                                 </IconButton>
                                 {/* Add Skill Plan Icon */}
@@ -119,7 +150,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                 </Toolbar>
             </StyledAppBar>
 
-            {/* Navigation Drawer */}
             <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
                 <div
                     role="presentation"
@@ -144,6 +174,14 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                     <Divider />
                 </div>
             </Drawer>
+
+            {/* Account Prompt Modal for Add Character */}
+            <AccountPromptModal
+                isOpen={modalOpen}
+                onClose={handleCloseModal}
+                onSubmit={handleAddCharacterSubmit}
+                title="Add Character - Enter Account Name"
+            />
         </>
     );
 };

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/model"
@@ -15,6 +16,8 @@ import (
 type esiService struct {
 	httpClient HTTPClient
 	auth       AuthClient // We will define an AuthClient interface below
+	logger     *logrus.Logger
+	dataStore  *persist.DataStore
 }
 
 // AuthClient interface for auth actions we need. We previously called auth.RefreshToken directly.
@@ -24,10 +27,12 @@ type AuthClient interface {
 }
 
 // NewESIService creates a new ESIService with the given dependencies.
-func NewESIService(httpClient HTTPClient, auth AuthClient) ESIService {
+func NewESIService(httpClient HTTPClient, auth AuthClient, l *logrus.Logger, d *persist.DataStore) ESIService {
 	return &esiService{
 		httpClient: httpClient,
 		auth:       auth,
+		logger:     l,
+		dataStore:  d,
 	}
 }
 
@@ -77,7 +82,7 @@ func (s *esiService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*mo
 	charIdentity.Character.CharacterSkillsResponse = *skills
 	charIdentity.Character.SkillQueue = *skillQueue
 	charIdentity.Character.Location = characterLocation
-	charIdentity.Character.LocationName = persist.GetSystemName(characterLocation)
+	charIdentity.Character.LocationName = s.dataStore.GetSystemName(characterLocation)
 
 	charIdentity.Character.QualifiedPlans = make(map[string]bool)
 	charIdentity.Character.PendingPlans = make(map[string]bool)
@@ -106,10 +111,25 @@ func (s *esiService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, 
 	return &user, nil
 }
 
+func (s *esiService) GetCharacter(id string) (*model.CharacterResponse, error) {
+	requestURL := fmt.Sprintf("https://esi.evetech.net/latest/characters/%s/?datasource=tranquility", id)
+	bodyBytes, err := getResults(requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var character model.CharacterResponse
+	if err := json.Unmarshal(bodyBytes, &character); err != nil {
+		return nil, fmt.Errorf("failed to decode response body: %v", err)
+	}
+
+	return &character, nil
+}
+
 func (s *esiService) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skills/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +145,7 @@ func (s *esiService) GetCharacterSkills(characterID int64, token *oauth2.Token) 
 func (s *esiService) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skillqueue/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
 	if err != nil {
 		return nil, err
 	}
@@ -140,9 +160,9 @@ func (s *esiService) GetCharacterSkillQueue(characterID int64, token *oauth2.Tok
 
 func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/location/?datasource=tranquility", characterID)
-	xlog.Logf("Getting character location for %d", characterID)
+	s.logger.Infof("Getting character location for %d", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
 	if err != nil {
 		return 0, err
 	}

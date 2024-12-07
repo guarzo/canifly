@@ -11,12 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/auth"
-	"github.com/guarzo/canifly/internal/embed"
 	httpServices "github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/server"
-	"github.com/guarzo/canifly/internal/services"
-	"github.com/guarzo/canifly/internal/services/esi"
 	"github.com/guarzo/canifly/internal/utils"
 )
 
@@ -31,14 +27,10 @@ func Start() {
 	secret := server.GetSecretKey(logger)
 	initializeComponents(secret, logger)
 
-	// Initialize dependencies
 	httpClient := httpServices.NewAPIClient("https://esi.evetech.net", "", logger)
 	authClient := auth.NewAuthClient()
-	esiService := esi.NewESIService(httpClient, authClient)
-	configService := services.NewConfigService(logger)
-	skillService := services.NewSkillService(logger)
 
-	r := server.SetupRouter(secret, logger, esiService, skillService, configService)
+	r := server.SetupRouter(secret, logger, server.GetServices(logger, authClient, httpClient))
 	port := server.GetPort()
 	startServer(r, port, logger)
 }
@@ -59,24 +51,16 @@ func initializeComponents(secret string, logger *logrus.Logger) {
 
 	auth.InitializeOAuth(clientID, clientSecret, callbackURL)
 
-	if err = persist.ProcessSkillPlans(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill plans.")
-	}
-
-	if err = persist.LoadSkillTypes(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill types.")
-	}
-
-	if err = embed.LoadStatic(); err != nil {
-		logger.WithError(err).Fatal("Failed to load templates.")
-	}
-
-	writeable, err := persist.GetWritablePlansPath()
-	logger.WithField("path", writeable).Info("Writable path initialized.")
 }
 
 func startServer(r *mux.Router, port string, logger *logrus.Logger) {
 	logger.Infof("Listening on port %s", port)
-	corsOptions := handlers.AllowedOrigins([]string{"*"})
-	log.Fatal(http.ListenAndServe(":"+port, handlers.CORS(corsOptions)(r)))
+	corsOptions := handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:5173"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"}),
+		handlers.AllowCredentials(),
+	)
+
+	log.Fatal(http.ListenAndServe(":"+port, corsOptions(r)))
 }

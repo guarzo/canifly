@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/base64"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -53,4 +54,21 @@ func GetPort() string {
 		port = "8713"
 	}
 	return port
+}
+
+// GetWritablePath returns a writable path
+func GetWritablePath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(configDir, "canifly", "identity")
+	pathSuffix := os.Getenv("PATH_SUFFIX")
+	if pathSuffix != "" {
+		path = filepath.Join(configDir, "canifly", pathSuffix)
+	}
+	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+		return "", err
+	}
+	return path, nil
 }

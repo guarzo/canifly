@@ -10,7 +10,7 @@ func SetupLogger() *logrus.Logger {
 	// Enable colored output for TextFormatter
 	logger.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,
-		FullTimestamp: true,
+		FullTimestamp: false,
 	})
 
 	logger.SetLevel(logrus.InfoLevel)

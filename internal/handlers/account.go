@@ -14,13 +14,15 @@ import (
 
 type AccountHandler struct {
 	sessionService *http2.SessionService
+	dataStore      *persist.DataStore
 	logger         *logrus.Logger
 }
 
-func NewAccountHandler(s *http2.SessionService, l *logrus.Logger) *AccountHandler {
+func NewAccountHandler(s *http2.SessionService, l *logrus.Logger, data *persist.DataStore) *AccountHandler {
 	return &AccountHandler{
 		sessionService: s,
 		logger:         l,
+		dataStore:      data,
 	}
 }
 
@@ -51,7 +53,7 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -72,7 +74,7 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 
 		accountToUpdate.Name = request.AccountName
 
-		if err = persist.SaveAccounts(accounts); err != nil {
+		if err = h.dataStore.SaveAccounts(accounts); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -108,7 +110,7 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -132,7 +134,7 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 			return
 		}
 
-		if err = persist.SaveAccounts(accounts); err != nil {
+		if err = h.dataStore.SaveAccounts(accounts); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}

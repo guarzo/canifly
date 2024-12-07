@@ -18,13 +18,15 @@ type CharacterHandler struct {
 	sessionService *http2.SessionService
 	logger         *logrus.Logger
 	configService  *services.ConfigService
+	datastore      *persist.DataStore
 }
 
-func NewCharacterHandler(s *http2.SessionService, l *logrus.Logger, c *services.ConfigService) *CharacterHandler {
+func NewCharacterHandler(s *http2.SessionService, l *logrus.Logger, c *services.ConfigService, d *persist.DataStore) *CharacterHandler {
 	return &CharacterHandler{
 		sessionService: s,
 		logger:         l,
 		configService:  c,
+		datastore:      d,
 	}
 }
 
@@ -55,7 +57,7 @@ func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -99,7 +101,7 @@ func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 			return
 		}
 
-		if err = persist.SaveAccounts(accounts); err != nil {
+		if err = h.datastore.SaveAccounts(accounts); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -122,7 +124,7 @@ func (h *CharacterHandler) GetUnassignedCharacters() http.HandlerFunc {
 			return
 		}
 
-		unassignedCharacters, err := persist.FetchUnassignedCharacters()
+		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
 			return
@@ -157,13 +159,13 @@ func (h *CharacterHandler) AssignCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		unassignedCharacters, err := persist.FetchUnassignedCharacters()
+		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
 			return
@@ -212,11 +214,11 @@ func (h *CharacterHandler) AssignCharacter() http.HandlerFunc {
 			}
 		}
 
-		if err = persist.SaveAccounts(accounts); err != nil {
+		if err = h.datastore.SaveAccounts(accounts); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
-		if err = persist.SaveUnassignedCharacters(updatedUnassigned); err != nil {
+		if err = h.datastore.SaveUnassignedCharacters(updatedUnassigned); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -252,13 +254,13 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := persist.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccountByIdentity()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		unassignedCharacters, err := persist.FetchUnassignedCharacters()
+		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
 			return
@@ -295,11 +297,11 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 
 		unassignedCharacters = append(unassignedCharacters, *characterToRemove)
 
-		if err = persist.SaveAccounts(accounts); err != nil {
+		if err = h.datastore.SaveAccounts(accounts); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
-		if err = persist.SaveUnassignedCharacters(unassignedCharacters); err != nil {
+		if err = h.datastore.SaveUnassignedCharacters(unassignedCharacters); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -307,4 +309,193 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"success": true}`))
 	}
+}
+
+func (h *CharacterHandler) ChooseSettingsDir(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Directory string `json:"directory"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Directory == "" {
+		http.Error(w, "Directory is required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.configService.UpdateSettingsDir(req.Directory)
+	if err != nil {
+		resp := struct {
+			Success bool   `json:"success"`
+			Error   string `json:"error,omitempty"`
+		}{Success: false, Error: err.Error()}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	resp := struct {
+		Success     bool   `json:"success"`
+		SettingsDir string `json:"settingsDir,omitempty"`
+	}{Success: true, SettingsDir: req.Directory}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *CharacterHandler) SyncSubDirectory(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SubDir string `json:"subDir"`
+		UserId string `json:"userId"`
+		CharId string `json:"charId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userFilesCopied, charFilesCopied, err := h.configService.SyncDir(req.SubDir, req.CharId, req.UserId)
+	if err != nil {
+		resp := struct {
+			Success bool   `json:"success"`
+			Message string `json:"message,omitempty"`
+		}{false, fmt.Sprintf("failed to sync %v", err)}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	message := fmt.Sprintf("Synchronization complete in \"%s\", %d user files and %d character files copied.", req.SubDir, userFilesCopied, charFilesCopied)
+	resp := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{true, message}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *CharacterHandler) BackupDirectory(w http.ResponseWriter, r *http.Request) {
+	success, message := h.configService.BackupDir()
+	resp := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message,omitempty"`
+	}{Success: success, Message: message}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserId string `json:"userId"`
+		CharId string `json:"charId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := h.configService.AssociateCharacter(req.UserId, req.CharId)
+	if err != nil {
+		resp := struct {
+			Success bool   `json:"success"`
+			Message string `json:"message"`
+		}{false, err.Error()}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	resp := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{true, fmt.Sprintf("Character ID %s associated with User ID %s", req.CharId, req.UserId)}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *CharacterHandler) UnassociateCharacter(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserId string `json:"userId"`
+		CharId string `json:"charId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := h.configService.UnassociateCharacter(req.UserId, req.CharId)
+	if err != nil {
+		resp := struct {
+			Success bool   `json:"success"`
+			Message string `json:"message"`
+		}{false, err.Error()}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	resp := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{true, fmt.Sprintf("Character ID %s has been unassociated from User ID %s", req.CharId, req.UserId)}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *CharacterHandler) SaveUserSelections(w http.ResponseWriter, r *http.Request) {
+	var req model.UserSelections
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// req is now a map[string]UserSelection
+	if err := h.configService.UpdateUserSelections(req); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save user selections: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func (h *CharacterHandler) SyncAllSubdirectories(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SubDir string `json:"subDir"`
+		UserId string `json:"userId"`
+		CharId string `json:"charId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userFilesCopied, charFilesCopied, err := h.configService.SyncAllDir(req.SubDir, req.CharId, req.UserId)
+	if err != nil {
+		resp := struct {
+			Success bool   `json:"success"`
+			Message string `json:"message,omitempty"`
+		}{false, fmt.Sprintf("failed to sync all: %v", err)}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	message := fmt.Sprintf("Sync completed for all subdirectories: %d user files copied and %d character files copied, based on user/char files from \"%s\".", userFilesCopied, charFilesCopied, req.SubDir)
+	resp := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{true, message}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

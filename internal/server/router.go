@@ -8,31 +8,28 @@ import (
 
 	"github.com/guarzo/canifly/internal/embed"
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
-	http2 "github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/services"
-	"github.com/guarzo/canifly/internal/services/esi"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 )
 
 // SetupRouter configures and returns the app’s router
-func SetupRouter(secret string, logger *logrus.Logger, esiService esi.ESIService, skillService *services.SkillService, configService *services.ConfigService) *mux.Router {
-	sessionStore := http2.NewSessionService(secret)
+func SetupRouter(secret string, logger *logrus.Logger, appServices *AppServices) *mux.Router {
+	sessionStore := flyHttp.NewSessionService(secret)
 	r := mux.NewRouter()
 
 	// Add authentication middleware
-	r.Use(http2.AuthMiddleware(sessionStore, logger))
-	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, esiService, logger, skillService)
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, esiService, logger)
-	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger)
-	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, configService)
-	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, skillService)
+	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
+	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, appServices.EsiService, logger, appServices.SkillService, appServices.DataStore, appServices.ConfigService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.DataStore)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.DataStore)
+	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, appServices.ConfigService, appServices.DataStore)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService, appServices.DataStore)
 
 	// Define routes
 	r.HandleFunc("/callback/", authHandler.CallBack())
-	r.HandleFunc("/login", authHandler.Login())
-	r.HandleFunc("/logout", authHandler.Logout())
-	r.HandleFunc("/auth-character", authHandler.AddCharacterHandler())
+	r.HandleFunc("/api/add-character", authHandler.AddCharacterHandler())
 	r.HandleFunc("/api/home-data", dashboardHandler.GetDashboardData()).Methods("GET")
 	r.HandleFunc("/api/logout", authHandler.Logout())
+	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
 	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
 	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
@@ -42,7 +39,16 @@ func SetupRouter(secret string, logger *logrus.Logger, esiService esi.ESIService
 	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
 	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter())
-	r.HandleFunc("/reset-identities", authHandler.ResetAccounts())
+
+	r.HandleFunc("/api/choose-settings-dir", characterHandler.ChooseSettingsDir)
+	r.HandleFunc("/api/sync-sub-dir", characterHandler.SyncSubDirectory)
+	r.HandleFunc("/api/backup-directory", characterHandler.BackupDirectory)
+	r.HandleFunc("/api/associate-character", characterHandler.AssociateCharacter)
+	r.HandleFunc("/api/unassociate-character", characterHandler.UnassociateCharacter)
+	r.HandleFunc("/api/save-user-selections", characterHandler.SaveUserSelections)
+	r.HandleFunc("/api/sync-all-dirs", characterHandler.SyncAllSubdirectories)
+
+	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))

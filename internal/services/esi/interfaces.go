@@ -13,6 +13,7 @@ type ESIService interface {
 	GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error)
 	GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error)
 	GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error)
+	GetCharacter(id string) (*model.CharacterResponse, error)
 }
 
 type HTTPClient interface {

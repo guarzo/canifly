@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      'v2': {
+        target: 'https://login.eveonline.com',
+        changeOrigin: true,
+        secure: true,
+      }
     },
   },
 });

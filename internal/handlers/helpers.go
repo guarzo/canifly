@@ -63,7 +63,7 @@ func clearSession(s *http2.SessionService, w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues, r *http.Request) (model.UIData, string, bool) {
+func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues, r *http.Request) (model.AppState, string, bool) {
 	canSkip := true
 	storeData, etag, ok := persist.Store.Get(sessionValues.LoggedInUser)
 	if !ok {
@@ -81,8 +81,8 @@ func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues
 	return storeData, etag, canSkip
 }
 
-func getConfigData(logger *logrus.Logger) model.ConfigData {
-	config, err := persist.FetchConfigData()
+func getConfigData(logger *logrus.Logger, dataStore *persist.DataStore) model.ConfigData {
+	config, err := dataStore.FetchConfigData()
 	if err != nil {
 		logger.Errorf("error retrieving config data")
 		return model.ConfigData{}
@@ -90,19 +90,48 @@ func getConfigData(logger *logrus.Logger) model.ConfigData {
 	return *config
 }
 
-func prepareHomeData(accounts []model.Account, logger *logrus.Logger, skill *services.SkillService) model.UIData {
-	skillPlans := skill.GetMatchingSkillPlans(accounts, persist.SkillPlans, persist.SkillTypes)
-	config := getConfigData(logger)
+func prepareAppData(
+	accounts []model.Account,
+	logger *logrus.Logger,
+	skill *services.SkillService,
+	dataStore *persist.DataStore,
+	configService *services.ConfigService,
+) model.AppState {
+	// Retrieve skill plans and skill types from the data store instead of global variables
+	skillPlans := skill.GetMatchingSkillPlans(
+		accounts,
+		dataStore.GetSkillPlans(),
+		dataStore.GetSkillTypes(),
+	)
 
-	return model.UIData{
-		LoggedIn:   true,
-		Accounts:   accounts,
-		SkillPlans: skillPlans,
-		ConfigData: config,
+	// Fetch config data directly from the dataStore
+	config, err := dataStore.FetchConfigData()
+	if err != nil {
+		logger.WithError(err).Error("Failed to fetch config data")
+		config = &model.ConfigData{} // fallback to an empty config if needed
+	}
+
+	subDirData, err := configService.LoadCharacterSettings()
+	if err != nil {
+		logger.Errorf("Failed to load character settings: %v", err)
+	}
+	userSelections, err := dataStore.LoadUserSelections()
+	if err != nil {
+		logger.Warnf("Failed to load user selections, defaulting to empty: %v", err)
+		userSelections = make(map[string]model.UserSelection)
+	}
+
+	return model.AppState{
+		LoggedIn:       true,
+		Accounts:       accounts,
+		SkillPlans:     skillPlans,
+		ConfigData:     *config,
+		SubDirs:        subDirData,
+		UserSelections: userSelections,
 	}
 }
 
-func updateStoreAndSession(data model.UIData, etag string, session *sessions.Session, r *http.Request, w http.ResponseWriter) (string, error) {
+func updateStoreAndSession(data model.AppState, etag string, session *sessions.Session, r *http.Request, w http.ResponseWriter) (string, error) {
 	newEtag, err := persist.GenerateETag(data)
 	if err != nil {
 		return etag, fmt.Errorf("failed to generate etag: %w", err)

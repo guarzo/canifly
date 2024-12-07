@@ -10,12 +10,11 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/guarzo/canifly/internal/auth"
 	errors2 "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/utils/xlog"
-
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -64,7 +63,9 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	if token != nil {
+		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -73,7 +74,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnauthorized {
+	if resp.StatusCode == http.StatusUnauthorized && token != nil {
 		// Refresh the token
 		newToken, err := auth.RefreshToken(token.RefreshToken)
 		if err != nil {
@@ -125,10 +126,9 @@ func getResults(address string, token *oauth2.Token) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token) ([]byte, error) {
+func getResultsWithCache(address string, token *oauth2.Token, dataStore *persist.DataStore) ([]byte, error) {
 	// Check the cache first
-	if cachedData, found := persist.ApiCache.Get(address); found {
-		xlog.Logf("cache item found for %s", address)
+	if cachedData, found := dataStore.GetFromCache(address); found {
 		return cachedData, nil // Return cached data
 	}
 
@@ -138,7 +138,7 @@ func getResultsWithCache(address string, token *oauth2.Token) ([]byte, error) {
 	}
 
 	// Store the result in the cache
-	persist.ApiCache.Set(address, bodyBytes, persist.DefaultExpiration)
+	dataStore.SetToCache(address, bodyBytes, persist.DefaultExpiration)
 
 	return bodyBytes, nil
 }

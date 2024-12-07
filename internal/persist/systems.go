@@ -1,59 +1,68 @@
-// persist/systems.go
 package persist
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
-	"log"
-	"regexp"
 	"strconv"
 
 	"github.com/guarzo/canifly/internal/embed"
 )
 
-const sysPath = "static/systems.csv"
-const wormHolePattern = `^J\d{6}$`
-const systemCount = 8487
-const nonWHsystemCount = 5885
+const (
+	sysPath     = "static/systems.csv"
+	systemCount = 8487
+)
 
-var SysIdToName map[string]string
-var SysNameToID map[string]string
-var SysNameSuggestions []string
-
-func init() {
+// LoadSystems reads system data from the embedded CSV file and populates DataStore fields.
+func (ds *DataStore) LoadSystems() error {
 	file, err := embed.StaticFiles.Open(sysPath)
 	if err != nil {
-		log.Fatalf("failed to read embedded plans: %v", err)
+		ds.logger.WithError(err).Errorf("Failed to read systems file: %s", sysPath)
+		return fmt.Errorf("failed to read embedded systems file: %w", err)
 	}
 	defer file.Close()
 
-	pattern := regexp.MustCompile(wormHolePattern)
-
 	reader := csv.NewReader(file)
-	SysIdToName = make(map[string]string, systemCount)
-	SysNameToID = make(map[string]string, systemCount)
-	SysNameSuggestions = make([]string, nonWHsystemCount)
+	ds.SysIdToName = make(map[string]string, systemCount)
+	ds.SysNameToID = make(map[string]string, systemCount)
 
-	// Read the file line by line
+	lineNumber := 0
 	for {
 		record, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
-				break // If we've reached the end of the file, break the loop
+				break
 			} else {
-				log.Fatal(err) // If it's a different error, exit
+				ds.logger.WithError(err).Errorf("Error reading systems CSV at line %d", lineNumber)
+				return fmt.Errorf("error reading systems CSV: %w", err)
 			}
 		}
+		lineNumber++
 
-		SysIdToName[record[0]] = record[1]
-		SysNameToID[record[1]] = record[0]
-
-		if !pattern.MatchString(record[1]) {
-			SysNameSuggestions = append(SysNameSuggestions, record[1])
+		if len(record) < 2 {
+			ds.logger.Warnf("Skipping line %d: not enough columns", lineNumber)
+			continue
 		}
+
+		sysID := record[0]
+		sysName := record[1]
+
+		ds.SysIdToName[sysID] = sysName
+		ds.SysNameToID[sysName] = sysID
 	}
+
+	ds.logger.Infof("Loaded %d systems, %d wormhole suggestions", len(ds.SysIdToName))
+	return nil
 }
 
-func GetSystemName(systemID int64) string {
-	return SysIdToName[strconv.FormatInt(systemID, 10)]
+// GetSystemName returns the system name for a given ID from DataStore.
+func (ds *DataStore) GetSystemName(systemID int64) string {
+	name, ok := ds.SysIdToName[strconv.FormatInt(systemID, 10)]
+	if !ok {
+		// System ID not found, could log or return an empty string
+		ds.logger.Warnf("System ID %d not found", systemID)
+		return ""
+	}
+	return name
 }

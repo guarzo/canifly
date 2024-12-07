@@ -1,6 +1,24 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"golang.org/x/oauth2"
+)
+
+type Account struct {
+	Name       string
+	Status     string // "Omega", "Alpha"
+	Characters []CharacterIdentity
+	ID         int64 // dynamically generated for now
+}
+
+type CharacterIdentity struct {
+	Token     oauth2.Token
+	Character Character
+	Role      string
+	MCT       bool
+}
 
 type Character struct {
 	UserInfoResponse

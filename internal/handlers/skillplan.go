@@ -16,11 +16,15 @@ import (
 type SkillPlanHandler struct {
 	logger       *logrus.Logger
 	skillService *services.SkillService
+	dataStore    *persist.DataStore
 }
 
-func NewSkillPlanHandler(l *logrus.Logger, s *services.SkillService) *SkillPlanHandler {
-	return &SkillPlanHandler{logger: l,
-		skillService: s}
+func NewSkillPlanHandler(l *logrus.Logger, s *services.SkillService, d *persist.DataStore) *SkillPlanHandler {
+	return &SkillPlanHandler{
+		logger:       l,
+		skillService: s,
+		dataStore:    d,
+	}
 }
 
 func (h *SkillPlanHandler) GetSkillPlanFile() http.HandlerFunc {
@@ -34,7 +38,7 @@ func (h *SkillPlanHandler) GetSkillPlanFile() http.HandlerFunc {
 		planName += ".txt"
 		h.logger.Infof("Attempting to serve skill plan file: %s", planName)
 
-		skillPlanDir, err := persist.GetWritablePlansPath()
+		skillPlanDir, err := h.dataStore.GetWriteablePlansPath()
 		if err != nil {
 			h.logger.Errorf("Failed to retrieve skill plan directory: %v", err)
 			http.Error(w, fmt.Sprintf("Failed to retrieve skill plan directory: %v", err), http.StatusInternalServerError)
@@ -79,7 +83,7 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 		}
 
 		skills := h.skillService.ParseSkillPlanContents(requestData.Contents)
-		if err := persist.SaveSkillPlan(requestData.PlanName, skills); err != nil {
+		if err := h.dataStore.SaveSkillPlan(requestData.PlanName, skills); err != nil {
 			h.logger.Errorf("Failed to save skill plan: %v", err)
 			http.Error(w, "Failed to save skill plan", http.StatusInternalServerError)
 			return
@@ -103,7 +107,7 @@ func (h *SkillPlanHandler) DeleteSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		if err := persist.DeleteSkillPlan(planName); err != nil {
+		if err := h.dataStore.DeleteSkillPlan(planName); err != nil {
 			h.logger.Errorf("Failed to delete skill plan: %v", err)
 			http.Error(w, "Failed to delete skill plan", http.StatusInternalServerError)
 			return

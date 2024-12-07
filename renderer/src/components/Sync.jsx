@@ -1,7 +1,7 @@
 // Sync.jsx
 
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify'; // Removed ToastContainer
+import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -36,15 +36,12 @@ const Sync = () => {
     const [currentSettingsDir, setCurrentSettingsDir] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isDefaultDir, setIsDefaultDir] = useState(false);
-
-    // State to hold the selected user and character per subdirectory
     const [selections, setSelections] = useState({});
 
     useEffect(() => {
         loadDataAndRender();
     }, []);
 
-    // Function to load settings data from the main process
     const loadDataAndRender = async () => {
         try {
             setIsLoading(true);
@@ -56,7 +53,6 @@ const Sync = () => {
                 setCurrentSettingsDir(data.currentSettingsDir);
                 setIsDefaultDir(data.isDefaultDir);
 
-                // Initialize selections based on data
                 const initialSelections = {};
                 data.settingsData.forEach(subDir => {
                     initialSelections[subDir.subDir] = {
@@ -76,7 +72,6 @@ const Sync = () => {
         }
     };
 
-    // Handle selection changes for user and character
     const handleSelectionChange = (subDir, field, value) => {
         setSelections(prev => ({
             ...prev,
@@ -87,7 +82,6 @@ const Sync = () => {
         }));
     };
 
-    // Handle Sync button click
     const handleSync = async (subDir) => {
         const { userId, charId } = selections[subDir];
         if (!userId || !charId) {
@@ -97,7 +91,6 @@ const Sync = () => {
 
         const charName = getCharacterNameById(charId);
 
-        // Show confirmation modal
         const confirmSync = await MySwal.fire({
             title: 'Confirm Sync',
             text: `Use "${charName}" (${charId}) on account ${userId} to overwrite all files in profile "${subDir}"?`,
@@ -127,7 +120,6 @@ const Sync = () => {
         }
     };
 
-    // Handle Sync All button click
     const handleSyncAll = async (subDir) => {
         const { userId, charId } = selections[subDir];
         if (!userId || !charId) {
@@ -137,7 +129,6 @@ const Sync = () => {
 
         const charName = getCharacterNameById(charId);
 
-        // Show confirmation modal
         const confirmSyncAll = await MySwal.fire({
             title: 'Confirm Sync All',
             text: `Use "${charName}" with ${userId} to overwrite files across all profiles?`,
@@ -166,7 +157,6 @@ const Sync = () => {
         }
     };
 
-    // Handle choosing a new settings directory
     const handleChooseSettingsDir = async () => {
         try {
             const result = await window.electronAPI.chooseSettingsDir();
@@ -184,7 +174,6 @@ const Sync = () => {
         }
     };
 
-    // Handle resetting to the default directory
     const handleResetToDefault = async () => {
         const confirmReset = await MySwal.fire({
             title: 'Reset to Default',
@@ -216,7 +205,6 @@ const Sync = () => {
         }
     };
 
-    // Handle Backup button click
     const handleBackup = async () => {
         const confirmBackup = await MySwal.fire({
             title: 'Confirm Backup',
@@ -245,7 +233,6 @@ const Sync = () => {
         }
     };
 
-    // Handle Delete Backups button click
     const handleDeleteBackups = async () => {
         const confirmDelete = await MySwal.fire({
             title: 'Confirm Delete',
@@ -274,14 +261,13 @@ const Sync = () => {
         }
     };
 
-    // Helper function to get character name by ID
     const getCharacterNameById = (charId) => {
         const assoc = associations.find(a => a.charId === charId);
         return assoc ? assoc.charName : 'Unknown';
     };
 
     return (
-        <Box sx={{ padding: 4, backgroundColor: 'background.default', minHeight: '100vh' }}>
+        <Box sx={{ pt: 10, px: 4, pb: 10, backgroundColor: 'background.default', minHeight: '100vh' }}>
             {/* Top Buttons Section */}
             <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ marginBottom: 4 }}>
                 <Grid item>
@@ -332,14 +318,12 @@ const Sync = () => {
                 </Grid>
             </Grid>
 
-            {/* Loading Spinner */}
             {isLoading && (
                 <Box display="flex" justifyContent="center" alignItems="center" sx={{ marginBottom: 4 }}>
                     <CircularProgress color="primary" />
                 </Box>
             )}
 
-            {/* Subdirectories Section */}
             <Grid container spacing={4}>
                 {settingsData.map(subDir => (
                     <Grid item xs={12} sm={6} md={4} key={subDir.subDir}>
@@ -355,7 +339,6 @@ const Sync = () => {
                             }}
                         >
                             <CardContent>
-                                {/* Profile Header */}
                                 <Typography
                                     variant="h6"
                                     gutterBottom
@@ -365,7 +348,6 @@ const Sync = () => {
                                 </Typography>
                                 <Divider sx={{ marginY: 2 }} />
 
-                                {/* Input Group */}
                                 <Box
                                     sx={{
                                         padding: 2,
@@ -443,7 +425,6 @@ const Sync = () => {
                                     </FormControl>
                                 </Box>
 
-                                {/* Buttons */}
                                 <Grid container spacing={2}>
                                     <Grid item xs={6}>
                                         <Tooltip title="Sync Profile">
@@ -451,7 +432,6 @@ const Sync = () => {
                                                 <LoadingButton
                                                     variant="contained"
                                                     color="primary"
-                                                    startIcon={<SyncIcon />}
                                                     onClick={() => handleSync(subDir.subDir)}
                                                     loading={isLoading}
                                                     fullWidth
@@ -466,10 +446,11 @@ const Sync = () => {
                                                             transform: 'scale(1.02)',
                                                             boxShadow: 6,
                                                         },
+                                                        minWidth: 0,
+                                                        padding: '6px',
                                                     }}
-                                                >
-                                                    Sync
-                                                </LoadingButton>
+                                                    startIcon={<SyncIcon color="inherit" />}
+                                                />
                                             </span>
                                         </Tooltip>
                                     </Grid>
@@ -479,7 +460,6 @@ const Sync = () => {
                                                 <LoadingButton
                                                     variant="contained"
                                                     color="secondary"
-                                                    startIcon={<SyncAllIcon />}
                                                     onClick={() => handleSyncAll(subDir.subDir)}
                                                     loading={isLoading}
                                                     fullWidth
@@ -494,10 +474,11 @@ const Sync = () => {
                                                             transform: 'scale(1.02)',
                                                             boxShadow: 6,
                                                         },
+                                                        minWidth: 0,
+                                                        padding: '6px',
                                                     }}
-                                                >
-                                                    Sync All
-                                                </LoadingButton>
+                                                    startIcon={<SyncAllIcon color="inherit" />}
+                                                />
                                             </span>
                                         </Tooltip>
                                     </Grid>
@@ -508,7 +489,6 @@ const Sync = () => {
                 ))}
             </Grid>
 
-            {/* Bottom Buttons Section */}
             <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ marginTop: 4 }}>
                 <Grid item>
                     <Tooltip title="Choose Settings Directory">
@@ -561,7 +541,6 @@ const Sync = () => {
             </Grid>
         </Box>
     );
-
 };
 
 export default Sync;

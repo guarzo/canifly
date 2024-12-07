@@ -10,24 +10,24 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
-var Store *HomeDataStore
+var Store *UIDataStore
 
-// HomeDataStore stores UIData in memory
-type HomeDataStore struct {
+// UIDataStore stores AppState in memory
+type UIDataStore struct {
 	sync.RWMutex
-	store map[int64]model.UIData
+	store map[int64]model.AppState
 	ETag  string
 }
 
-// NewHomeDataStore creates a new HomeDataStore
-func NewHomeDataStore() *HomeDataStore {
-	return &HomeDataStore{
-		store: make(map[int64]model.UIData),
+// NewUIDataStore creates a new UIDataStore
+func NewUIDataStore() *UIDataStore {
+	return &UIDataStore{
+		store: make(map[int64]model.AppState),
 		ETag:  "",
 	}
 }
 
-func (s *HomeDataStore) Set(id int64, homeData model.UIData) (string, error) {
+func (s *UIDataStore) Set(id int64, homeData model.AppState) (string, error) {
 	s.Lock()
 	defer s.Unlock()
 	s.store[id] = homeData
@@ -40,7 +40,7 @@ func (s *HomeDataStore) Set(id int64, homeData model.UIData) (string, error) {
 	return etag, nil
 }
 
-func (s *HomeDataStore) Get(id int64) (model.UIData, string, bool) {
+func (s *UIDataStore) Get(id int64) (model.AppState, string, bool) {
 	s.RLock()
 	defer s.RUnlock()
 	homeData, ok := s.store[id]
@@ -48,13 +48,13 @@ func (s *HomeDataStore) Get(id int64) (model.UIData, string, bool) {
 }
 
 // Delete removes an identity from the persist
-func (s *HomeDataStore) Delete(id int64) {
+func (s *UIDataStore) Delete(id int64) {
 	s.Lock()
 	defer s.Unlock()
 	delete(s.store, id)
 }
 
-func GenerateETag(homeData model.UIData) (string, error) {
+func GenerateETag(homeData model.AppState) (string, error) {
 	data, err := json.Marshal(homeData)
 	if err != nil {
 		return "", err
@@ -65,5 +65,5 @@ func GenerateETag(homeData model.UIData) (string, error) {
 }
 
 func init() {
-	Store = NewHomeDataStore()
+	Store = NewUIDataStore()
 }
