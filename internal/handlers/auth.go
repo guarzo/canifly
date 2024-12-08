@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"slices"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/auth"
+	flyErrors "github.com/guarzo/canifly/internal/errors"
 	http2 "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
@@ -141,28 +143,29 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return nil
 		})
 
-		if err != nil {
-			h.logger.Errorf("Failed to update account model: %v", err)
-			handleErrorWithRedirect(w, r, "/")
-			return
-		}
+		if err != nil && !characterAssigned {
+			if errors.Is(err, flyErrors.ErrNoAccounts) {
+				// No accounts found, create a new one
+				if state == "" {
+					h.logger.Error("No account name provided in state, cannot assign character")
+					http.Error(w, "No account name provided", http.StatusBadRequest)
+					return
+				}
 
-		if !characterAssigned {
-			if state == "" {
-				h.logger.Error("No account name provided in state, cannot assign character")
-				http.Error(w, "No account name provided", http.StatusBadRequest)
+				err = h.dataStore.CreateAccountWithCharacter(state, *token, user)
+				if err != nil {
+					h.logger.Errorf("Failed to create new account with character: %v", err)
+					http.Error(w, "Failed to create account", http.StatusInternalServerError)
+					return
+				}
+
+				h.logger.Infof("Created account '%s' and assigned character %d to it", state, user.CharacterID)
+			} else {
+				// Some other error
+				h.logger.Errorf("Failed to update account model: %v", err)
+				handleErrorWithRedirect(w, r, "/")
 				return
 			}
-
-			// Create a new account and assign this character directly
-			err = h.dataStore.CreateAccountWithCharacter(state, *token, user)
-			if err != nil {
-				h.logger.Errorf("Failed to create new account with character: %v", err)
-				http.Error(w, "Failed to create account", http.StatusInternalServerError)
-				return
-			}
-
-			h.logger.Infof("Created account '%s' and assigned character %d to it", state, user.CharacterID)
 		}
 
 		if err = session.Save(r, w); err != nil {

@@ -45,4 +45,6 @@ var (
 	ErrBadGateway          = NewCustomError(http.StatusBadGateway, "bad gateway")
 	ErrServiceUnavailable  = NewCustomError(http.StatusServiceUnavailable, "service unavailable")
 	ErrGatewayTimeout      = NewCustomError(http.StatusGatewayTimeout, "gateway timeout")
+
+	ErrNoAccounts = NewCustomError(http.StatusNotFound, "no accounts found")
 )

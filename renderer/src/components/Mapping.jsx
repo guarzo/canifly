@@ -84,6 +84,8 @@ const Mapping = () => {
 
                 // Step 5: Assign colors
                 assignColors(data.mappings);
+                console.log("mapped associations", mappedAssociations)
+                console.log("data.mappings", data.mappings)
             } else {
                 toast.error('Failed to load mappings: No data received.');
             }
@@ -92,6 +94,7 @@ const Mapping = () => {
             toast.error('Failed to load mappings: ' + error.message);
         } finally {
             setIsLoading(false);
+
         }
     };
 

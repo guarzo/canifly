@@ -334,7 +334,6 @@ const App = () => {
 
     const identities = homeData?.Accounts?.flatMap((account) => account.Characters) || [];
     console.log(homeData)
-    console.log(identities)
 
     return (
         <ErrorBoundary>

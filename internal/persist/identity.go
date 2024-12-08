@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/utils"
 )
@@ -58,10 +59,10 @@ func (ds *DataStore) UpdateAccounts(updateFunc func(*model.Account) error) error
 
 	ds.logger.Infof("Fetched %d accounts", len(accounts))
 
-	// If no accounts exist, return an error so that the caller can handle account creation.
 	if len(accounts) == 0 {
-		ds.logger.Info("No accounts found. Returning error.")
-		return fmt.Errorf("no accounts exist")
+		ds.logger.Info("No accounts found")
+		// Return the custom error instead of a generic fmt.Errorf
+		return errors.ErrNoAccounts
 	}
 
 	for i := range accounts {
