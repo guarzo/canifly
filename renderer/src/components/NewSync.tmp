@@ -30,11 +30,12 @@ import SyncAllIcon from '@mui/icons-material/SyncAlt';
 const MySwal = withReactContent(Swal);
 
 const Sync = ({
-                  settingsData,
-                  associations,
-                  currentSettingsDir,
-                  isDefaultDir,
-              }) => {
+    settingsData,
+    associations,
+    currentSettingsDir,
+    isDefaultDir,
+    onRefreshData,
+}) => {
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
 
@@ -51,11 +52,6 @@ const Sync = ({
         }
     }, [settingsData]);
 
-    const getCharacterNameById = (charId) => {
-        const assoc = associations.find(a => a.charId === charId);
-        return assoc ? assoc.charName : 'Unknown';
-    };
-
     const handleSelectionChange = (subDir, field, value) => {
         setSelections(prev => ({
             ...prev,
@@ -64,6 +60,11 @@ const Sync = ({
                 [field]: value,
             }
         }));
+    };
+
+    const getCharacterNameById = (charId) => {
+        const assoc = associations.find(a => a.charId === charId);
+        return assoc ? assoc.charName : 'Unknown';
     };
 
     const handleSync = async (subDir) => {
@@ -97,7 +98,7 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // No data refetch needed; just show success message
+                await onRefreshData();
             } else {
                 toast.error(`Sync failed: ${result.message}`);
             }
@@ -139,7 +140,7 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // No data refetch needed; just show success message
+                await onRefreshData();
             } else {
                 toast.error(`Sync-All failed: ${result.message}`);
             }
@@ -161,7 +162,7 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Settings directory chosen');
-                // If needed, update local state or just show success message
+                await onRefreshData();
             } else {
                 toast.error('Failed to choose settings directory.');
             }
@@ -194,7 +195,7 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Directory reset to default: Tranquility');
-                // If needed, update local state or just show success message
+                await onRefreshData();
             } else {
                 toast.error(`Failed to reset directory: ${result.message}`);
             }
@@ -581,6 +582,7 @@ Sync.propTypes = {
     ).isRequired,
     currentSettingsDir: PropTypes.string.isRequired,
     isDefaultDir: PropTypes.bool.isRequired,
+    onRefreshData: PropTypes.func.isRequired,
 };
 
 export default Sync;

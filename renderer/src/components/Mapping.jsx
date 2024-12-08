@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -9,31 +10,28 @@ import CharacterCard from './MapCharacterCard';
 
 const MySwal = withReactContent(Swal);
 
-const Mapping = ({ associations, subDirs, onRefreshData }) => {
-    const [mappings, setMappings] = useState([]); // Unique Accounts
+const Mapping = ({ associations: initialAssociations, subDirs }) => {
+    const [mappings, setMappings] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
+    const [associations, setAssociations] = useState(initialAssociations);
     const [isLoading, setIsLoading] = useState(false);
     const [mtimeToColor, setMtimeToColor] = useState({});
 
     useEffect(() => {
-        // Whenever subDirs or associations change, we recalculate mappings and available chars
         if (!subDirs.length) return;
 
-        // Step 1: Map each subDir to its latest user based on mtime
+        // Determine unique accounts
         const subDirToLatestUserId = {};
         subDirs.forEach(mapping => {
             mapping.availableUserFiles.forEach(userFile => {
                 const { userId, mtime, name } = userFile;
-                if (
-                    !subDirToLatestUserId[mapping.subDir] ||
-                    new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)
-                ) {
+                if (!subDirToLatestUserId[mapping.subDir] ||
+                    new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)) {
                     subDirToLatestUserId[mapping.subDir] = { userId, mtime, name };
                 }
             });
         });
 
-        // Step 2: Create a list of unique accounts based on userId
         const uniqueAccountsMap = {};
         Object.values(subDirToLatestUserId).forEach(({ userId, mtime, name }) => {
             if (!uniqueAccountsMap[userId] || new Date(mtime) > new Date(uniqueAccountsMap[userId].mtime)) {
@@ -44,17 +42,13 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
         const uniqueAccounts = Object.values(uniqueAccountsMap);
         setMappings(uniqueAccounts);
 
-        // Process available characters
         processAvailableCharacters(subDirs, associations);
-
-        // Assign colors
         assignColors(subDirs);
     }, [subDirs, associations]);
 
     const processAvailableCharacters = (mappingsData, associationsData) => {
         const associatedCharIds = new Set(associationsData.map(a => a.charId));
 
-        // Flatten characters and sort by `mtime`
         const availableChars = mappingsData
             .flatMap(mapping =>
                 mapping.availableCharFiles.map(char => ({
@@ -65,7 +59,6 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
             .filter(char => !associatedCharIds.has(char.charId))
             .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
 
-        // Keep only the most recent `mtime` per charId
         const uniqueAvailableChars = [];
         const seenCharIds = new Set();
         for (const char of availableChars) {
@@ -76,7 +69,6 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
         }
 
         setAvailableCharacters(uniqueAvailableChars);
-        console.log('Unique Available Characters:', uniqueAvailableChars);
     };
 
     const assignColors = (mappingsData) => {
@@ -94,7 +86,6 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
         }, {});
 
         setMtimeToColor(colorMapping);
-        console.log('Mtime to Color Mapping:', colorMapping);
     };
 
     const handleDragStart = (event, charId) => {
@@ -133,8 +124,15 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // Refresh data
-                onRefreshData();
+
+                // Update local state:
+                // Remove the character from availableCharacters
+                setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
+
+                // Add a new association
+                const charName = char.name;
+                const newAssoc = { userId, charId, charName, mtime: char.mtime };
+                setAssociations(prev => [...prev, newAssoc]);
             } else {
                 toast.error(`Association failed: ${result.message}`);
             }
@@ -169,7 +167,16 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                onRefreshData();
+
+                // Update local state:
+                // Remove the association
+                setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
+
+                // Add character back to availableCharacters if known
+                // Since we might not have its subDir or mtime easily, let's just do nothing
+                // OR if we had saved it somewhere, we can re-fetch or store it previously.
+                // For now, we won't add it back since we don't have its file info.
+                // If you need to restore the char, you'd have to store its info before unassociating.
             } else {
                 toast.error(`Unassociation failed: ${result.message}`);
             }
@@ -226,6 +233,38 @@ const Mapping = ({ associations, subDirs, onRefreshData }) => {
             </Box>
         </div>
     );
+};
+
+Mapping.propTypes = {
+    associations: PropTypes.arrayOf(
+        PropTypes.shape({
+            userId: PropTypes.string.isRequired,
+            charId: PropTypes.string.isRequired,
+            charName: PropTypes.string.isRequired,
+            mtime: PropTypes.string,
+        })
+    ).isRequired,
+    subDirs: PropTypes.arrayOf(
+        PropTypes.shape({
+            subDir: PropTypes.string.isRequired,
+            availableCharFiles: PropTypes.arrayOf(
+                PropTypes.shape({
+                    file: PropTypes.string.isRequired,
+                    charId: PropTypes.string.isRequired,
+                    name: PropTypes.string.isRequired,
+                    mtime: PropTypes.string.isRequired,
+                })
+            ).isRequired,
+            availableUserFiles: PropTypes.arrayOf(
+                PropTypes.shape({
+                    file: PropTypes.string.isRequired,
+                    userId: PropTypes.string.isRequired,
+                    name: PropTypes.string.isRequired,
+                    mtime: PropTypes.string.isRequired,
+                })
+            ).isRequired,
+        })
+    ).isRequired,
 };
 
 export default Mapping;

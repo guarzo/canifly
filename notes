@@ -7,6 +7,10 @@ SECRET_KEY=
 
 
 todo
-- on first login - failed to get unassigned characters
-- ensure no duplicate characters
-- does mainidentity need to exist?
+- on first login - remove errors
+- clean up login page, and login modal (better UI and explanation)
+- add delete account / delete character -- remove unassigned characters
+- link account file to account name -- update mappings based on character association???
+- backup - choose file location
+- add clone locations - can we get implants??
+
