@@ -1,7 +1,5 @@
-// Mapping.jsx
-
 import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify'; // Removed ToastContainer
+import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -11,98 +9,50 @@ import CharacterCard from './MapCharacterCard';
 
 const MySwal = withReactContent(Swal);
 
-const Mapping = () => {
+const Mapping = ({ associations, subDirs, onRefreshData }) => {
     const [mappings, setMappings] = useState([]); // Unique Accounts
-    const [associations, setAssociations] = useState([]); // Associations
-    const [availableCharacters, setAvailableCharacters] = useState([]); // Available Characters
-    const [isLoading, setIsLoading] = useState(true);
+    const [availableCharacters, setAvailableCharacters] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [mtimeToColor, setMtimeToColor] = useState({});
 
     useEffect(() => {
-        loadDataAndRender();
-    }, []);
+        // Whenever subDirs or associations change, we recalculate mappings and available chars
+        if (!subDirs.length) return;
 
-    // Normalization Function
-    const normalizeAssociation = (assoc) => {
-        return {
-            ...assoc,
-            charId: typeof assoc.charId === 'string' ? assoc.charId : (assoc.charId?.charId || 'Unknown'),
-            charName: typeof assoc.charName === 'string' ? assoc.charName : (assoc.charId?.charName || 'Unknown'),
-            mtime: assoc.mtime || (typeof assoc.charId === 'object' ? assoc.charId.mtime : new Date().toISOString()),
-            userId: typeof assoc.userId === 'string' ? assoc.userId : 'Unknown',
-        };
-    };
+        // Step 1: Map each subDir to its latest user based on mtime
+        const subDirToLatestUserId = {};
+        subDirs.forEach(mapping => {
+            mapping.availableUserFiles.forEach(userFile => {
+                const { userId, mtime, name } = userFile;
+                if (
+                    !subDirToLatestUserId[mapping.subDir] ||
+                    new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)
+                ) {
+                    subDirToLatestUserId[mapping.subDir] = { userId, mtime, name };
+                }
+            });
+        });
 
-    const loadDataAndRender = async () => {
-        try {
-            setIsLoading(true);
-            const data = await window.electronAPI.loadMappings();
-            if (data && data.mappings) {
-                // Step 1: Map each subDir to its latest user based on mtime
-                const subDirToLatestUserId = {};
-
-                data.mappings.forEach(mapping => {
-                    mapping.availableUserFiles.forEach(userFile => {
-                        const { userId, mtime, name } = userFile;
-                        if (
-                            !subDirToLatestUserId[mapping.subDir] ||
-                            new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)
-                        ) {
-                            subDirToLatestUserId[mapping.subDir] = { userId, mtime, name };
-                        }
-                    });
-                });
-
-                // Step 2: Create a list of unique accounts based on userId
-                const uniqueAccountsMap = {};
-
-                Object.values(subDirToLatestUserId).forEach(({ userId, mtime, name }) => {
-                    if (!uniqueAccountsMap[userId] || new Date(mtime) > new Date(uniqueAccountsMap[userId].mtime)) {
-                        uniqueAccountsMap[userId] = { userId, mtime, name };
-                    }
-                });
-
-                const uniqueAccounts = Object.values(uniqueAccountsMap);
-                console.log('Unique Accounts:', uniqueAccounts);
-                setMappings(uniqueAccounts);
-
-                // Step 3: Normalize associations
-                const mappedAssociations = data.associations.map(assoc => normalizeAssociation(assoc));
-
-                // Debugging: Verify the structure of mapped associations
-                console.log('Mapped Associations:', mappedAssociations);
-                mappedAssociations.forEach(assoc => {
-                    console.assert(typeof assoc.charId === 'string', `charId is not a string: ${assoc.charId}`);
-                    console.assert(typeof assoc.userId === 'string' && assoc.userId !== 'Unknown', `userId is invalid: ${assoc.userId}`);
-                    console.assert(typeof assoc.charName === 'string', `charName is not a string: ${assoc.charName}`);
-                });
-
-                setAssociations(mappedAssociations);
-
-                // Step 4: Process available characters using mappedAssociations
-                processAvailableCharacters(data.mappings, mappedAssociations);
-
-                // Step 5: Assign colors
-                assignColors(data.mappings);
-                console.log("mapped associations", mappedAssociations)
-                console.log("data.mappings", data.mappings)
-            } else {
-                toast.error('Failed to load mappings: No data received.');
+        // Step 2: Create a list of unique accounts based on userId
+        const uniqueAccountsMap = {};
+        Object.values(subDirToLatestUserId).forEach(({ userId, mtime, name }) => {
+            if (!uniqueAccountsMap[userId] || new Date(mtime) > new Date(uniqueAccountsMap[userId].mtime)) {
+                uniqueAccountsMap[userId] = { userId, mtime, name };
             }
-        } catch (error) {
-            console.error('Error loading mappings:', error);
-            toast.error('Failed to load mappings: ' + error.message);
-        } finally {
-            setIsLoading(false);
+        });
 
-        }
-    };
+        const uniqueAccounts = Object.values(uniqueAccountsMap);
+        setMappings(uniqueAccounts);
+
+        // Process available characters
+        processAvailableCharacters(subDirs, associations);
+
+        // Assign colors
+        assignColors(subDirs);
+    }, [subDirs, associations]);
 
     const processAvailableCharacters = (mappingsData, associationsData) => {
         const associatedCharIds = new Set(associationsData.map(a => a.charId));
-
-        // Debugging: Verify associatedCharIds
-        console.log('Associated Character IDs:', associatedCharIds);
 
         // Flatten characters and sort by `mtime`
         const availableChars = mappingsData
@@ -115,10 +65,9 @@ const Mapping = () => {
             .filter(char => !associatedCharIds.has(char.charId))
             .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
 
-        // Keep only the most recent `mtime` for each `charId`
+        // Keep only the most recent `mtime` per charId
         const uniqueAvailableChars = [];
         const seenCharIds = new Set();
-
         for (const char of availableChars) {
             if (!seenCharIds.has(char.charId)) {
                 uniqueAvailableChars.push(char);
@@ -175,19 +124,19 @@ const Mapping = () => {
 
         try {
             setIsLoading(true);
-
-            // Pass only charId as a string
-            const result = await window.electronAPI.associateCharacter(userId, charId);
-
-            // Ensure result.message is a string
-            const successMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
-            const errorMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
-
-            if (result.success) {
-                toast.success(successMessage);
-                await loadDataAndRender();
+            const response = await fetch('/api/associate-character', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId, charId })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                toast.success(result.message);
+                // Refresh data
+                onRefreshData();
             } else {
-                toast.error(`Association failed: ${errorMessage}`);
+                toast.error(`Association failed: ${result.message}`);
             }
         } catch (error) {
             console.error('Error associating character:', error);
@@ -211,17 +160,18 @@ const Mapping = () => {
 
         try {
             setIsLoading(true);
-            const result = await window.electronAPI.unassociateCharacter(userId, charId);
-
-            // Ensure result.message is a string
-            const successMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
-            const errorMessage = typeof result.message === 'string' ? result.message : JSON.stringify(result.message);
-
-            if (result.success) {
-                toast.success(successMessage);
-                await loadDataAndRender();
+            const response = await fetch('/api/unassociate-character', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({ userId, charId })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                toast.success(result.message);
+                onRefreshData();
             } else {
-                toast.error(`Unassociation failed: ${errorMessage}`);
+                toast.error(`Unassociation failed: ${result.message}`);
             }
         } catch (error) {
             console.error('Error unassociating character:', error);
