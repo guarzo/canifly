@@ -53,7 +53,7 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.dataStore.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -110,7 +110,7 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.dataStore.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return

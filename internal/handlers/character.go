@@ -57,7 +57,7 @@ func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.datastore.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -159,7 +159,7 @@ func (h *CharacterHandler) AssignCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.datastore.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -254,7 +254,7 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.datastore.FetchAccountByIdentity()
+		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
@@ -401,8 +401,8 @@ func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := h.configService.AssociateCharacter(req.UserId, req.CharId)
-	if err != nil {
+	// First, associate the character
+	if err := h.configService.AssociateCharacter(req.UserId, req.CharId); err != nil {
 		resp := struct {
 			Success bool   `json:"success"`
 			Message string `json:"message"`

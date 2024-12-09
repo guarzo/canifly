@@ -105,7 +105,7 @@ func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData
 
 	if needIdentityPopulation {
 		h.logger.Infof("Need to populate identities")
-		accounts, err := h.dataStore.FetchAccountByIdentity()
+		accounts, err := h.dataStore.FetchAccounts()
 		if err != nil {
 			h.logger.Errorf("Failed to load accounts: %v", err)
 			return nil, fmt.Errorf("failed to load accounts: %w", err)

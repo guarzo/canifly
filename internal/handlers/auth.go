@@ -2,16 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/guarzo/canifly/internal/services"
 	"net/http"
 	"slices"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/auth"
-	flyErrors "github.com/guarzo/canifly/internal/errors"
 	http2 "github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/esi"
 )
@@ -22,14 +20,16 @@ type AuthHandler struct {
 	esiService     esi.ESIService
 	logger         *logrus.Logger
 	dataStore      *persist.DataStore
+	configService  *services.ConfigService
 }
 
-func NewAuthHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, data *persist.DataStore) *AuthHandler {
+func NewAuthHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, data *persist.DataStore, c *services.ConfigService) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
 		esiService:     e,
 		logger:         l,
 		dataStore:      data,
+		configService:  c,
 	}
 }
 
@@ -128,66 +128,11 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		}
 		session.Values[http2.AllAuthenticatedCharacters] = authCharacters
 
-		// Try to assign character to an existing account
-		var characterAssigned bool
-		var accountMatched bool
-		err = h.dataStore.UpdateAccounts(func(account *model.Account) error {
-			if account.Name == state {
-				accountMatched = true
-				h.logger.Infof("account match %s", account.Name)
-				for i := range account.Characters {
-					if account.Characters[i].Character.CharacterID == user.CharacterID {
-						account.Characters[i].Token = *token
-						characterAssigned = true
-						h.logger.Infof("found character: %d already assigned", user.CharacterID)
-						break
-					}
-				}
-				if !characterAssigned {
-					h.logger.Infof("adding %s to existing account %s", user.CharacterName, account.Name)
-					newChar := model.CharacterIdentity{
-						Token: *token,
-						Character: model.Character{
-							UserInfoResponse: model.UserInfoResponse{
-								CharacterID:   user.CharacterID,
-								CharacterName: user.CharacterName,
-							},
-						},
-					}
-					account.Characters = append(account.Characters, newChar)
-				}
-			}
-			h.logger.Warnf("completed update accounts, account match %v, character assigned %v", accountMatched, characterAssigned)
-			if !accountMatched {
-				return flyErrors.ErrNoAccounts
-			}
-
-			return nil
-		})
-
+		err = h.configService.FindOrCreateAccount(state, user, token)
 		if err != nil {
-			if errors.Is(err, flyErrors.ErrNoAccounts) {
-				// No accounts found, create a new one
-				if state == "" {
-					h.logger.Error("No account name provided in state, cannot assign character")
-					http.Error(w, "No account name provided", http.StatusBadRequest)
-					return
-				}
-
-				err = h.dataStore.CreateAccountWithCharacter(state, *token, user)
-				if err != nil {
-					h.logger.Errorf("Failed to create new account with character: %v", err)
-					http.Error(w, "Failed to create account", http.StatusInternalServerError)
-					return
-				}
-
-				h.logger.Infof("Created account '%s' and assigned character %d to it", state, user.CharacterID)
-			} else {
-				// Some other error
-				h.logger.Errorf("Failed to update account model: %v", err)
-				handleErrorWithRedirect(w, r, "/")
-				return
-			}
+			h.logger.Errorf("%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		if err = session.Save(r, w); err != nil {

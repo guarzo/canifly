@@ -4,18 +4,13 @@ package persist
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
-	"golang.org/x/oauth2"
-
-	"github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/utils"
+	"os"
+	"path/filepath"
 )
 
-func (ds *DataStore) FetchAccountByIdentity() ([]model.Account, error) {
+func (ds *DataStore) FetchAccounts() ([]model.Account, error) {
 	filePath := ds.getAccountFileName() // a method we’ll define below
 	var accounts []model.Account
 
@@ -46,75 +41,6 @@ func (ds *DataStore) SaveAccounts(accounts []model.Account) error {
 	}
 
 	ds.logger.Infof("Saved %d accounts", len(accounts))
-	return nil
-}
-
-func (ds *DataStore) UpdateAccounts(updateFunc func(*model.Account) error) error {
-	ds.logger.Info("Updating accounts")
-	accounts, err := ds.FetchAccountByIdentity()
-	if err != nil {
-		ds.logger.Error("Error loading accounts")
-		return err
-	}
-
-	ds.logger.Infof("Fetched %d accounts", len(accounts))
-
-	if len(accounts) == 0 {
-		ds.logger.Info("No accounts found")
-		// Return the custom error instead of a generic fmt.Errorf
-		return errors.ErrNoAccounts
-	}
-
-	for i := range accounts {
-		if err = updateFunc(&accounts[i]); err != nil {
-			ds.logger.WithError(err).Errorf("Error updating account at index %d", i)
-			return err
-		}
-	}
-
-	if err := ds.SaveAccounts(accounts); err != nil {
-		ds.logger.Error("Error saving updated accounts")
-		return err
-	}
-
-	ds.logger.Info("Accounts updated and saved successfully")
-	return nil
-}
-
-func (ds *DataStore) CreateAccountWithCharacter(accountName string, token oauth2.Token, user *model.UserInfoResponse) error {
-	ds.logger.Infof("Creating new account '%s' with one character", accountName)
-
-	// Fetch current accounts - likely empty if we're here
-	accounts, err := ds.FetchAccountByIdentity()
-	if err != nil {
-		return err
-	}
-
-	newChar := model.CharacterIdentity{
-		Token: token,
-		Character: model.Character{
-			UserInfoResponse: model.UserInfoResponse{
-				CharacterID:   user.CharacterID,
-				CharacterName: user.CharacterName,
-			},
-		},
-	}
-
-	newAccount := model.Account{
-		Name:       accountName,
-		Status:     "Alpha",
-		Characters: []model.CharacterIdentity{newChar},
-		ID:         time.Now().Unix(),
-	}
-
-	accounts = append(accounts, newAccount)
-	err = ds.SaveAccounts(accounts)
-	if err != nil {
-		ds.logger.WithError(err).Error("Failed to save newly created account")
-		return err
-	}
-
-	ds.logger.Infof("Account '%s' created successfully with character %d", accountName, user.CharacterID)
 	return nil
 }
 

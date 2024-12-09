@@ -29,10 +29,11 @@ type SubDirData struct {
 }
 
 type ConfigData struct {
-	Roles        []string      `json:"Roles"`
-	SettingsDir  string        `json:"SettingsDir"`
-	SettingsData []SubDirData  `json:"settingsData"`
-	Associations []Association `json:"associations"`
+	Roles        []string          `json:"Roles"`
+	SettingsDir  string            `json:"SettingsDir"`
+	SettingsData []SubDirData      `json:"settingsData"`
+	Associations []Association     `json:"associations"`
+	UserAccount  map[string]string `json:"userAccount"`
 }
 
 type CharFile struct {
@@ -50,10 +51,9 @@ type UserFile struct {
 }
 
 type Association struct {
-	UserId      string `json:"userId"`
-	CharId      string `json:"charId"`
-	CharName    string `json:"charName"`
-	AccountName string `json:"accountName,omitempty"`
+	UserId   string `json:"userId"`
+	CharId   string `json:"charId"`
+	CharName string `json:"charName"`
 }
 
 func init() {

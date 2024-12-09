@@ -68,7 +68,12 @@ func (ds *DataStore) getConfigDataFileName() string {
 
 // GetFilesForDropdown scans a given sub-directory and returns available character and user files
 func (ds *DataStore) GetFilesForDropdown(subDir, settingsDir string) ([]model.CharFile, []model.UserFile, error) {
-	// same as before, just return charId without resolving ESI names
+
+	configData, err := ds.FetchConfigData()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	directory := filepath.Join(settingsDir, subDir)
 	entries, err := os.ReadDir(directory)
 	if err != nil {
@@ -108,7 +113,7 @@ func (ds *DataStore) GetFilesForDropdown(subDir, settingsDir string) ([]model.Ch
 				userFiles = append(userFiles, model.UserFile{
 					File:   file,
 					UserId: userId,
-					Name:   userId,
+					Name:   getSavedNameForUserID(userId, configData),
 					Mtime:  mtime,
 				})
 			}
@@ -116,6 +121,15 @@ func (ds *DataStore) GetFilesForDropdown(subDir, settingsDir string) ([]model.Ch
 	}
 
 	return charFiles, userFiles, nil
+}
+
+func getSavedNameForUserID(userId string, configData *model.ConfigData) string {
+	name := userId
+	savedName, ok := configData.UserAccount[userId]
+	if ok {
+		name = savedName
+	}
+	return name
 }
 
 // BackupDirectory creates a backup tar.gz of the settingsDir

@@ -2,9 +2,8 @@ package services
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/sirupsen/logrus"
+	"os"
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
@@ -194,83 +193,6 @@ func (c *ConfigService) BackupDir() (bool, string) {
 	return c.dataStore.BackupDirectory(configData.SettingsDir)
 }
 
-func (c *ConfigService) AssociateCharacter(userId, charId string) error {
-	configData, err := c.dataStore.FetchConfigData()
-	if err != nil {
-		return fmt.Errorf("failed to fetch config data: %w", err)
-	}
-
-	// Enforce a maximum of 3 characters per user
-	userAssociations := 0
-	for _, assoc := range configData.Associations {
-		if assoc.UserId == userId {
-			userAssociations++
-		}
-	}
-	if userAssociations >= 3 {
-		return fmt.Errorf("user ID %s already has the maximum of 3 associated characters", userId)
-	}
-
-	// Check if charId already associated
-	for _, assoc := range configData.Associations {
-		if assoc.CharId == charId {
-			return fmt.Errorf("character ID %s is already associated with User ID %s", charId, assoc.UserId)
-		}
-	}
-
-	// We need the character name. We can get it from already loaded data or fetch from ESI.
-	// If you want the character name via ESI:
-	character, err := c.esi.GetCharacter(charId)
-	if err != nil {
-		c.logger.Warnf("Failed to fetch character name for ID %s: %v", charId, err)
-		// fallback to unknown if fails
-		character.Name = fmt.Sprintf("Unknown (%s)", charId)
-	}
-
-	// Add the new association
-	configData.Associations = append(configData.Associations, model.Association{
-		UserId:   userId,
-		CharId:   charId,
-		CharName: character.Name,
-	})
-
-	// Save updated config data
-	if err := c.dataStore.SaveConfigData(configData); err != nil {
-		return fmt.Errorf("failed to save updated associations: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ConfigService) UnassociateCharacter(userId, charId string) error {
-	configData, err := c.dataStore.FetchConfigData()
-	if err != nil {
-		return fmt.Errorf("failed to fetch config data: %w", err)
-	}
-
-	index := -1
-	for i, assoc := range configData.Associations {
-		if assoc.UserId == userId && assoc.CharId == charId {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
-		return fmt.Errorf("association between User ID %s and Character ID %s not found", userId, charId)
-	}
-
-	// Remove the association
-	configData.Associations = append(configData.Associations[:index], configData.Associations[index+1:]...)
-
-	// Save updated config data
-	if err := c.dataStore.SaveConfigData(configData); err != nil {
-		return fmt.Errorf("failed to save updated associations: %w", err)
-	}
-
-	return nil
-}
-
 func (c *ConfigService) EnsureSettingsDir() error {
 	configData, err := c.dataStore.FetchConfigData()
 	if err != nil {
@@ -304,7 +226,5 @@ func (c *ConfigService) EnsureSettingsDir() error {
 }
 
 func (c *ConfigService) UpdateUserSelections(selections model.UserSelections) error {
-	// Validate selections if needed
-	// For now, just save them directly
 	return c.dataStore.SaveUserSelections(selections)
 }
