@@ -43,8 +43,12 @@ const App = () => {
                 toast.error(errorData.error || 'An unexpected error occurred.');
             }
         } catch (error) {
-            console.error('Error fetching home data:', error);
-            toast.error('Failed to load data. Please try again later.');
+            if (isAuthenticated) {
+                // Only show this if the user is authenticated. If they're not authenticated,
+                // it's expected behavior and can be silently ignored.
+                console.error('Error fetching home data:', error);
+                toast.error('Failed to load data. Please try again later.');
+            }
         }
     };
 
@@ -54,15 +58,24 @@ const App = () => {
             const response = await fetch('/api/unassigned-characters', {
                 credentials: 'include', // Include cookies for authentication
             });
+            if (response.status === 401) {
+                setIsAuthenticated(false);
+                setUnassignedCharacters(null);
+            }
             if (response.ok) {
                 const data = await response.json();
                 setUnassignedCharacters(data || []);
             } else {
-                throw new Error('Failed to fetch unassigned characters.');
+                const errorData = await response.json();
+                toast.error(errorData.error || 'An unexpected error occurred.');
             }
         } catch (error) {
-            console.error('Error fetching unassigned characters:', error);
-            toast.error('Failed to load unassigned characters.');
+            if (isAuthenticated) {
+                // Only show this if the user is authenticated. If they're not authenticated,
+                // it's expected behavior and can be silently ignored.
+                console.error('Error fetching home data:', error);
+                toast.error('Failed to load data. Please try again later.');
+            }
         }
     };
 
@@ -72,9 +85,24 @@ const App = () => {
         try {
             await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
         } catch (error) {
-            console.error('Error fetching data:', error);
+            if (isAuthenticated) {
+                // Only show this if the user is authenticated. If they're not authenticated,
+                // it's expected behavior and can be silently ignored.
+                console.error('Error fetching data:', error);
+            }
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const silentRefreshData = async () => {
+        try {
+            await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
+            // No isLoading changes here, just update the state once data is loaded.
+        } catch (error) {
+            if (isAuthenticated) {
+                console.error('Error fetching data:', error);
+            }
         }
     };
 
@@ -408,6 +436,7 @@ const App = () => {
                                         <Mapping
                                             associations={homeData?.associations || []}
                                             subDirs={homeData?.SubDirs || []}
+                                            onRefreshData={silentRefreshData}
                                         />
                                     }
                                 />

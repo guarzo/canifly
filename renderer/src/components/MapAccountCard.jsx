@@ -17,7 +17,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
     return (
         <Card
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, userId)}
+            onDrop={(e) => handleDrop(e, userId, userName)}
             sx={{
                 marginBottom: 2,
                 borderLeft: `4px solid ${borderColor}`,
@@ -47,7 +47,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                             <IconButton
                                 edge="end"
                                 aria-label={`Unassociate ${assoc.charName}`}
-                                onClick={() => handleUnassociate(userId, assoc.charId, assoc.charName)}
+                                onClick={() => handleUnassociate(userId, assoc.charId, assoc.charName, userName)}
                                 sx={{
                                     color: theme.palette.error.main, // Use error color for delete actions
                                 }}
