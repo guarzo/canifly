@@ -90,6 +90,8 @@ type cacheItem struct {
 	Expiration time.Time
 }
 
+// DataStore Cache Wrappers
+
 func (ds *DataStore) GetFromCache(key string) ([]byte, bool) {
 	return ds.apiCache.Get(key)
 }

@@ -1,17 +1,18 @@
-// identity.go
+// persist/identity.go
 package persist
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/utils"
 	"os"
 	"path/filepath"
+
+	"github.com/guarzo/canifly/internal/model"
 )
 
 func (ds *DataStore) FetchAccounts() ([]model.Account, error) {
-	filePath := ds.getAccountFileName() // a method we’ll define below
+	filePath := ds.getAccountFileName()
 	var accounts []model.Account
 
 	fileInfo, err := os.Stat(filePath)
@@ -54,7 +55,16 @@ func (ds *DataStore) DeleteAccounts() error {
 	return nil
 }
 
-// Helper functions (renamed to methods on DataStore)
+func (ds *DataStore) getAccountFileName() string {
+	identityPath, err := ds.GetWriteablePath()
+	if err != nil {
+		ds.logger.WithError(err).Error("Error retrieving writable identity path")
+		return ""
+	}
+	return filepath.Join(identityPath, "identity.json")
+}
+
+// saveData and loadData utilities
 func (ds *DataStore) saveData(data interface{}, outputFile string) error {
 	outFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -89,32 +99,7 @@ func (ds *DataStore) loadData(inputFile string, data interface{}) error {
 	return nil
 }
 
-func (ds *DataStore) getAccountFileName() string {
-	identityPath, err := ds.GetWriteablePath()
-	if err != nil {
-		ds.logger.WithError(err).Error("Error retrieving writable identity path")
-		return ""
-	}
-	return filepath.Join(identityPath, "identity.json")
-}
-
-func (ds *DataStore) GetWriteablePath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	identityPath := filepath.Join(configDir, "canifly", "identity")
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	if pathSuffix != "" {
-		identityPath = filepath.Join(identityPath, pathSuffix)
-	}
-	if err := os.MkdirAll(identityPath, os.ModePerm); err != nil {
-		return "", err
-	}
-	return identityPath, nil
-}
-
-// Assume ds.encryptData and ds.decryptData call utils.EncryptData/decryptData respectively
+// Encryption/Decryption wrappers (assuming utils package handles actual logic)
 func (ds *DataStore) encryptData(data interface{}, outputFile string) error {
 	ds.logger.Debugf("Encrypting data to %s", outputFile)
 	return utils.EncryptData(data, outputFile)

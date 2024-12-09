@@ -1,4 +1,4 @@
-// persist/fileUtils.go
+// persist/jsonio.go
 package persist
 
 import (
@@ -13,9 +13,11 @@ func readJSONFromFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	if err = json.Unmarshal(data, v); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON data: %v", err)
 	}
+
 	return nil
 }
 

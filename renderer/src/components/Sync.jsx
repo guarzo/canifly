@@ -290,39 +290,37 @@ const Sync = ({
     };
 
     return (
-        <div className="pt-8 px-4 pb-10 bg-gray-900 min-h-screen text-teal-200">
-            <Grid container spacing={2} justifyContent="center" alignItems="center" className="mb-4">
-                <Grid item>
-                    <Tooltip title="Backup Settings">
-                        <span>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleBackup}
-                                disabled={isLoading}
-                                className="w-10 h-10 p-0 flex items-center justify-center"
-                            >
-                                <BackupIcon fontSize="small" />
-                            </Button>
-                        </span>
-                    </Tooltip>
-                </Grid>
-                <Grid item>
-                    <Tooltip title="Delete All Backups">
-                        <span>
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={handleDeleteBackups}
-                                disabled={isLoading}
-                                className="w-10 h-10 p-0 flex items-center justify-center"
-                            >
-                                <DeleteIcon fontSize="small" />
-                            </Button>
-                        </span>
-                    </Tooltip>
-                </Grid>
-            </Grid>
+        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10">
+            {/* Add top margin so the buttons don't touch header */}
+            <div className="mt-8 mb-4 flex justify-center space-x-2">
+                <Tooltip title="Backup Settings">
+                    <span>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleBackup}
+                            disabled={isLoading}
+                            className="w-10 h-10 p-0 flex items-center justify-center"
+                        >
+                            <BackupIcon fontSize="small" />
+                        </Button>
+                    </span>
+                </Tooltip>
+
+                <Tooltip title="Delete All Backups">
+                    <span>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={handleDeleteBackups}
+                            disabled={isLoading}
+                            className="w-10 h-10 p-0 flex items-center justify-center"
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </Button>
+                    </span>
+                </Tooltip>
+            </div>
 
             {isLoading && (
                 <Box display="flex" justifyContent="center" alignItems="center" className="mb-4">
@@ -347,7 +345,7 @@ const Sync = ({
                                     <FormControl fullWidth margin="normal">
                                         <InputLabel
                                             id={`char-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#fff' }}
+                                            sx={{ color: '#99f6e4' }} // light teal label
                                         >
                                             Select Character
                                         </InputLabel>
@@ -390,7 +388,7 @@ const Sync = ({
                                     <FormControl fullWidth margin="normal">
                                         <InputLabel
                                             id={`user-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#fff' }}
+                                            sx={{ color: '#99f6e4' }} // light teal label
                                         >
                                             Select User
                                         </InputLabel>

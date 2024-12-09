@@ -1,3 +1,4 @@
+// persist/deleted.go
 package persist
 
 import (
@@ -9,7 +10,7 @@ import (
 func (ds *DataStore) getDeletedFileName() string {
 	writePath, err := ds.GetWriteablePath()
 	if err != nil {
-		ds.logger.WithError(err).Error("Error retrieving writable data path for config")
+		ds.logger.WithError(err).Error("Error retrieving writable data path for deleted characters")
 		return ""
 	}
 	return filepath.Join(writePath, "deleted_characters.json")
@@ -22,7 +23,7 @@ func (ds *DataStore) SaveDeletedCharacters(chars []string) error {
 	}
 
 	if err := writeJSONToFile(filename, chars); err != nil {
-		ds.logger.WithError(err).Errorf("Failed to save cache to %s", filename)
+		ds.logger.WithError(err).Errorf("Failed to save deleted characters to %s", filename)
 		return err
 	}
 

@@ -4,6 +4,7 @@ package persist
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -19,12 +20,18 @@ func (ds *DataStore) LoadSkillTypes() error {
 		ds.logger.WithError(err).Error("Failed to load skill types")
 		return err
 	}
+
+	ds.mut.Lock()
 	ds.skillTypes = skillTypes
+	ds.mut.Unlock()
+
 	ds.logger.Debugf("Loaded %d skill types", len(ds.skillTypes))
 	return nil
 }
 
 func (ds *DataStore) GetSkillTypes() map[string]model.SkillType {
+	ds.mut.RLock()
+	defer ds.mut.RUnlock()
 	return ds.skillTypes
 }
 
@@ -61,31 +68,33 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 
 	lineNumber := 1
 	for {
-		lineNumber++
 		row, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		lineNumber++
 		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			ds.logger.WithError(err).Warnf("Skipping row %d due to parsing error", lineNumber)
+			// If there's a parsing error on this row, skip it
+			ds.logger.WithError(err).Warnf("Skipping malformed row %d in %s", lineNumber, filePath)
+			continue
+		}
+
+		typeName := strings.TrimSpace(row[colIndices["typeName"]])
+		if typeName == "" {
 			continue
 		}
 
 		typeID := strings.TrimSpace(row[colIndices["typeID"]])
-		typeName := strings.TrimSpace(row[colIndices["typeName"]])
-		description := "N/A"
-		if colIndices["description"] != -1 && colIndices["description"] < len(row) {
-			description = strings.TrimSpace(row[colIndices["description"]])
+		desc := ""
+		if colIndices["description"] != -1 {
+			desc = strings.TrimSpace(row[colIndices["description"]])
 		}
 
-		if typeID != "" && typeName != "" {
-			skillTypes[typeName] = model.SkillType{
-				TypeID:      typeID,
-				TypeName:    typeName,
-				Description: description,
-			}
-		} else {
-			ds.logger.Warnf("Skipping row %d due to missing typeID or typeName", lineNumber)
+		// Key the map by the skill name (typeName) so that lookups by skill name work.
+		skillTypes[typeName] = model.SkillType{
+			TypeID:      typeID,
+			TypeName:    typeName,
+			Description: desc,
 		}
 	}
 

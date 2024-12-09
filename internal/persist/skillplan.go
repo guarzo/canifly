@@ -35,6 +35,8 @@ func (ds *DataStore) ProcessSkillPlans() error {
 }
 
 func (ds *DataStore) GetSkillPlans() map[string]model.SkillPlan {
+	ds.mut.RLock()
+	defer ds.mut.RUnlock()
 	return ds.skillPlans
 }
 
@@ -70,7 +72,9 @@ func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 	}
 
 	planKey := strings.TrimSuffix(planName, ".txt")
+	ds.mut.Lock()
 	ds.skillPlans[planKey] = model.SkillPlan{Name: planKey, Skills: skills}
+	ds.mut.Unlock()
 	ds.logger.Infof("Saved skill plan %s with %d skills", planKey, len(skills))
 	return nil
 }
@@ -91,12 +95,13 @@ func (ds *DataStore) DeleteSkillPlan(planName string) error {
 		return err
 	}
 
+	ds.mut.Lock()
 	delete(ds.skillPlans, planName)
+	ds.mut.Unlock()
+
 	ds.logger.Infof("Deleted skill plan %s", planName)
 	return nil
 }
-
-// Convert helper functions to methods on DataStore as needed
 
 func (ds *DataStore) GetWriteablePlansPath() (string, error) {
 	configDir, err := os.UserConfigDir()

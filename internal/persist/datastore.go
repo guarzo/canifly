@@ -4,9 +4,8 @@ package persist
 import (
 	"sync"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
 type DataStore struct {
@@ -21,20 +20,21 @@ type DataStore struct {
 	mut           sync.RWMutex
 }
 
+// NewDataStore initializes a new DataStore and loads AppState from file.
 func NewDataStore(logger *logrus.Logger, baseDir string) *DataStore {
 	ds := &DataStore{
 		logger:        logger,
 		baseDir:       baseDir,
-		apiCache:      NewCache(), // initialize cache here
+		apiCache:      NewCache(),
 		appStateStore: AppStateStore{},
 		skillPlans:    make(map[string]model.SkillPlan),
 		skillTypes:    make(map[string]model.SkillType),
+		SysIdToName:   make(map[string]string),
+		SysNameToID:   make(map[string]string),
 	}
 
-	err := ds.loadAppStateFromFile()
-	if err != nil {
+	if err := ds.loadAppStateFromFile(); err != nil {
 		ds.logger.Warnf("unable to load app state from file %v", err)
-		return ds
 	}
 
 	return ds
