@@ -50,9 +50,10 @@ type UserFile struct {
 }
 
 type Association struct {
-	UserId   string `json:"userId"`
-	CharId   string `json:"charId"`
-	CharName string `json:"charName"`
+	UserId      string `json:"userId"`
+	CharId      string `json:"charId"`
+	CharName    string `json:"charName"`
+	AccountName string `json:"accountName,omitempty"`
 }
 
 func init() {
