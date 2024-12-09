@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-const CharactersByRole = ({ accounts, unassignedCharacters, roles }) => {
+const CharactersByRole = ({ accounts, roles }) => {
     const [sortOrder, setSortOrder] = useState('asc');
 
     // Combine all characters
@@ -103,7 +103,6 @@ const CharactersByRole = ({ accounts, unassignedCharacters, roles }) => {
 
 CharactersByRole.propTypes = {
     accounts: PropTypes.array.isRequired,
-    unassignedCharacters: PropTypes.array,
     roles: PropTypes.array.isRequired,
 };
 

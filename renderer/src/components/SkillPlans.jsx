@@ -6,7 +6,7 @@ import SkillPlanTable from './SkillPlanTable';
 import { toast } from 'react-toastify';
 import { Container, Paper } from '@mui/material';
 
-const SkillPlans = ({ identities, skillPlans, setHomeData }) => {
+const SkillPlans = ({ identities, skillPlans, setAppData }) => {
     useEffect(() => {
         window.copySkillPlan = (planName) => {
             const plan = skillPlans[planName];
@@ -56,10 +56,10 @@ const SkillPlans = ({ identities, skillPlans, setHomeData }) => {
                 if (response.ok) {
                     toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
                     // Update the state to remove the deleted skill plan
-                    setHomeData((prevHomeData) => {
-                        const updatedSkillPlans = { ...prevHomeData.SkillPlans };
+                    setAppData((prevAppData) => {
+                        const updatedSkillPlans = { ...prevAppData.SkillPlans };
                         delete updatedSkillPlans[planName];
-                        return { ...prevHomeData, SkillPlans: updatedSkillPlans };
+                        return { ...prevAppData, SkillPlans: updatedSkillPlans };
                     });
                 } else {
                     const errorMessage = await response.text();
@@ -70,7 +70,7 @@ const SkillPlans = ({ identities, skillPlans, setHomeData }) => {
                 toast.error('An error occurred while deleting the skill plan.', { autoClose: 1500 });
             }
         };
-    }, [skillPlans, setHomeData]);
+    }, [skillPlans, setAppData]);
 
     return (
         <Container maxWidth="lg" className="mt-20">
@@ -88,7 +88,7 @@ const SkillPlans = ({ identities, skillPlans, setHomeData }) => {
 SkillPlans.propTypes = {
     identities: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
-    setHomeData: PropTypes.func.isRequired,
+    setAppData: PropTypes.func.isRequired,
 };
 
 export default SkillPlans;

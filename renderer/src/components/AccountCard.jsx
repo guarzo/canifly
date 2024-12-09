@@ -1,9 +1,8 @@
-// src/components/AccountCard.jsx
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { IconButton, Select, MenuItem, TextField, Tooltip } from '@mui/material';
-import { Delete, Check as CheckIcon } from '@mui/icons-material';
-import CharacterItem from './CharacterItem'; // Import the new CharacterItem component
+import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import CharacterItem from './CharacterItem';
 
 const AccountCard = ({
                          account,
@@ -11,14 +10,16 @@ const AccountCard = ({
                          onUpdateAccountName,
                          onUpdateCharacter,
                          onRemoveCharacter,
+                         onRemoveAccount,
                          roles,
                      }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [accountName, setAccountName] = useState(account.Name);
 
-    const handleNameChange = (e) => {
-        setAccountName(e.target.value);
-    };
+    const [anchorEl, setAnchorEl] = useState(null);
+    const menuOpen = Boolean(anchorEl);
+
+    const handleNameChange = (e) => setAccountName(e.target.value);
 
     const handleNameBlur = () => {
         if (accountName !== account.Name) {
@@ -36,6 +37,14 @@ const AccountCard = ({
 
     const startEditingName = () => {
         setIsEditingName(true);
+    };
+
+    const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
+    const handleMenuClose = () => setAnchorEl(null);
+
+    const handleRemoveAccountClick = () => {
+        handleMenuClose();
+        onRemoveAccount(account.Name);
     };
 
     return (
@@ -56,14 +65,43 @@ const AccountCard = ({
                         {account.Name}
                     </span>
                 )}
-                <Tooltip title="Toggle Account Status">
-                    <button
-                        onClick={() => onToggleAccountStatus(account.ID)}
-                        className="text-xl font-bold text-white"
+
+                <div className="flex items-center space-x-2">
+                    <Tooltip title="Toggle Account Status">
+                        <button
+                            onClick={() => onToggleAccountStatus(account.ID)}
+                            className="text-xl font-bold text-white"
+                        >
+                            {account.Status === 'Alpha' ? 'α' : 'Ω'}
+                        </button>
+                    </Tooltip>
+                    <IconButton
+                        onClick={handleMenuClick}
+                        size="small"
+                        sx={{ color: '#9ca3af' }}
+                        aria-label="more options"
                     >
-                        {account.Status === 'Alpha' ? 'α' : 'Ω'}
-                    </button>
-                </Tooltip>
+                        <MoreVertIcon fontSize="inherit" />
+                    </IconButton>
+
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={menuOpen}
+                        onClose={handleMenuClose}
+                        PaperProps={{
+                            style: {
+                                backgroundColor: '#1f2937',
+                                color: '#14b8a6',
+                            },
+                        }}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    >
+                        <MenuItem onClick={handleRemoveAccountClick}>
+                            Remove Account
+                        </MenuItem>
+                    </Menu>
+                </div>
             </div>
 
             {/* Characters in Account */}
@@ -88,6 +126,7 @@ AccountCard.propTypes = {
     onUpdateAccountName: PropTypes.func.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
     onRemoveCharacter: PropTypes.func.isRequired,
+    onRemoveAccount: PropTypes.func.isRequired,
     roles: PropTypes.array.isRequired,
 };
 

@@ -54,7 +54,7 @@ const CharacterSort = ({ accounts, roles }) => {
     console.log(accounts)
     console.log(roles)
 
-    // Combine all characters from accounts, excluding unassigned characters
+    // Combine all characters from accounts
     const allCharacters = useMemo(() => {
         let chars = [];
         (accounts || []).forEach((account) => {
@@ -81,7 +81,6 @@ const CharacterSort = ({ accounts, roles }) => {
             if (role !== 'Unassigned' && map[role]) {
                 map[role].push(character);
             }
-            // Characters with 'Unassigned' role are excluded
         });
 
         // Remove roles with no characters

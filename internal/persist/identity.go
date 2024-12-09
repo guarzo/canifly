@@ -54,32 +54,6 @@ func (ds *DataStore) DeleteAccounts() error {
 	return nil
 }
 
-func (ds *DataStore) SaveUnassignedCharacters(unassignedCharacters []model.CharacterIdentity) error {
-	filePath := ds.getUnassignedCharactersFileName()
-	ds.logger.Debugf("Saving %d unassigned characters", len(unassignedCharacters))
-	return ds.encryptData(unassignedCharacters, filePath)
-}
-
-func (ds *DataStore) FetchUnassignedCharacters() ([]model.CharacterIdentity, error) {
-	filePath := ds.getUnassignedCharactersFileName()
-	var unassigned []model.CharacterIdentity
-
-	fileInfo, err := os.Stat(filePath)
-	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
-		ds.logger.Info("No unassigned characters file or it's empty")
-		return unassigned, nil
-	}
-
-	if err := ds.decryptData(filePath, &unassigned); err != nil {
-		ds.logger.WithError(err).Error("Error decrypting unassigned characters, removing file")
-		os.Remove(filePath)
-		return nil, err
-	}
-
-	ds.logger.Infof("Fetched %d unassigned characters", len(unassigned))
-	return unassigned, nil
-}
-
 // Helper functions (renamed to methods on DataStore)
 func (ds *DataStore) saveData(data interface{}, outputFile string) error {
 	outFile, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
@@ -122,15 +96,6 @@ func (ds *DataStore) getAccountFileName() string {
 		return ""
 	}
 	return filepath.Join(identityPath, "identity.json")
-}
-
-func (ds *DataStore) getUnassignedCharactersFileName() string {
-	identityPath, err := ds.GetWriteablePath()
-	if err != nil {
-		ds.logger.WithError(err).Error("Error retrieving writable identity path for unassigned chars")
-		return ""
-	}
-	return filepath.Join(identityPath, "unassigned_characters.json")
 }
 
 func (ds *DataStore) GetWriteablePath() (string, error) {

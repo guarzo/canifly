@@ -1,15 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/sirupsen/logrus"
 
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
+	"github.com/sirupsen/logrus"
 )
 
 type AccountHandler struct {
@@ -32,18 +30,18 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 			AccountID   int64  `json:"accountID"`
 			AccountName string `json:"accountName"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 			return
 		}
 		if request.AccountName == "" {
-			http.Error(w, "Account name cannot be empty", http.StatusBadRequest)
+			respondError(w, "Account name cannot be empty", http.StatusBadRequest)
 			return
 		}
 
 		accounts, err := h.dataStore.FetchAccounts()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -56,19 +54,18 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 		}
 
 		if accountToUpdate == nil {
-			http.Error(w, "Account not found", http.StatusNotFound)
+			respondError(w, "Account not found", http.StatusNotFound)
 			return
 		}
 
 		accountToUpdate.Name = request.AccountName
 
 		if err = h.dataStore.SaveAccounts(accounts); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 
@@ -77,18 +74,18 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 		var request struct {
 			AccountID int64 `json:"accountID"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 			return
 		}
 		if request.AccountID == 0 {
-			http.Error(w, "AccountID is required", http.StatusBadRequest)
+			respondError(w, "AccountID is required", http.StatusBadRequest)
 			return
 		}
 
 		accounts, err := h.dataStore.FetchAccounts()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -106,16 +103,63 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 		}
 
 		if !accountFound {
-			http.Error(w, "Account not found", http.StatusNotFound)
+			respondError(w, "Account not found", http.StatusNotFound)
 			return
 		}
 
 		if err = h.dataStore.SaveAccounts(accounts); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
+		respondJSON(w, map[string]bool{"success": true})
 	}
+}
+
+func (h *AccountHandler) RemoveAccount() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			AccountName string `json:"accountName"`
+		}
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if request.AccountName == "" {
+			respondError(w, "AccountName is required", http.StatusBadRequest)
+			return
+		}
+
+		accounts, err := h.dataStore.FetchAccounts()
+		if err != nil {
+			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		index, found := findAccountIndex(accounts, request.AccountName)
+		if !found {
+			respondError(w, fmt.Sprintf("%s not found in accounts", request.AccountName), http.StatusNotFound)
+			return
+		}
+
+		// Remove the account
+		accounts = append(accounts[:index], accounts[index+1:]...)
+
+		if err := h.dataStore.SaveAccounts(accounts); err != nil {
+			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		respondJSON(w, map[string]bool{"success": true})
+	}
+}
+
+// helper function to find account by name
+func findAccountIndex(accounts []model.Account, accountName string) (int, bool) {
+	for i, account := range accounts {
+		if account.Name == accountName {
+			return i, true
+		}
+	}
+	return 0, false
 }

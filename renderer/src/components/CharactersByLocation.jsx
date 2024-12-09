@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
+const CharactersByLocation = ({ accounts }) => {
     const [sortOrder, setSortOrder] = useState('asc');
 
     // Combine all characters
@@ -98,7 +98,6 @@ const CharactersByLocation = ({ accounts, unassignedCharacters }) => {
 
 CharactersByLocation.propTypes = {
     accounts: PropTypes.array.isRequired,
-    unassignedCharacters: PropTypes.array,
 };
 
 export default CharactersByLocation;

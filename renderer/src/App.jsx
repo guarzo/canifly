@@ -18,27 +18,25 @@ import Mapping from './components/Mapping'
 
 
 const App = () => {
-    const [homeData, setHomeData] = useState(null);
-    const [unassignedCharacters, setUnassignedCharacters] = useState([]);
+    const [appData, setAppData] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
 
-    // Fetch home data
-    const fetchHomeData = async () => {
+    // Fetch app data
+    const fetchAppData = async () => {
         try {
-            const response = await fetch('/api/home-data', {
+            const response = await fetch('/api/app-data', {
                 credentials: 'include', // Include cookies for authentication
             });
             if (response.status === 401) {
                 setIsAuthenticated(false);
-                setHomeData(null);
+                setAppData(null);
                 toast.warning('Please log in to access your data.');
             } else if (response.ok) {
                 const data = await response.json();
-                setHomeData(data);
+                setAppData(data);
                 setIsAuthenticated(true);
-                fetchHomeDataNoCache()
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || 'An unexpected error occurred.');
@@ -47,21 +45,21 @@ const App = () => {
             if (isAuthenticated) {
                 // Only show this if the user is authenticated. If they're not authenticated,
                 // it's expected behavior and can be silently ignored.
-                console.error('Error fetching home data:', error);
+                console.error('Error fetching app data:', error);
                 toast.error('Failed to load data. Please try again later.');
             }
         }
     };
 
-    const fetchHomeDataNoCache= async () => {
+    const fetchAppDataNoCache= async () => {
         try {
-            const response = await fetch('/api/home-data-no-cache', {
+            const response = await fetch('/api/app-data-no-cache', {
                 credentials: 'include', // Include cookies for authentication
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setHomeData(data);
+                setAppData(data);
                 setIsAuthenticated(true);
             } else {
                 const errorData = await response.json();
@@ -71,34 +69,7 @@ const App = () => {
             if (isAuthenticated) {
                 // Only show this if the user is authenticated. If they're not authenticated,
                 // it's expected behavior and can be silently ignored.
-                console.error('Error fetching no cache home data:', error);
-            }
-        }
-    };
-
-    // Fetch unassigned characters
-    const fetchUnassignedCharacters = async () => {
-        try {
-            const response = await fetch('/api/unassigned-characters', {
-                credentials: 'include', // Include cookies for authentication
-            });
-            if (response.status === 401) {
-                setIsAuthenticated(false);
-                setUnassignedCharacters(null);
-            }
-            if (response.ok) {
-                const data = await response.json();
-                setUnassignedCharacters(data || []);
-            } else {
-                const errorData = await response.json();
-                toast.error(errorData.error || 'An unexpected error occurred.');
-            }
-        } catch (error) {
-            if (isAuthenticated) {
-                // Only show this if the user is authenticated. If they're not authenticated,
-                // it's expected behavior and can be silently ignored.
-                console.error('Error fetching home data:', error);
-                toast.error('Failed to load data. Please try again later.');
+                console.error('Error fetching no cache app data:', error);
             }
         }
     };
@@ -107,7 +78,7 @@ const App = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
+            await Promise.all([fetchAppData()]);
         } catch (error) {
             if (isAuthenticated) {
                 // Only show this if the user is authenticated. If they're not authenticated,
@@ -121,7 +92,7 @@ const App = () => {
 
     const silentRefreshData = async () => {
         try {
-            await Promise.all([fetchHomeDataNoCache(), fetchUnassignedCharacters()]);
+            await Promise.all([fetchAppDataNoCache()]);
             // No isLoading changes here, just update the state once data is loaded.
         } catch (error) {
             if (isAuthenticated) {
@@ -139,8 +110,7 @@ const App = () => {
             });
             if (response.ok) {
                 setIsAuthenticated(false);
-                setHomeData(null);
-                setUnassignedCharacters([]);
+                setAppData(null);
                 toast.success('Logged out successfully!');
             } else {
                 const errorData = await response.json();
@@ -149,39 +119,6 @@ const App = () => {
         } catch (error) {
             console.error('Error logging out:', error);
             toast.error('An error occurred during logout.');
-        }
-    };
-
-    // Assign character to account
-    const handleAssignCharacter = async (characterID, accountID) => {
-        try {
-            const body = { characterID };
-            if (accountID) {
-                body.accountID = accountID;
-            }
-            const response = await fetch('/api/assign-character', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                credentials: 'include',
-            });
-
-            const result = await response.json();
-            if (response.ok && result.success) {
-                toast.success('Character assigned successfully!');
-                // Update state: Remove character from unassignedCharacters
-                setUnassignedCharacters((prev) =>
-                    prev.filter((char) => char.Character.CharacterID !== characterID)
-                );
-                // Optionally, refresh home data to update accounts
-                fetchHomeData();
-            } else {
-                // Handle error
-                toast.error(result.error || 'Failed to assign character.');
-            }
-        } catch (error) {
-            console.error('Error assigning character:', error);
-            toast.error('Error assigning character.');
         }
     };
 
@@ -198,15 +135,15 @@ const App = () => {
             if (response.ok) {
                 toast.success('Account status toggled successfully!');
                 // Update the account status locally
-                setHomeData((prevHomeData) => {
-                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                setAppData((prevAppData) => {
+                    const updatedAccounts = prevAppData.Accounts.map((account) => {
                         if (account.ID === accountID) {
                             const newStatus = account.Status === 'Alpha' ? 'Omega' : 'Alpha';
                             return { ...account, Status: newStatus };
                         }
                         return account;
                     });
-                    return { ...prevHomeData, Accounts: updatedAccounts };
+                    return { ...prevAppData, Accounts: updatedAccounts };
                 });
             } else {
                 throw new Error('Failed to toggle account status.');
@@ -229,15 +166,15 @@ const App = () => {
             if (response.ok) {
                 toast.success('Character updated successfully!');
                 // Update character and roles locally
-                setHomeData((prevHomeData) => {
-                    const updatedRoles = prevHomeData?.Roles
-                        ? [...prevHomeData.Roles]
+                setAppData((prevAppData) => {
+                    const updatedRoles = prevAppData?.Roles
+                        ? [...prevAppData.Roles]
                         : [];
                     if (updates.Role && !updatedRoles.includes(updates.Role)) {
                         updatedRoles.push(updates.Role);
                     }
 
-                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                    const updatedAccounts = prevAppData.Accounts.map((account) => {
                         const updatedCharacters = account.Characters.map((character) => {
                             if (character.Character.CharacterID === characterID) {
                                 return { ...character, ...updates };
@@ -248,7 +185,7 @@ const App = () => {
                     });
 
                     return {
-                        ...prevHomeData,
+                        ...prevAppData,
                         Accounts: updatedAccounts,
                         Roles: updatedRoles,
                     };
@@ -278,30 +215,15 @@ const App = () => {
             if (response.ok && result.success) {
                 toast.success('Character removed successfully!');
 
-                // Update homeData: Remove character from the account
-                setHomeData((prevHomeData) => {
-                    let removedCharacter = null;
-                    const updatedAccounts = prevHomeData.Accounts.map((account) => {
+                // Update appData: Remove character from the account
+                setAppData((prevAppData) => {
+                    const updatedAccounts = prevAppData.Accounts.map((account) => {
                         const filteredCharacters = account.Characters.filter((character) => {
-                            if (character.Character.CharacterID === characterID) {
-                                removedCharacter = character; // Capture the removed character
-                                return false; // Exclude this character from the account
-                            }
-                            return true;
+                            return character.Character.CharacterID !== characterID;
                         });
-
                         return { ...account, Characters: filteredCharacters };
                     });
-
-                    // Add removed character back to unassignedCharacters
-                    if (removedCharacter) {
-                        setUnassignedCharacters((prevUnassigned) => [
-                            ...prevUnassigned,
-                            removedCharacter,
-                        ]);
-                    }
-
-                    return { ...prevHomeData, Accounts: updatedAccounts };
+                    return { ...prevAppData, Accounts: updatedAccounts };
                 });
             } else {
                 toast.error(result.error || 'Failed to remove character.');
@@ -326,11 +248,11 @@ const App = () => {
             const result = await response.json();
             if (response.ok && result.success) {
                 // Update the account name in state
-                setHomeData((prevHomeData) => {
-                    const updatedAccounts = prevHomeData.Accounts.map((account) =>
+                setAppData((prevAppData) => {
+                    const updatedAccounts = prevAppData.Accounts.map((account) =>
                         account.ID === accountID ? { ...account, Name: newName } : account
                     );
-                    return { ...prevHomeData, Accounts: updatedAccounts };
+                    return { ...prevAppData, Accounts: updatedAccounts };
                 });
                 toast.success('Account name updated successfully!');
             } else {
@@ -340,6 +262,34 @@ const App = () => {
         } catch (error) {
             console.error('Error updating account name:', error);
             toast.error('Error updating account name.');
+        }
+    };
+
+    const handleRemoveAccount = async (accountName) => {
+        try {
+            const response = await fetch('/api/remove-account', {
+                method: 'POST', // or 'DELETE' if you want to implement DELETE method on backend
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountName }),
+                credentials: 'include',
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                toast.success('Account removed successfully!');
+
+                setAppData((prevAppData) => {
+                    const updatedAccounts = prevAppData.Accounts.filter(
+                        (account) => account.Name !== accountName
+                    );
+                    return { ...prevAppData, Accounts: updatedAccounts };
+                });
+            } else {
+                toast.error(result.error || 'Failed to remove account.');
+            }
+        } catch (error) {
+            console.error('Error removing account:', error);
+            toast.error('Error removing account.');
         }
     };
 
@@ -371,10 +321,15 @@ const App = () => {
         }
     };
 
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     useEffect(() => {
-        fetchData(); // Fetch data on initial load
-    }, []);
+        if (!isLoading && isAuthenticated) {
+            silentRefreshData();
+        }
+    }, [isLoading, isAuthenticated]);
 
     if (isLoading) {
         return (
@@ -394,9 +349,9 @@ const App = () => {
 
 
 
-    const identities = homeData?.Accounts?.flatMap((account) => account.Characters) || [];
-    const existingAccounts = homeData?.Accounts.flatMap((account) => account.Name) || [];
-    console.log(homeData)
+    const identities = appData?.Accounts?.flatMap((account) => account.Characters) || [];
+    const existingAccounts = appData?.Accounts.flatMap((account) => account.Name) || [];
+    console.log(appData)
 
     return (
         <ErrorBoundary>
@@ -413,7 +368,7 @@ const App = () => {
                     <main className="flex-grow container mx-auto px-4 py-8">
                         {!isAuthenticated ? (
                             <Landing/>
-                        ) : isLoading || !homeData ? (
+                        ) : isLoading || !appData ? (
                             <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
                                 <p>Loading...</p>
                             </div>
@@ -423,14 +378,13 @@ const App = () => {
                                     path="/"
                                     element={
                                         <Dashboard
-                                            accounts={homeData?.Accounts || []}
-                                            unassignedCharacters={unassignedCharacters || []}
-                                            onAssignCharacter={handleAssignCharacter}
+                                            accounts={appData?.Accounts || []}
                                             onToggleAccountStatus={handleToggleAccountStatus}
                                             onUpdateCharacter={handleUpdateCharacter}
                                             onUpdateAccountName={handleUpdateAccountName}
                                             onRemoveCharacter={handleRemoveCharacter}
-                                            roles={homeData?.ConfigData?.Roles || []}
+                                            onRemoveAccount={handleRemoveAccount}
+                                            roles={appData?.Roles || []}
                                         />
                                     }
                                 />
@@ -439,8 +393,8 @@ const App = () => {
                                     element={
                                         <SkillPlans
                                             identities={identities}
-                                            skillPlans={homeData?.SkillPlans || {}}
-                                            setHomeData={setHomeData}
+                                            skillPlans={appData?.SkillPlans || {}}
+                                            setAppData={setAppData}
                                         />
                                     }
                                 />
@@ -448,8 +402,8 @@ const App = () => {
                                     path="/character-sort"
                                     element={
                                         <CharacterSort
-                                            accounts={homeData?.Accounts || []}
-                                            roles={homeData?.Roles || []}
+                                            accounts={appData?.Accounts || []}
+                                            roles={appData?.Roles || []}
                                         />
                                     }
                                 />
@@ -457,11 +411,11 @@ const App = () => {
                                     path="/sync"
                                     element={
                                         <Sync
-                                            settingsData={homeData?.SubDirs || []}
-                                            associations={homeData?.associations || []}
-                                            currentSettingsDir={homeData?.SettingsDir || ''}
-                                            isDefaultDir={homeData?.IsDefaultDir ?? false}
-                                            userSelections={homeData?.UserSelections || {}}
+                                            settingsData={appData?.SubDirs || []}
+                                            associations={appData?.associations || []}
+                                            currentSettingsDir={appData?.SettingsDir || ''}
+                                            isDefaultDir={appData?.IsDefaultDir ?? false}
+                                            userSelections={appData?.UserSelections || {}}
                                         />
                                     }
                                 />
@@ -469,8 +423,8 @@ const App = () => {
                                     path="/mapping"
                                     element={
                                         <Mapping
-                                            associations={homeData?.associations || []}
-                                            subDirs={homeData?.SubDirs || []}
+                                            associations={appData?.associations || []}
+                                            subDirs={appData?.SubDirs || []}
                                             onRefreshData={silentRefreshData}
                                         />
                                     }

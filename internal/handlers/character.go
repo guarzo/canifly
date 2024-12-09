@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	http2 "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services"
-
 	"github.com/sirupsen/logrus"
 )
 
+// CharacterHandler manages character-related API endpoints.
 type CharacterHandler struct {
 	sessionService *http2.SessionService
 	logger         *logrus.Logger
@@ -21,6 +20,7 @@ type CharacterHandler struct {
 	datastore      *persist.DataStore
 }
 
+// NewCharacterHandler constructs a CharacterHandler with the given dependencies.
 func NewCharacterHandler(s *http2.SessionService, l *logrus.Logger, c *services.ConfigService, d *persist.DataStore) *CharacterHandler {
 	return &CharacterHandler{
 		sessionService: s,
@@ -30,321 +30,133 @@ func NewCharacterHandler(s *http2.SessionService, l *logrus.Logger, c *services.
 	}
 }
 
+// respondJSON sends a success response with JSON-encoded data.
+func respondJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+// respondError is a helper to send an error response in JSON format.
+func respondError(w http.ResponseWriter, msg string, code int) {
+	http.Error(w, fmt.Sprintf(`{"error":"%s"}`, msg), code)
+}
+
+// decodeJSONBody decodes the JSON body into the provided dst.
+func decodeJSONBody(r *http.Request, dst interface{}) error {
+	return json.NewDecoder(r.Body).Decode(dst)
+}
+
+// UpdateCharacter updates fields for a given character such as Role or MCT flag.
 func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request struct {
 			CharacterID int64                  `json:"characterID"`
 			Updates     map[string]interface{} `json:"updates"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
+
 		if request.CharacterID == 0 || len(request.Updates) == 0 {
-			http.Error(w, "CharacterID and updates are required", http.StatusBadRequest)
+			respondError(w, "CharacterID and updates are required", http.StatusBadRequest)
 			return
 		}
 
 		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		var characterFound bool
-		for i := range accounts {
-			for j := range accounts[i].Characters {
-				charIdentity := &accounts[i].Characters[j]
-				if charIdentity.Character.CharacterID == request.CharacterID {
-					for key, value := range request.Updates {
-						switch key {
-						case "Role":
-							if roleStr, ok := value.(string); ok {
-								err = h.configService.UpdateRoles(roleStr)
-								if err != nil {
-									h.logger.Info(err)
-								}
-								charIdentity.Role = roleStr
-							}
-						case "MCT":
-							if mctBool, ok := value.(bool); ok {
-								charIdentity.MCT = mctBool
-							}
-						default:
-							http.Error(w, fmt.Sprintf("Unknown update field: %s", key), http.StatusBadRequest)
-							return
-						}
-					}
-					characterFound = true
-					break
+		// Find the character to update
+		charIdentity := h.findCharacterInAccounts(accounts, request.CharacterID)
+		if charIdentity == nil {
+			respondError(w, "Character not found", http.StatusNotFound)
+			return
+		}
+
+		// Apply updates
+		for key, value := range request.Updates {
+			switch key {
+			case "Role":
+				roleStr, ok := value.(string)
+				if !ok {
+					respondError(w, "Role must be a string", http.StatusBadRequest)
+					return
 				}
-			}
-			if characterFound {
-				break
-			}
-		}
-
-		if !characterFound {
-			http.Error(w, "Character not found", http.StatusNotFound)
-			return
-		}
-
-		if err = h.datastore.SaveAccounts(accounts); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
-	}
-}
-
-func (h *CharacterHandler) GetUnassignedCharacters() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		h.logger.Debugf("start of get unassigned characters handler")
-
-		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
-		if err != nil {
-			http.Error(w, "Error fetching unassigned characters", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		if err = json.NewEncoder(w).Encode(unassignedCharacters); err != nil {
-			http.Error(w, "Error encoding unassigned characters", http.StatusInternalServerError)
-		}
-	}
-}
-
-func (h *CharacterHandler) AssignCharacter() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			CharacterID int64  `json:"characterID"`
-			AccountID   *int64 `json:"accountID"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-			return
-		}
-
-		accounts, err := h.datastore.FetchAccounts()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		var characterToAssign *model.CharacterIdentity
-		for i, character := range unassignedCharacters {
-			if character.Character.CharacterID == request.CharacterID {
-				characterToAssign = &unassignedCharacters[i]
-				break
-			}
-		}
-
-		if characterToAssign == nil {
-			http.Error(w, "Character not found in unassigned characters", http.StatusNotFound)
-			return
-		}
-
-		if request.AccountID != nil {
-			var accountFound bool
-			for i := range accounts {
-				if accounts[i].ID == *request.AccountID {
-					accounts[i].Characters = append(accounts[i].Characters, *characterToAssign)
-					accountFound = true
-					break
+				if err := h.configService.UpdateRoles(roleStr); err != nil {
+					h.logger.Infof("Failed to update roles: %v", err)
 				}
-			}
-			if !accountFound {
-				http.Error(w, "Account not found", http.StatusNotFound)
+				charIdentity.Role = roleStr
+
+			case "MCT":
+				mctBool, ok := value.(bool)
+				if !ok {
+					respondError(w, "MCT must be boolean", http.StatusBadRequest)
+					return
+				}
+				charIdentity.MCT = mctBool
+
+			default:
+				respondError(w, fmt.Sprintf("Unknown update field: %s", key), http.StatusBadRequest)
 				return
 			}
-		} else {
-			newAccount := model.Account{
-				Name:       "New Account",
-				Status:     "Alpha",
-				Characters: []model.CharacterIdentity{*characterToAssign},
-				ID:         time.Now().Unix(),
-			}
-			accounts = append(accounts, newAccount)
 		}
 
-		var updatedUnassigned []model.CharacterIdentity
-		for _, character := range unassignedCharacters {
-			if character.Character.CharacterID != request.CharacterID {
-				updatedUnassigned = append(updatedUnassigned, character)
-			}
-		}
-
-		if err = h.datastore.SaveAccounts(accounts); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if err = h.datastore.SaveUnassignedCharacters(updatedUnassigned); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
+		if err := h.datastore.SaveAccounts(accounts); err != nil {
+			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 
+// RemoveCharacter removes a character from the accounts.
 func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request struct {
 			CharacterID int64 `json:"characterID"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 		if request.CharacterID == 0 {
-			http.Error(w, "CharacterID is required", http.StatusBadRequest)
+			respondError(w, "CharacterID is required", http.StatusBadRequest)
 			return
 		}
 
 		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error fetching unassigned characters: %v", err), http.StatusInternalServerError)
+		accountIndex, charIndex, found := h.findCharacterIndices(accounts, request.CharacterID)
+		if !found {
+			respondError(w, "Character not found in accounts", http.StatusNotFound)
 			return
 		}
 
-		var characterToRemove *model.CharacterIdentity
-		var accountIndex, charIndex int
-		var characterFound bool
-
-		for i := range accounts {
-			for j := range accounts[i].Characters {
-				if accounts[i].Characters[j].Character.CharacterID == request.CharacterID {
-					characterToRemove = &accounts[i].Characters[j]
-					accountIndex = i
-					charIndex = j
-					characterFound = true
-					break
-				}
-			}
-			if characterFound {
-				break
-			}
-		}
-
-		if !characterFound {
-			http.Error(w, "Character not found in accounts", http.StatusNotFound)
-			return
-		}
-
+		// Remove the character from the account
 		accounts[accountIndex].Characters = append(
 			accounts[accountIndex].Characters[:charIndex],
 			accounts[accountIndex].Characters[charIndex+1:]...,
 		)
 
-		unassignedCharacters = append(unassignedCharacters, *characterToRemove)
-
-		if err = h.datastore.SaveAccounts(accounts); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if err = h.datastore.SaveUnassignedCharacters(unassignedCharacters); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save unassigned characters: %v", err), http.StatusInternalServerError)
+		if err := h.datastore.SaveAccounts(accounts); err != nil {
+			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 
-func (h *CharacterHandler) ChooseSettingsDir(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Directory string `json:"directory"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if req.Directory == "" {
-		http.Error(w, "Directory is required", http.StatusBadRequest)
-		return
-	}
-
-	err := h.configService.UpdateSettingsDir(req.Directory)
-	if err != nil {
-		resp := struct {
-			Success bool   `json:"success"`
-			Error   string `json:"error,omitempty"`
-		}{Success: false, Error: err.Error()}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-		return
-	}
-
-	resp := struct {
-		Success     bool   `json:"success"`
-		SettingsDir string `json:"settingsDir,omitempty"`
-	}{Success: true, SettingsDir: req.Directory}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (h *CharacterHandler) SyncSubDirectory(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		SubDir string `json:"subDir"`
-		UserId string `json:"userId"`
-		CharId string `json:"charId"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	userFilesCopied, charFilesCopied, err := h.configService.SyncDir(req.SubDir, req.CharId, req.UserId)
-	if err != nil {
-		resp := struct {
-			Success bool   `json:"success"`
-			Message string `json:"message,omitempty"`
-		}{false, fmt.Sprintf("failed to sync %v", err)}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-		return
-	}
-
-	message := fmt.Sprintf("Synchronization complete in \"%s\", %d user files and %d character files copied.", req.SubDir, userFilesCopied, charFilesCopied)
-	resp := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{true, message}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (h *CharacterHandler) BackupDirectory(w http.ResponseWriter, r *http.Request) {
-	success, message := h.configService.BackupDir()
-	resp := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message,omitempty"`
-	}{Success: success, Message: message}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
-}
-
+// AssociateCharacter associates a character with a user ID and updates config.
 func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UserId   string `json:"userId"`
@@ -353,30 +165,23 @@ func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Req
 		CharName string `json:"charName"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// First, associate the character
 	if err := h.configService.AssociateCharacter(req.UserId, req.CharId); err != nil {
-		resp := struct {
-			Success bool   `json:"success"`
-			Message string `json:"message"`
-		}{false, err.Error()}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		respondJSON(w, map[string]interface{}{"success": false, "message": err.Error()})
 		return
 	}
 
-	resp := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{true, fmt.Sprintf("%s associated with %s", req.CharName, req.UserName)}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("%s associated with %s", req.CharName, req.UserName),
+	})
 }
 
+// UnassociateCharacter removes an association between a user and a character.
 func (h *CharacterHandler) UnassociateCharacter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UserId   string `json:"userId"`
@@ -385,47 +190,62 @@ func (h *CharacterHandler) UnassociateCharacter(w http.ResponseWriter, r *http.R
 		CharName string `json:"charName"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	err := h.configService.UnassociateCharacter(req.UserId, req.CharId)
-	if err != nil {
-		resp := struct {
-			Success bool   `json:"success"`
-			Message string `json:"message"`
-		}{false, err.Error()}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+	if err := h.configService.UnassociateCharacter(req.UserId, req.CharId); err != nil {
+		respondJSON(w, map[string]interface{}{"success": false, "message": err.Error()})
 		return
 	}
 
-	resp := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{true, fmt.Sprintf("%s has been unassociated from %s", req.CharName, req.UserName)}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	respondJSON(w, map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("%s has been unassociated from %s", req.CharName, req.UserName),
+	})
 }
 
+// SaveUserSelections saves user selections for directories/profiles.
 func (h *CharacterHandler) SaveUserSelections(w http.ResponseWriter, r *http.Request) {
 	var req model.UserSelections
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// req is now a map[string]UserSelection
 	if err := h.configService.UpdateUserSelections(req); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to save user selections: %v", err), http.StatusInternalServerError)
+		respondError(w, fmt.Sprintf("Failed to save user selections: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	respondJSON(w, map[string]bool{"success": true})
 }
 
+// SyncSubDirectory performs syncing of user/char files for a specific subdirectory.
+func (h *CharacterHandler) SyncSubDirectory(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SubDir string `json:"subDir"`
+		UserId string `json:"userId"`
+		CharId string `json:"charId"`
+	}
+
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userFilesCopied, charFilesCopied, err := h.configService.SyncDir(req.SubDir, req.CharId, req.UserId)
+	if err != nil {
+		respondJSON(w, map[string]interface{}{"success": false, "message": fmt.Sprintf("failed to sync %v", err)})
+		return
+	}
+
+	message := fmt.Sprintf("Synchronization complete in \"%s\", %d user files and %d character files copied.", req.SubDir, userFilesCopied, charFilesCopied)
+	respondJSON(w, map[string]interface{}{"success": true, "message": message})
+}
+
+// SyncAllSubdirectories syncs user/char files across all subdirectories.
 func (h *CharacterHandler) SyncAllSubdirectories(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		SubDir string `json:"subDir"`
@@ -433,28 +253,72 @@ func (h *CharacterHandler) SyncAllSubdirectories(w http.ResponseWriter, r *http.
 		CharId string `json:"charId"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	userFilesCopied, charFilesCopied, err := h.configService.SyncAllDir(req.SubDir, req.CharId, req.UserId)
 	if err != nil {
-		resp := struct {
-			Success bool   `json:"success"`
-			Message string `json:"message,omitempty"`
-		}{false, fmt.Sprintf("failed to sync all: %v", err)}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		respondJSON(w, map[string]interface{}{"success": false, "message": fmt.Sprintf("failed to sync all: %v", err)})
 		return
 	}
 
-	message := fmt.Sprintf("Sync completed for all subdirectories: %d user files copied and %d character files copied, based on user/char files from \"%s\".", userFilesCopied, charFilesCopied, req.SubDir)
-	resp := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{true, message}
+	message := fmt.Sprintf("Sync completed for all subdirectories: %d user files copied and %d character files copied, based on user/char files from \"%s\".",
+		userFilesCopied, charFilesCopied, req.SubDir)
+	respondJSON(w, map[string]interface{}{"success": true, "message": message})
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+// BackupDirectory creates a backup of the current settings directory.
+func (h *CharacterHandler) BackupDirectory(w http.ResponseWriter, r *http.Request) {
+	success, message := h.configService.BackupDir()
+	respondJSON(w, map[string]interface{}{"success": success, "message": message})
+}
+
+// ChooseSettingsDir updates the settings directory to a user-specified path.
+func (h *CharacterHandler) ChooseSettingsDir(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Directory string `json:"directory"`
+	}
+
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Directory == "" {
+		respondError(w, "Directory is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.configService.UpdateSettingsDir(req.Directory); err != nil {
+		respondJSON(w, map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	respondJSON(w, map[string]interface{}{"success": true, "settingsDir": req.Directory})
+}
+
+// findCharacterInAccounts returns a pointer to the character identity if found.
+func (h *CharacterHandler) findCharacterInAccounts(accounts []model.Account, characterID int64) *model.CharacterIdentity {
+	for i := range accounts {
+		for j := range accounts[i].Characters {
+			if accounts[i].Characters[j].Character.CharacterID == characterID {
+				return &accounts[i].Characters[j]
+			}
+		}
+	}
+	return nil
+}
+
+// findCharacterIndices returns indices of the account and character if found.
+func (h *CharacterHandler) findCharacterIndices(accounts []model.Account, characterID int64) (int, int, bool) {
+	for i := range accounts {
+		for j := range accounts[i].Characters {
+			if accounts[i].Characters[j].Character.CharacterID == characterID {
+				return i, j, true
+			}
+		}
+	}
+	return 0, 0, false
 }

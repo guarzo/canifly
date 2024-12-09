@@ -52,7 +52,7 @@ func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache 
 		return
 	}
 
-	updatedData, err := h.refreshAccountsAndState(storeData)
+	updatedData, err := h.refreshAccountsAndState()
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
@@ -66,13 +66,13 @@ func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache 
 	}
 }
 
-func (h *DashboardHandler) refreshAccountsAndState(storeData model.AppState) (model.AppState, error) {
-	err := h.refreshAccounts(storeData)
+func (h *DashboardHandler) refreshAccountsAndState() (model.AppState, error) {
+	accounts, err := h.refreshAccounts()
 	if err != nil {
 		return model.AppState{}, fmt.Errorf("failed to validate accounts: %v", err)
 	}
 
-	updatedData := prepareAppData(storeData.Accounts, h.logger, h.skillService, h.dataStore, h.configService)
+	updatedData := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
 	if err = h.updateAndSaveAppState(updatedData); err != nil {
 		// Log the error but still try to return updatedData if we have it
 		h.logger.Errorf("Failed to update persist and session: %v", err)
@@ -91,12 +91,14 @@ func (h *DashboardHandler) updateAndSaveAppState(data model.AppState) error {
 
 func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		h.logger.Infof("GetAppData Called")
 		h.handleAppStateRefresh(w, false)
 	}
 }
 
 func (h *DashboardHandler) GetDashboardDataNoCache() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		h.logger.Infof("GetAppDataNoCache Called")
 		h.handleAppStateRefresh(w, true)
 	}
 }
@@ -104,9 +106,8 @@ func (h *DashboardHandler) GetDashboardDataNoCache() http.HandlerFunc {
 func (h *DashboardHandler) refreshDataInBackground() {
 	start := time.Now()
 	h.logger.Debugf("Refreshing data in background...")
-	storeData := h.dataStore.GetAppState()
 
-	_, err := h.refreshAccountsAndState(storeData)
+	_, err := h.refreshAccountsAndState()
 	if err != nil {
 		h.logger.Errorf("Failed in background refresh: %v", err)
 		return
@@ -116,11 +117,11 @@ func (h *DashboardHandler) refreshDataInBackground() {
 	h.logger.Infof("Background refresh complete in %s", timeElapsed)
 }
 
-func (h *DashboardHandler) refreshAccounts(storeData model.AppState) error {
+func (h *DashboardHandler) refreshAccounts() ([]model.Account, error) {
 	h.logger.Debugf("Refreshing accounts ")
 	accounts, err := h.dataStore.FetchAccounts()
 	if err != nil {
-		return fmt.Errorf("failed to load accounts: %w", err)
+		return nil, fmt.Errorf("failed to load accounts: %w", err)
 	}
 
 	h.logger.Debugf("Fetched %d accounts", len(accounts))
@@ -149,11 +150,10 @@ func (h *DashboardHandler) refreshAccounts(storeData model.AppState) error {
 
 	// Save the updated accounts
 	if err := h.dataStore.SaveAccounts(accounts); err != nil {
-		return fmt.Errorf("failed to save accounts: %w", err)
+		return nil, fmt.Errorf("failed to save accounts: %w", err)
 	}
 
-	storeData.Accounts = accounts
 	_ = h.dataStore.SaveApiCache()
 
-	return nil
+	return accounts, nil
 }

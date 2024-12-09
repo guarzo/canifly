@@ -7,10 +7,13 @@ SECRET_KEY=
 
 
 todo
-- login modal (better UI and explanation)
-- add delete account / delete character -- remove unassigned characters
+- login modal (better UI and explanation) - no pulse after modal
+- add delete account
+- test sync
 - backup - choose file location
 - can we get mct / active queue / omega status
 - add clone locations - can we get implants??
+- add tooltip for mct
+- remove some toasts
 
 
