@@ -2,18 +2,20 @@
 
 import React from 'react';
 import LoginButton from './LoginButton';
-import { Typography, Container, Box } from '@mui/material';
+import { Container, Box } from '@mui/material';
 
 const Landing = () => {
     return (
-        <Container maxWidth="md" style={{ marginTop: '80px' }}>
-            <Box textAlign="center" py={5}>
-                <Typography variant="h3" gutterBottom>
-                    Welcome to Can I Fly?
-                </Typography>
-                <Typography variant="h6" gutterBottom>
-                    Please log in to continue.
-                </Typography>
+        <Container
+            maxWidth="md"
+            sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}
+        >
+            <Box textAlign="center" className="animate-pulse">
                 <LoginButton />
             </Box>
         </Container>

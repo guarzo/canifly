@@ -354,11 +354,21 @@ const App = () => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
-                <p>Loading...</p>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-teal-200 space-y-4">
+                {/* Static loading image */}
+                <img
+                    src="/images/hello.png"
+                    alt="Loading"
+                    className="w-32 h-auto object-contain"
+                />
+
+                {/* Pulsing text */}
+                <p className="animate-pulse text-lg">Loading...</p>
             </div>
         );
     }
+
+
 
     const identities = homeData?.Accounts?.flatMap((account) => account.Characters) || [];
     const existingAccounts = homeData?.Accounts.flatMap((account) => account.Name) || [];

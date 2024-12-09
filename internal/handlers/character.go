@@ -392,8 +392,10 @@ func (h *CharacterHandler) BackupDirectory(w http.ResponseWriter, r *http.Reques
 
 func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		UserId string `json:"userId"`
-		CharId string `json:"charId"`
+		UserId   string `json:"userId"`
+		CharId   string `json:"charId"`
+		UserName string `json:"userName"`
+		CharName string `json:"charName"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -415,15 +417,17 @@ func (h *CharacterHandler) AssociateCharacter(w http.ResponseWriter, r *http.Req
 	resp := struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
-	}{true, fmt.Sprintf("Character ID %s associated with User ID %s", req.CharId, req.UserId)}
+	}{true, fmt.Sprintf("%s associated with %s", req.CharName, req.UserName)}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
 
 func (h *CharacterHandler) UnassociateCharacter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		UserId string `json:"userId"`
-		CharId string `json:"charId"`
+		UserId   string `json:"userId"`
+		CharId   string `json:"charId"`
+		UserName string `json:"userName"`
+		CharName string `json:"charName"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -445,7 +449,7 @@ func (h *CharacterHandler) UnassociateCharacter(w http.ResponseWriter, r *http.R
 	resp := struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
-	}{true, fmt.Sprintf("Character ID %s has been unassociated from User ID %s", req.CharId, req.UserId)}
+	}{true, fmt.Sprintf("%s has been unassociated from %s", req.CharName, req.UserName)}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }

@@ -1,9 +1,12 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
@@ -200,9 +203,10 @@ func (c *ConfigService) EnsureSettingsDir() error {
 	}
 
 	if configData.SettingsDir != "" {
-		if _, err = os.Stat(configData.SettingsDir); os.IsNotExist(err) {
+		if _, err := os.Stat(configData.SettingsDir); os.IsNotExist(err) {
 			c.logger.Warnf("SettingsDir %s does not exist, attempting to reset to default", configData.SettingsDir)
 		} else {
+			// SettingsDir exists and is accessible
 			return nil
 		}
 	}
@@ -211,18 +215,57 @@ func (c *ConfigService) EnsureSettingsDir() error {
 	if err != nil {
 		return err
 	}
+
 	// Check if default directory exists
-	if _, err := os.Stat(defaultDir); os.IsNotExist(err) {
-		return fmt.Errorf("default directory does not exist: %s", defaultDir)
+	if _, err = os.Stat(defaultDir); os.IsNotExist(err) {
+		// Attempt to find "c_ccp_eve_online_tq_tranquility" starting from the home directory
+		homeDir, homeErr := os.UserHomeDir()
+		if homeErr != nil {
+			return fmt.Errorf("default directory does not exist and failed to get home directory: %v", homeErr)
+		}
+
+		searchPath, findErr := c.findEveSettingsDir(homeDir, "c_ccp_eve_online_tq_tranquility")
+		if findErr != nil {
+			return fmt.Errorf("default directory does not exist and failed to find c_ccp_eve_online_tq_tranquility: %w", findErr)
+		}
+
+		// Found a suitable directory
+		configData.SettingsDir = searchPath
+	} else {
+		// defaultDir exists, use it
+		configData.SettingsDir = defaultDir
 	}
 
-	configData.SettingsDir = defaultDir
-	if err := c.dataStore.SaveConfigData(configData); err != nil {
+	if err = c.dataStore.SaveConfigData(configData); err != nil {
 		return fmt.Errorf("failed to save default SettingsDir: %w", err)
 	}
 
-	c.logger.Infof("Set default SettingsDir to: %s", defaultDir)
+	c.logger.Infof("Set default SettingsDir to: %s", configData.SettingsDir)
 	return nil
+}
+
+// findEveSettingsDir searches recursively starting from startDir for a directory path containing targetName.
+func (c *ConfigService) findEveSettingsDir(startDir, targetName string) (string, error) {
+	var foundPath string
+	err := filepath.Walk(startDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// If we can't access something, just skip it
+			return nil
+		}
+		if info.IsDir() && strings.Contains(path, targetName) {
+			foundPath = path
+			// Stop walking the directory tree once we find a match
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, filepath.SkipDir) {
+		return "", err
+	}
+	if foundPath == "" {
+		return "", fmt.Errorf("no directory containing %q found under %s", targetName, startDir)
+	}
+	return foundPath, nil
 }
 
 func (c *ConfigService) UpdateUserSelections(selections model.UserSelections) error {

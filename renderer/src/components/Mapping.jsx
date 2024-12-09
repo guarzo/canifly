@@ -89,6 +89,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         event.preventDefault();
         const charId = event.dataTransfer.getData('text/plain');
         const char = availableCharacters.find(c => c.charId === charId);
+        const charName = char.name;
 
         if (!char) {
             toast.error('Character not found.');
@@ -112,14 +113,14 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ userId, charId })
+                body: JSON.stringify({ userId, charId, userName, charName })
             });
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
                 // Optimistic update
                 setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
-                const newAssoc = { userId, charId, charName: char.name, mtime: char.mtime };
+                const newAssoc = { userId, charId, charName, mtime: char.mtime };
                 setAssociations(prev => [...prev, newAssoc]);
 
                 // Now request parent to refresh data from server
@@ -155,7 +156,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
-                body: JSON.stringify({ userId, charId })
+                body: JSON.stringify({ userId, charId, userName, charName })
             });
             const result = await response.json();
             if (response.ok && result.success) {

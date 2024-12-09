@@ -21,7 +21,7 @@ const LoginButton = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ account }),
                 credentials: 'include',
-            })
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (data.redirectURL) {
@@ -46,9 +46,14 @@ const LoginButton = () => {
             <button
                 onClick={handleOpenModal}
                 aria-label="Login with Eve SSO"
-                className="inline-flex items-center bg-teal-600 text-white py-3 px-6 rounded-md text-lg font-semibold transition duration-300 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600"
+                className="inline-flex items-center py-3 px-6 rounded-md transition duration-300 hover:bg-teal-700 bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600"
             >
-                <i className="fas fa-sign-in-alt mr-2"></i> Login with Eve SSO
+                {/* Replace text and icon with image */}
+                <img
+                    src="/images/eve-sso.jpg"
+                    alt="Login with Eve SSO"
+                    className="h-16 w-auto object-contain"
+                />
             </button>
             <AccountPromptModal
                 isOpen={modalOpen}
