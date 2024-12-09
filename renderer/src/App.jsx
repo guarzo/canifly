@@ -333,6 +333,7 @@ const App = () => {
     }
 
     const identities = homeData?.Accounts?.flatMap((account) => account.Characters) || [];
+    const existingAccounts = homeData?.Accounts.flatMap((account) => account.Name) || [];
     console.log(homeData)
 
     return (
@@ -344,6 +345,7 @@ const App = () => {
                         loggedIn={isAuthenticated}
                         handleLogout={handleLogout}
                         openSkillPlanModal={openSkillPlanModal}
+                        existingAccounts={existingAccounts}
                     />
                     <main className="flex-grow container mx-auto px-4 py-8">
                         {!isAuthenticated ? (
@@ -390,11 +392,24 @@ const App = () => {
                                 />
                                 <Route
                                     path="/sync"
-                                    element={<Sync settingsData={homeData?.SubDirs || []} />}
+                                    element={
+                                        <Sync
+                                            settingsData={homeData?.SubDirs || []}
+                                            associations={homeData?.associations || []}
+                                            currentSettingsDir={homeData?.SettingsDir || ''}
+                                            isDefaultDir={homeData?.IsDefaultDir ?? false}
+                                            userSelections={homeData?.UserSelections || {}}
+                                        />
+                                    }
                                 />
                                 <Route
                                     path="/mapping"
-                                    element={<Mapping associations={homeData?.Associations || []} subDirs={homeData?.SubDirs || []} />}
+                                    element={
+                                        <Mapping
+                                            associations={homeData?.associations || []}
+                                            subDirs={homeData?.SubDirs || []}
+                                        />
+                                    }
                                 />
                             </Routes>
                         )}

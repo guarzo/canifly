@@ -59,8 +59,6 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 
 		url := auth.GetAuthURL(state)
 
-		// Instead of redirecting, return JSON with the redirectURL
-		// Front-end will do: window.location.href = redirectURL
 		json.NewEncoder(w).Encode(map[string]string{"redirectURL": url})
 	}
 }
@@ -112,6 +110,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			handleErrorWithRedirect(w, r, "/")
 			return
 		}
+		h.logger.Warnf("character is %s", user.CharacterName)
 
 		session, _ := h.sessionService.Get(r, http2.SessionName)
 
@@ -132,14 +131,31 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		// Try to assign character to an existing account
 		var characterAssigned bool
 		err = h.dataStore.UpdateAccounts(func(account *model.Account) error {
-			for i := range account.Characters {
-				if account.Characters[i].Character.CharacterID == user.CharacterID {
-					account.Characters[i].Token = *token
-					characterAssigned = true
-					h.logger.Infof("found character: %d already assigned", user.CharacterID)
-					break
+			if account.Name == state {
+				h.logger.Infof("account match %s", account.Name)
+				for i := range account.Characters {
+					if account.Characters[i].Character.CharacterID == user.CharacterID {
+						account.Characters[i].Token = *token
+						characterAssigned = true
+						h.logger.Infof("found character: %d already assigned", user.CharacterID)
+						break
+					}
+				}
+				if !characterAssigned {
+					h.logger.Infof("adding %s to existing account %s", user.CharacterName, account.Name)
+					newChar := model.CharacterIdentity{
+						Token: *token,
+						Character: model.Character{
+							UserInfoResponse: model.UserInfoResponse{
+								CharacterID:   user.CharacterID,
+								CharacterName: user.CharacterName,
+							},
+						},
+					}
+					account.Characters = append(account.Characters, newChar)
 				}
 			}
+
 			return nil
 		})
 

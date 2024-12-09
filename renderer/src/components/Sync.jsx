@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -34,36 +34,62 @@ const Sync = ({
                   associations,
                   currentSettingsDir,
                   isDefaultDir,
+                  userSelections,
               }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
 
+    // Initialize selections from userSelections or create empty ones if not present
     useEffect(() => {
         if (settingsData && settingsData.length > 0) {
-            const initialSelections = {};
+            const initialSelections = { ...userSelections };
             settingsData.forEach(subDir => {
-                initialSelections[subDir.subDir] = {
-                    charId: '',
-                    userId: '',
-                };
+                if (!initialSelections[subDir.subDir]) {
+                    initialSelections[subDir.subDir] = { charId: '', userId: '' };
+                }
             });
             setSelections(initialSelections);
         }
-    }, [settingsData]);
+    }, [settingsData, userSelections]);
 
     const getCharacterNameById = (charId) => {
         const assoc = associations.find(a => a.charId === charId);
         return assoc ? assoc.charName : 'Unknown';
     };
 
-    const handleSelectionChange = (subDir, field, value) => {
-        setSelections(prev => ({
-            ...prev,
-            [subDir]: {
-                ...prev[subDir],
-                [field]: value,
+    const saveUserSelections = useCallback(async (newSelections) => {
+        try {
+            const response = await fetch('/api/save-user-selections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(newSelections),
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                // Successfully saved selections
+            } else {
+                toast.error('Failed to save user selections.');
             }
-        }));
+        } catch (error) {
+            console.error('Error saving user selections:', error);
+            toast.error('An error occurred while saving user selections.');
+        }
+    }, []);
+
+    const handleSelectionChange = (subDir, field, value) => {
+        setSelections(prev => {
+            const updated = {
+                ...prev,
+                [subDir]: {
+                    ...prev[subDir],
+                    [field]: value,
+                }
+            };
+            // Save updated selections to backend
+            saveUserSelections(updated);
+            return updated;
+        });
     };
 
     const handleSync = async (subDir) => {
@@ -97,7 +123,6 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // No data refetch needed; just show success message
             } else {
                 toast.error(`Sync failed: ${result.message}`);
             }
@@ -139,7 +164,6 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // No data refetch needed; just show success message
             } else {
                 toast.error(`Sync-All failed: ${result.message}`);
             }
@@ -161,7 +185,6 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Settings directory chosen');
-                // If needed, update local state or just show success message
             } else {
                 toast.error('Failed to choose settings directory.');
             }
@@ -194,7 +217,6 @@ const Sync = ({
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Directory reset to default: Tranquility');
-                // If needed, update local state or just show success message
             } else {
                 toast.error(`Failed to reset directory: ${result.message}`);
             }
@@ -581,6 +603,7 @@ Sync.propTypes = {
     ).isRequired,
     currentSettingsDir: PropTypes.string.isRequired,
     isDefaultDir: PropTypes.bool.isRequired,
+    userSelections: PropTypes.object.isRequired,
 };
 
 export default Sync;

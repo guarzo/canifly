@@ -20,26 +20,24 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     useEffect(() => {
         if (!subDirs.length) return;
 
-        // Determine unique accounts
-        const subDirToLatestUserId = {};
+        // Collect ALL user files from all subDirs first
+        const allUserFiles = [];
         subDirs.forEach(mapping => {
             mapping.availableUserFiles.forEach(userFile => {
-                const { userId, mtime, name } = userFile;
-                if (!subDirToLatestUserId[mapping.subDir] ||
-                    new Date(userFile.mtime) > new Date(subDirToLatestUserId[mapping.subDir].mtime)) {
-                    subDirToLatestUserId[mapping.subDir] = { userId, mtime, name };
-                }
+                allUserFiles.push(userFile);
             });
         });
 
-        const uniqueAccountsMap = {};
-        Object.values(subDirToLatestUserId).forEach(({ userId, mtime, name }) => {
-            if (!uniqueAccountsMap[userId] || new Date(mtime) > new Date(uniqueAccountsMap[userId].mtime)) {
-                uniqueAccountsMap[userId] = { userId, mtime, name };
+        // Deduplicate by userId, choose the user file with the latest mtime per userId
+        const userMap = {};
+        allUserFiles.forEach(userFile => {
+            const { userId, mtime } = userFile;
+            if (!userMap[userId] || new Date(mtime) > new Date(userMap[userId].mtime)) {
+                userMap[userId] = userFile;
             }
         });
 
-        const uniqueAccounts = Object.values(uniqueAccountsMap);
+        const uniqueAccounts = Object.values(userMap);
         setMappings(uniqueAccounts);
 
         processAvailableCharacters(subDirs, associations);
@@ -49,6 +47,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     const processAvailableCharacters = (mappingsData, associationsData) => {
         const associatedCharIds = new Set(associationsData.map(a => a.charId));
 
+        // Flatten all characters from subDirs
         const availableChars = mappingsData
             .flatMap(mapping =>
                 mapping.availableCharFiles.map(char => ({
@@ -73,14 +72,14 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
 
     const assignColors = (mappingsData) => {
         const predefinedColors = ['#4caf50', '#f44336', '#ff9800', '#9c27b0', '#00bcd4', '#e91e63'];
-        const uniqueMtims = new Set(
+        const uniqueTimes = new Set(
             mappingsData.flatMap(mapping => [
                 ...mapping.availableUserFiles.map(user => user.mtime),
                 ...mapping.availableCharFiles.map(char => char.mtime),
             ])
         );
 
-        const colorMapping = Array.from(uniqueMtims).reduce((acc, mtime, index) => {
+        const colorMapping = Array.from(uniqueTimes).reduce((acc, mtime, index) => {
             acc[mtime] = predefinedColors[index % predefinedColors.length];
             return acc;
         }, {});
@@ -126,10 +125,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                 toast.success(result.message);
 
                 // Update local state:
-                // Remove the character from availableCharacters
                 setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
-
-                // Add a new association
                 const charName = char.name;
                 const newAssoc = { userId, charId, charName, mtime: char.mtime };
                 setAssociations(prev => [...prev, newAssoc]);
@@ -169,14 +165,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                 toast.success(result.message);
 
                 // Update local state:
-                // Remove the association
                 setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
-
-                // Add character back to availableCharacters if known
-                // Since we might not have its subDir or mtime easily, let's just do nothing
-                // OR if we had saved it somewhere, we can re-fetch or store it previously.
-                // For now, we won't add it back since we don't have its file info.
-                // If you need to restore the char, you'd have to store its info before unassociating.
             } else {
                 toast.error(`Unassociation failed: ${result.message}`);
             }

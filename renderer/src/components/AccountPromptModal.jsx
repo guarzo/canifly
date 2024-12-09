@@ -1,34 +1,115 @@
-// AccountPromptModal.jsx
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { IconButton, Select, MenuItem, TextField } from '@mui/material';
+import { Check as CheckIcon } from '@mui/icons-material';
 
-const AccountPromptModal = ({ isOpen, onClose, onSubmit, title }) => {
+const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts }) => {
     const [account, setAccount] = useState('');
+    const [isAddingAccount, setIsAddingAccount] = useState(false);
+    const [newAccount, setNewAccount] = useState('');
 
-    const handleSubmit = () => {
-        if (!account) {
-            // Optionally show a toast error
-            return;
+    useEffect(() => {
+        // Reset state when modal opens/closes
+        if (!isOpen) {
+            setAccount('');
+            setIsAddingAccount(false);
+            setNewAccount('');
         }
-        onSubmit(account);
-        setAccount(''); // reset
+    }, [isOpen]);
+
+    const handleAccountChange = (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === 'add_new_account') {
+            setIsAddingAccount(true);
+            setAccount('');
+        } else {
+            setIsAddingAccount(false);
+            setAccount(selectedValue);
+        }
     };
 
-    if (!isOpen) {
-        return null;
-    }
+    const handleAddAccount = () => {
+        if (newAccount.trim() !== '') {
+            const trimmed = newAccount.trim();
+            setAccount(trimmed);
+            setIsAddingAccount(false);
+            setNewAccount('');
+        }
+    };
+
+    const handleSubmit = () => {
+        if (isAddingAccount) {
+            // If we're adding a new account, ensure it has a name
+            if (!account) return;
+        } else {
+            // If using an existing account
+            if (!account) return;
+        }
+
+        onSubmit(account);
+        setAccount('');
+        setIsAddingAccount(false);
+        setNewAccount('');
+    };
+
+    if (!isOpen) return null;
+
+    const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-gray-800 text-teal-200 p-6 rounded shadow-md w-80">
                 <h2 className="mb-4 text-lg font-semibold">{title || 'Enter Account Name'}</h2>
-                <input
-                    type="text"
-                    className="w-full px-3 py-2 mb-4 border border-gray-600 rounded-md bg-gray-700 text-teal-200"
-                    placeholder="Account Name"
-                    value={account}
-                    onChange={(e) => setAccount(e.target.value)}
-                />
+                {hasExistingAccounts && !isAddingAccount && (
+                    <div className="mb-4">
+                        <Select
+                            value={account || ''}
+                            onChange={handleAccountChange}
+                            displayEmpty
+                            fullWidth
+                            sx={{
+                                backgroundColor: 'background.paper',
+                                borderRadius: 1,
+                                '& .MuiSelect-select': {
+                                    padding: '10px 14px',
+                                },
+                            }}
+                        >
+                            <MenuItem value="" disabled>
+                                Select Account
+                            </MenuItem>
+                            {existingAccounts.map((acc) => (
+                                <MenuItem key={acc} value={acc}>
+                                    {acc}
+                                </MenuItem>
+                            ))}
+                            <MenuItem value="add_new_account">Add New Account</MenuItem>
+                        </Select>
+                    </div>
+                )}
+
+                {(!hasExistingAccounts || isAddingAccount) && (
+                    <div className="mb-4 flex items-center space-x-2">
+                        <TextField
+                            size="small"
+                            value={isAddingAccount ? newAccount : account}
+                            onChange={(e) => isAddingAccount ? setNewAccount(e.target.value) : setAccount(e.target.value)}
+                            placeholder="Enter account name"
+                            fullWidth
+                            sx={{
+                                '& .MuiInputBase-root': {
+                                    padding: '2px',
+                                },
+                            }}
+                        />
+                        {isAddingAccount && (
+                            <IconButton onClick={handleAddAccount} size="small" color="primary">
+                                <CheckIcon fontSize="small" />
+                            </IconButton>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex justify-end space-x-3">
                     <button
                         onClick={onClose}
@@ -53,6 +134,7 @@ AccountPromptModal.propTypes = {
     onClose: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,
     title: PropTypes.string,
+    existingAccounts: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default AccountPromptModal;

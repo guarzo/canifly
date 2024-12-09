@@ -64,13 +64,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                     >
                         <ListItemText
                             primary={`${assoc.charName}`}
-                            secondary={
-                                assoc.mtime
-                                    ? formatDate(assoc.mtime)
-                                    : 'Date not available'
-                            }
                             primaryTypographyProps={{ color: 'text.primary' }}
-                            secondaryTypographyProps={{ color: 'text.secondary' }}
                         />
                     </ListItem>
                 ))}

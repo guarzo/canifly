@@ -38,7 +38,7 @@ const StyledAppBar = styled(AppBar)(() => ({
     borderBottom: '4px solid #14b8a6',
 }));
 
-const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
+const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -180,6 +180,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal }) => {
                 isOpen={modalOpen}
                 onClose={handleCloseModal}
                 onSubmit={handleAddCharacterSubmit}
+                existingAccounts={existingAccounts}
                 title="Add Character - Enter Account Name"
             />
         </>
@@ -190,6 +191,7 @@ Header.propTypes = {
     loggedIn: PropTypes.bool.isRequired,
     handleLogout: PropTypes.func.isRequired,
     openSkillPlanModal: PropTypes.func.isRequired,
+    existingAccounts: PropTypes.array.isRequired,
 };
 
 export default Header;

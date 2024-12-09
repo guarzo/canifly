@@ -66,7 +66,7 @@ func (ds *DataStore) UpdateAccounts(updateFunc func(*model.Account) error) error
 	}
 
 	for i := range accounts {
-		if err := updateFunc(&accounts[i]); err != nil {
+		if err = updateFunc(&accounts[i]); err != nil {
 			ds.logger.WithError(err).Errorf("Error updating account at index %d", i)
 			return err
 		}
