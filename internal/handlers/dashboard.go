@@ -47,13 +47,16 @@ func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 			return
 		}
 
-		storeData, etag, canSkip := checkIfCanSkip(session, sessionValues, r)
-
-		if canSkip {
+		storeData, etag, ok := h.dataStore.GetAppState()
+		if ok {
+			// If we have something cached, return it immediately.
+			// The front-end will have something to display instantly.
 			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(storeData); err != nil {
-				http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
-			}
+			_ = json.NewEncoder(w).Encode(storeData)
+
+			// In the background, trigger a refresh of data without blocking the response
+			go h.refreshDataInBackground(session, sessionValues, w, r)
+
 			return
 		}
 
@@ -66,7 +69,7 @@ func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 
 		data := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
 
-		_, err = updateStoreAndSession(data, etag, session, r, w)
+		_, err = updateStoreAndSession(data, etag, session, h.dataStore, r, w)
 		if err != nil {
 			h.logger.Errorf("Failed to update persist and session: %v", err)
 			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)
@@ -79,6 +82,68 @@ func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func (h *DashboardHandler) GetDashboardDataNoCache() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, _ := h.sessionService.Get(r, http2.SessionName)
+		sessionValues := http2.GetSessionValues(session)
+
+		if sessionValues.LoggedInUser == 0 {
+			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusUnauthorized)
+			return
+		}
+
+		storeData, etag, _ := h.dataStore.GetAppState()
+
+		accounts, err := h.validateAccounts(session, storeData)
+		if err != nil {
+			h.logger.Errorf("Failed to validate accounts: %v", err)
+			http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
+			return
+		}
+
+		data := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
+
+		_, err = updateStoreAndSession(data, etag, session, h.dataStore, r, w)
+		if err != nil {
+			h.logger.Errorf("Failed to update persist and session: %v", err)
+			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *DashboardHandler) refreshDataInBackground(session *sessions.Session, sessionValues http2.SessionValues, w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Refreshing data in background...")
+
+	storeData, etag, canSkip := checkIfCanSkip(session, sessionValues, h.dataStore)
+	if canSkip {
+		h.logger.Info("background refresh not needed")
+	}
+
+	// Re-validate accounts and re-prepare data
+	accounts, err := h.validateAccounts(session, storeData)
+	if err != nil {
+		h.logger.Errorf("Failed in background refresh: %v", err)
+		return
+	}
+
+	updatedData := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
+
+	// Update the store
+	_, err = updateStoreAndSession(updatedData, etag, session, h.dataStore, r, w)
+	if err != nil {
+		h.logger.Errorf("Failed to update persist and session: %v", err)
+	}
+
+	h.logger.Info("Background refresh complete")
 }
 
 // validateAccounts is now a method on DashboardHandler, allowing access to h.esiService.

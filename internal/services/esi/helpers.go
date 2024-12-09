@@ -5,6 +5,7 @@ package esi
 import (
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/auth"
-	errors2 "github.com/guarzo/canifly/internal/errors"
+	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/persist"
 )
 
@@ -35,7 +36,7 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 		}
 
 		// Retry only on specific error types
-		var customErr *errors2.CustomError
+		var customErr *flyErrors.CustomError
 		if !errors.As(err, &customErr) || (customErr.StatusCode != http.StatusServiceUnavailable && customErr.StatusCode != http.StatusGatewayTimeout) && customErr.StatusCode != http.StatusInternalServerError {
 			break
 		}
@@ -86,7 +87,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 		return makeRequest(url, newToken)
 	}
 
-	if customErr, exists := errors2.HttpStatusErrors[resp.StatusCode]; exists {
+	if customErr, exists := flyErrors.HttpStatusErrors[resp.StatusCode]; exists {
 		return nil, customErr
 	}
 
@@ -96,7 +97,7 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors2.NewCustomError(resp.StatusCode, "failed request")
+		return nil, flyErrors.NewCustomError(resp.StatusCode, "failed request")
 	}
 
 	return bodyBytes, nil
@@ -126,10 +127,13 @@ func getResults(address string, token *oauth2.Token) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token, dataStore *persist.DataStore) ([]byte, error) {
+func getResultsWithCache(address string, token *oauth2.Token, dataStore *persist.DataStore, logger *logrus.Logger) ([]byte, error) {
 	// Check the cache first
 	if cachedData, found := dataStore.GetFromCache(address); found {
+		logger.Infof("using cache data for call to %s", address)
 		return cachedData, nil // Return cached data
+	} else {
+		logger.Infof("no cache data found for call to %s", address)
 	}
 
 	bodyBytes, err := getResults(address, token)

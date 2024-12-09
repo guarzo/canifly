@@ -10,50 +10,15 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
-var Store *UIDataStore
-
-// UIDataStore stores AppState in memory
-type UIDataStore struct {
+// DataStore now holds a global AppState in memory along with its ETag
+// protected by a mutex.
+type AppStateStore struct {
 	sync.RWMutex
-	store map[int64]model.AppState
-	ETag  string
+	appState model.AppState
+	ETag     string
 }
 
-// NewUIDataStore creates a new UIDataStore
-func NewUIDataStore() *UIDataStore {
-	return &UIDataStore{
-		store: make(map[int64]model.AppState),
-		ETag:  "",
-	}
-}
-
-func (s *UIDataStore) Set(id int64, homeData model.AppState) (string, error) {
-	s.Lock()
-	defer s.Unlock()
-	s.store[id] = homeData
-
-	etag, err := GenerateETag(homeData)
-	if err != nil {
-		return "", err
-	}
-	s.ETag = etag
-	return etag, nil
-}
-
-func (s *UIDataStore) Get(id int64) (model.AppState, string, bool) {
-	s.RLock()
-	defer s.RUnlock()
-	homeData, ok := s.store[id]
-	return homeData, s.ETag, ok
-}
-
-// Delete removes an identity from the persist
-func (s *UIDataStore) Delete(id int64) {
-	s.Lock()
-	defer s.Unlock()
-	delete(s.store, id)
-}
-
+// GenerateETag computes a hash of the AppState
 func GenerateETag(homeData model.AppState) (string, error) {
 	data, err := json.Marshal(homeData)
 	if err != nil {
@@ -64,6 +29,37 @@ func GenerateETag(homeData model.AppState) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func init() {
-	Store = NewUIDataStore()
+// SetAppState updates the in-memory AppState and computes a new ETag.
+func (ds *DataStore) SetAppState(homeData model.AppState) (string, error) {
+	ds.appStateStore.Lock()
+	defer ds.appStateStore.Unlock()
+	ds.appStateStore.appState = homeData
+
+	etag, err := GenerateETag(homeData)
+	if err != nil {
+		return "", err
+	}
+	ds.appStateStore.ETag = etag
+	return etag, nil
+}
+
+// GetAppState returns the currently stored AppState and its ETag.
+// The boolean indicates if a state has been set yet (if empty, false).
+func (ds *DataStore) GetAppState() (model.AppState, string, bool) {
+	ds.appStateStore.RLock()
+	defer ds.appStateStore.RUnlock()
+	// Check if appState is "empty" by some logic, for example if no accounts and title empty
+	// or if we just rely on the fact that ETag is empty if nothing stored yet.
+	if ds.appStateStore.ETag == "" {
+		return model.AppState{}, "", false
+	}
+	return ds.appStateStore.appState, ds.appStateStore.ETag, true
+}
+
+// ClearAppState removes the stored AppState
+func (ds *DataStore) ClearAppState() {
+	ds.appStateStore.Lock()
+	defer ds.appStateStore.Unlock()
+	ds.appStateStore.appState = model.AppState{}
+	ds.appStateStore.ETag = ""
 }

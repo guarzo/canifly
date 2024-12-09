@@ -63,9 +63,9 @@ func clearSession(s *http2.SessionService, w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues, r *http.Request) (model.AppState, string, bool) {
+func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues, dataStore *persist.DataStore) (model.AppState, string, bool) {
 	canSkip := true
-	storeData, etag, ok := persist.Store.Get(sessionValues.LoggedInUser)
+	storeData, etag, ok := dataStore.GetAppState()
 	if !ok {
 		canSkip = false
 	}
@@ -79,15 +79,6 @@ func checkIfCanSkip(session *sessions.Session, sessionValues http2.SessionValues
 		canSkip = false
 	}
 	return storeData, etag, canSkip
-}
-
-func getConfigData(logger *logrus.Logger, dataStore *persist.DataStore) model.ConfigData {
-	config, err := dataStore.FetchConfigData()
-	if err != nil {
-		logger.Errorf("error retrieving config data")
-		return model.ConfigData{}
-	}
-	return *config
 }
 
 func prepareAppData(
@@ -131,7 +122,7 @@ func prepareAppData(
 	}
 }
 
-func updateStoreAndSession(data model.AppState, etag string, session *sessions.Session, r *http.Request, w http.ResponseWriter) (string, error) {
+func updateStoreAndSession(data model.AppState, etag string, session *sessions.Session, dataStore *persist.DataStore, r *http.Request, w http.ResponseWriter) (string, error) {
 	newEtag, err := persist.GenerateETag(data)
 	if err != nil {
 		return etag, fmt.Errorf("failed to generate etag: %w", err)
@@ -143,9 +134,13 @@ func updateStoreAndSession(data model.AppState, etag string, session *sessions.S
 	}
 
 	if newEtag != etag {
-		etag, err = persist.Store.Set(loggedIn, data)
+		etag, err = dataStore.SetAppState(data)
 		if err != nil {
 			return etag, fmt.Errorf("failed to update persist: %w", err)
+		}
+		err = dataStore.SaveAppStateSnapshot(data)
+		if err != nil {
+			return etag, fmt.Errorf("failed to update saved app state: %w", err)
 		}
 	}
 

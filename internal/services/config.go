@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
+	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/esi"
@@ -154,13 +157,29 @@ func (c *ConfigService) LoadCharacterSettings() ([]model.SubDirData, error) {
 
 func (c *ConfigService) fetchESINames(charIds []string) (map[string]string, error) {
 	charIdToName := make(map[string]string)
+	deletedChars, err := c.dataStore.FetchDeletedCharacters()
+	if err != nil {
+		c.logger.WithError(err).Infof("fetch esi names runnnig without deleted characters info")
+	}
 	for _, id := range charIds {
+		if slices.Contains(deletedChars, id) {
+			continue
+		}
 		character, err := c.esi.GetCharacter(id) // Assuming c.esi.GetCharacter(id) returns (Character, error)
 		if err != nil {
 			c.logger.Warnf("failed to retrieve name for %s", id)
+			var customErr *flyErrors.CustomError
+			if errors.As(err, &customErr) && customErr.StatusCode == http.StatusNotFound {
+				c.logger.Infof("adding %s to deleted characters", id)
+				deletedChars = append(deletedChars, id)
+			}
 		} else {
 			charIdToName[id] = character.Name
 		}
+	}
+	err = c.dataStore.SaveDeletedCharacters(deletedChars)
+	if err != nil {
+		c.logger.Infof("failed to save deleted characters %v", err)
 	}
 	return charIdToName, nil
 }

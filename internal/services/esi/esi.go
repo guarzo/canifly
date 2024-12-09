@@ -129,7 +129,7 @@ func (s *esiService) GetCharacter(id string) (*model.CharacterResponse, error) {
 func (s *esiService) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skills/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore, s.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *esiService) GetCharacterSkills(characterID int64, token *oauth2.Token) 
 func (s *esiService) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/skillqueue/?datasource=tranquility", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore, s.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/location/?datasource=tranquility", characterID)
 	s.logger.Infof("Getting character location for %d", characterID)
 
-	bodyBytes, err := getResultsWithCache(url, token, s.dataStore)
+	bodyBytes, err := getResultsWithCache(url, token, s.dataStore, s.logger)
 	if err != nil {
 		return 0, err
 	}

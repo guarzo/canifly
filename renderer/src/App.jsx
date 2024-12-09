@@ -38,6 +38,7 @@ const App = () => {
                 const data = await response.json();
                 setHomeData(data);
                 setIsAuthenticated(true);
+                fetchHomeDataNoCache()
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || 'An unexpected error occurred.');
@@ -48,6 +49,29 @@ const App = () => {
                 // it's expected behavior and can be silently ignored.
                 console.error('Error fetching home data:', error);
                 toast.error('Failed to load data. Please try again later.');
+            }
+        }
+    };
+
+    const fetchHomeDataNoCache= async () => {
+        try {
+            const response = await fetch('/api/home-data-no-cache', {
+                credentials: 'include', // Include cookies for authentication
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setHomeData(data);
+                setIsAuthenticated(true);
+            } else {
+                const errorData = await response.json();
+                console.log(errorData.error)
+            }
+        } catch (error) {
+            if (isAuthenticated) {
+                // Only show this if the user is authenticated. If they're not authenticated,
+                // it's expected behavior and can be silently ignored.
+                console.error('Error fetching no cache home data:', error);
             }
         }
     };
@@ -97,7 +121,7 @@ const App = () => {
 
     const silentRefreshData = async () => {
         try {
-            await Promise.all([fetchHomeData(), fetchUnassignedCharacters()]);
+            await Promise.all([fetchHomeDataNoCache(), fetchUnassignedCharacters()]);
             // No isLoading changes here, just update the state once data is loaded.
         } catch (error) {
             if (isAuthenticated) {

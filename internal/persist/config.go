@@ -56,7 +56,7 @@ func (ds *DataStore) FetchConfigData() (*model.ConfigData, error) {
 }
 
 func (ds *DataStore) getConfigDataFileName() string {
-	identityPath, err := ds.getWritableIdentityPath()
+	identityPath, err := ds.GetWriteablePath()
 	if err != nil {
 		ds.logger.WithError(err).Error("Error retrieving writable data path for config")
 		return ""
@@ -240,7 +240,7 @@ func (ds *DataStore) LoadUserSelections() (model.UserSelections, error) {
 }
 
 func (ds *DataStore) getUserSelectionsFilePath() (string, error) {
-	identityPath, err := ds.getWritableIdentityPath()
+	identityPath, err := ds.GetWriteablePath()
 	if err != nil {
 		return "", err
 	}

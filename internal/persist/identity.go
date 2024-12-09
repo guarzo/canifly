@@ -116,7 +116,7 @@ func (ds *DataStore) loadData(inputFile string, data interface{}) error {
 }
 
 func (ds *DataStore) getAccountFileName() string {
-	identityPath, err := ds.getWritableIdentityPath()
+	identityPath, err := ds.GetWriteablePath()
 	if err != nil {
 		ds.logger.WithError(err).Error("Error retrieving writable identity path")
 		return ""
@@ -125,7 +125,7 @@ func (ds *DataStore) getAccountFileName() string {
 }
 
 func (ds *DataStore) getUnassignedCharactersFileName() string {
-	identityPath, err := ds.getWritableIdentityPath()
+	identityPath, err := ds.GetWriteablePath()
 	if err != nil {
 		ds.logger.WithError(err).Error("Error retrieving writable identity path for unassigned chars")
 		return ""
@@ -133,7 +133,7 @@ func (ds *DataStore) getUnassignedCharactersFileName() string {
 	return filepath.Join(identityPath, "unassigned_characters.json")
 }
 
-func (ds *DataStore) getWritableIdentityPath() (string, error) {
+func (ds *DataStore) GetWriteablePath() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
