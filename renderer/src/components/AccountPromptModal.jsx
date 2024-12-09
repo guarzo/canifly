@@ -20,6 +20,7 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
     const handleAccountChange = (event) => {
         const selectedValue = event.target.value;
         if (selectedValue === 'add_new_account') {
+            // Switch to adding a new account
             setIsAddingAccount(true);
             setAccount('');
         } else {
@@ -38,15 +39,10 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
     };
 
     const handleSubmit = () => {
-        if (isAddingAccount) {
-            // If we're adding a new account, ensure it has a name
-            if (!account) return;
-        } else {
-            // If using an existing account
-            if (!account) return;
-        }
-
-        onSubmit(account);
+        const finalAccount = isAddingAccount ? newAccount.trim() : account;
+        if (!finalAccount) return; // Ensure we have an account name
+        onSubmit(finalAccount);
+        // Reset after submit
         setAccount('');
         setIsAddingAccount(false);
         setNewAccount('');
@@ -60,7 +56,8 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-gray-800 text-teal-200 p-6 rounded shadow-md w-80">
                 <h2 className="mb-4 text-lg font-semibold">{title || 'Enter Account Name'}</h2>
-                {hasExistingAccounts && !isAddingAccount && (
+
+                {!isAddingAccount && hasExistingAccounts && (
                     <div className="mb-4">
                         <Select
                             value={account || ''}
@@ -93,7 +90,9 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
                         <TextField
                             size="small"
                             value={isAddingAccount ? newAccount : account}
-                            onChange={(e) => isAddingAccount ? setNewAccount(e.target.value) : setAccount(e.target.value)}
+                            onChange={(e) =>
+                                isAddingAccount ? setNewAccount(e.target.value) : setAccount(e.target.value)
+                            }
                             placeholder="Enter account name"
                             fullWidth
                             sx={{

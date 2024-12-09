@@ -130,8 +130,10 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 
 		// Try to assign character to an existing account
 		var characterAssigned bool
+		var accountMatched bool
 		err = h.dataStore.UpdateAccounts(func(account *model.Account) error {
 			if account.Name == state {
+				accountMatched = true
 				h.logger.Infof("account match %s", account.Name)
 				for i := range account.Characters {
 					if account.Characters[i].Character.CharacterID == user.CharacterID {
@@ -155,11 +157,15 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 					account.Characters = append(account.Characters, newChar)
 				}
 			}
+			h.logger.Warnf("completed update accounts, account match %v, character assigned %v", accountMatched, characterAssigned)
+			if !accountMatched {
+				return flyErrors.ErrNoAccounts
+			}
 
 			return nil
 		})
 
-		if err != nil && !characterAssigned {
+		if err != nil {
 			if errors.Is(err, flyErrors.ErrNoAccounts) {
 				// No accounts found, create a new one
 				if state == "" {

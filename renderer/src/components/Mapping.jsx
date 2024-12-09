@@ -11,7 +11,7 @@ import CharacterCard from './MapCharacterCard';
 const MySwal = withReactContent(Swal);
 
 const Mapping = ({ associations: initialAssociations, subDirs }) => {
-    const [mappings, setMappings] = useState([]);
+    const [accounts, setAccounts] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [associations, setAssociations] = useState(initialAssociations);
     const [isLoading, setIsLoading] = useState(false);
@@ -20,66 +20,56 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     useEffect(() => {
         if (!subDirs.length) return;
 
-        // Collect ALL user files from all subDirs first
-        const allUserFiles = [];
+        // Deduplicate accounts by userId, choosing the userFile with latest mtime
+        const userMap = {};
         subDirs.forEach(mapping => {
             mapping.availableUserFiles.forEach(userFile => {
-                allUserFiles.push(userFile);
+                const { userId, mtime } = userFile;
+                if (!userMap[userId] || new Date(mtime) > new Date(userMap[userId].mtime)) {
+                    userMap[userId] = userFile;
+                }
             });
         });
 
-        // Deduplicate by userId, choose the user file with the latest mtime per userId
-        const userMap = {};
-        allUserFiles.forEach(userFile => {
-            const { userId, mtime } = userFile;
-            if (!userMap[userId] || new Date(mtime) > new Date(userMap[userId].mtime)) {
-                userMap[userId] = userFile;
-            }
+        // Convert userMap to array and sort by descending mtime
+        const uniqueAccounts = Object.values(userMap).sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+        setAccounts(uniqueAccounts);
+
+        // Deduplicate chars by charId, choosing the charFile with latest mtime
+        const charMap = {};
+        subDirs.forEach(mapping => {
+            mapping.availableCharFiles.forEach(charFile => {
+                const { charId, mtime } = charFile;
+                if (!charMap[charId] || new Date(mtime) > new Date(charMap[charId].mtime)) {
+                    charMap[charId] = { ...charFile, subDir: mapping.subDir };
+                }
+            });
         });
 
-        const uniqueAccounts = Object.values(userMap);
-        setMappings(uniqueAccounts);
+        // Filter out associated chars and sort by descending mtime
+        const associatedCharIds = new Set(associations.map(a => a.charId));
+        const uniqueChars = Object.values(charMap)
+            .filter(ch => !associatedCharIds.has(ch.charId))
+            .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+        setAvailableCharacters(uniqueChars);
 
-        processAvailableCharacters(subDirs, associations);
-        assignColors(subDirs);
+        assignColors(uniqueAccounts, uniqueChars);
     }, [subDirs, associations]);
 
-    const processAvailableCharacters = (mappingsData, associationsData) => {
-        const associatedCharIds = new Set(associationsData.map(a => a.charId));
-
-        // Flatten all characters from subDirs
-        const availableChars = mappingsData
-            .flatMap(mapping =>
-                mapping.availableCharFiles.map(char => ({
-                    ...char,
-                    subDir: mapping.subDir,
-                }))
-            )
-            .filter(char => !associatedCharIds.has(char.charId))
-            .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
-
-        const uniqueAvailableChars = [];
-        const seenCharIds = new Set();
-        for (const char of availableChars) {
-            if (!seenCharIds.has(char.charId)) {
-                uniqueAvailableChars.push(char);
-                seenCharIds.add(char.charId);
-            }
-        }
-
-        setAvailableCharacters(uniqueAvailableChars);
-    };
-
-    const assignColors = (mappingsData) => {
+    const assignColors = (uniqueAccounts, uniqueChars) => {
         const predefinedColors = ['#4caf50', '#f44336', '#ff9800', '#9c27b0', '#00bcd4', '#e91e63'];
-        const uniqueTimes = new Set(
-            mappingsData.flatMap(mapping => [
-                ...mapping.availableUserFiles.map(user => user.mtime),
-                ...mapping.availableCharFiles.map(char => char.mtime),
-            ])
-        );
 
-        const colorMapping = Array.from(uniqueTimes).reduce((acc, mtime, index) => {
+        // Extract mtimes from both accounts and chars
+        const accountMtimes = uniqueAccounts.map(a => a.mtime);
+        const charMtimes = uniqueChars.map(c => c.mtime);
+        const allMtimes = [...accountMtimes, ...charMtimes];
+
+        const uniqueMtimes = Array.from(new Set(allMtimes));
+
+        // Sort mtimes so that color assignment is stable
+        uniqueMtimes.sort((a, b) => new Date(a) - new Date(b));
+
+        const colorMapping = uniqueMtimes.reduce((acc, mtime, index) => {
             acc[mtime] = predefinedColors[index % predefinedColors.length];
             return acc;
         }, {});
@@ -125,7 +115,10 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                 toast.success(result.message);
 
                 // Update local state:
+                // Remove the character from availableCharacters
                 setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
+
+                // Add a new association
                 const charName = char.name;
                 const newAssoc = { userId, charId, charName, mtime: char.mtime };
                 setAssociations(prev => [...prev, newAssoc]);
@@ -187,9 +180,9 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                 ) : (
                     <Grid container spacing={4}>
                         <Grid item xs={12} md={6}>
-                            {mappings.map(mapping => (
+                            {accounts.map(mapping => (
                                 <AccountCard
-                                    key={mapping.userId}
+                                    key={`${mapping.userId}-${mapping.mtime}`}
                                     mapping={mapping}
                                     associations={associations}
                                     handleUnassociate={handleUnassociate}
@@ -202,7 +195,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                             <Grid container spacing={2}>
                                 {availableCharacters.length ? (
                                     availableCharacters.map(char => (
-                                        <Grid item xs={12} sm={6} key={char.charId}>
+                                        <Grid item xs={12} sm={6} key={`${char.charId}-${char.mtime}`}>
                                             <CharacterCard
                                                 char={char}
                                                 handleDragStart={handleDragStart}
