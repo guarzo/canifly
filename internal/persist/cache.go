@@ -58,7 +58,7 @@ func (c *Cache) SaveToFile(filename string, logger *logrus.Logger) error {
 		return err
 	}
 
-	logger.Infof("Cache saved to %s", filename)
+	logger.Debugf("Cache saved to %s", filename)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func (c *Cache) LoadFromFile(filename string, logger *logrus.Logger) error {
 			logger.Infof("Skipping expired cache item: %s", k)
 		}
 	}
-	logger.Infof("Cache successfully loaded from file: %s", filename)
+	logger.Debugf("Cache successfully loaded from file: %s", filename)
 	return nil
 }
 

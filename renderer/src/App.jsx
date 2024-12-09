@@ -408,6 +408,7 @@ const App = () => {
                         handleLogout={handleLogout}
                         openSkillPlanModal={openSkillPlanModal}
                         existingAccounts={existingAccounts}
+                        onSilentRefresh={silentRefreshData}
                     />
                     <main className="flex-grow container mx-auto px-4 py-8">
                         {!isAuthenticated ? (

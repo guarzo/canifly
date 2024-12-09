@@ -34,7 +34,7 @@ func NewConfigService(logger *logrus.Logger, dataStore *persist.DataStore, e esi
 func (c *ConfigService) UpdateRoles(newRole string) error {
 	configData, err := c.dataStore.FetchConfigData()
 	if err != nil {
-		c.logger.Infof("error fetching config data %v", configData)
+		c.logger.Warnf("error fetching config data %v", configData)
 		return nil
 	}
 
@@ -43,7 +43,7 @@ func (c *ConfigService) UpdateRoles(newRole string) error {
 	for _, role := range configData.Roles {
 		if role == newRole {
 			roleExists = true
-			c.logger.Infof("role exists %s", newRole)
+			c.logger.Debugf("role exists %s", newRole)
 			break
 		}
 	}
@@ -170,7 +170,7 @@ func (c *ConfigService) fetchESINames(charIds []string) (map[string]string, erro
 			c.logger.Warnf("failed to retrieve name for %s", id)
 			var customErr *flyErrors.CustomError
 			if errors.As(err, &customErr) && customErr.StatusCode == http.StatusNotFound {
-				c.logger.Infof("adding %s to deleted characters", id)
+				c.logger.Warnf("adding %s to deleted characters", id)
 				deletedChars = append(deletedChars, id)
 			}
 		} else {
@@ -179,7 +179,7 @@ func (c *ConfigService) fetchESINames(charIds []string) (map[string]string, erro
 	}
 	err = c.dataStore.SaveDeletedCharacters(deletedChars)
 	if err != nil {
-		c.logger.Infof("failed to save deleted characters %v", err)
+		c.logger.Warnf("failed to save deleted characters %v", err)
 	}
 	return charIdToName, nil
 }
@@ -259,7 +259,7 @@ func (c *ConfigService) EnsureSettingsDir() error {
 		return fmt.Errorf("failed to save default SettingsDir: %w", err)
 	}
 
-	c.logger.Infof("Set default SettingsDir to: %s", configData.SettingsDir)
+	c.logger.Debugf("Set default SettingsDir to: %s", configData.SettingsDir)
 	return nil
 }
 

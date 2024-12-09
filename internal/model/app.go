@@ -6,7 +6,6 @@ import (
 )
 
 type AppState struct {
-	Title      string
 	LoggedIn   bool
 	Accounts   []Account // Add Accounts here
 	SkillPlans map[string]SkillPlanWithStatus

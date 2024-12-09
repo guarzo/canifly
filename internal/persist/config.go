@@ -32,7 +32,7 @@ func (ds *DataStore) SaveConfigData(configData *model.ConfigData) error {
 		return err
 	}
 
-	ds.logger.Info("Config data saved")
+	ds.logger.Debugf("Config data saved")
 	return nil
 }
 
@@ -51,7 +51,7 @@ func (ds *DataStore) FetchConfigData() (*model.ConfigData, error) {
 		return nil, err
 	}
 
-	ds.logger.Infof("Loaded config: %v", configData)
+	ds.logger.Debugf("Loaded config: %v", configData)
 	return &configData, nil
 }
 

@@ -25,7 +25,7 @@ func (ds *DataStore) FetchAccounts() ([]model.Account, error) {
 		return nil, err
 	}
 
-	ds.logger.Infof("Loaded %d accounts", len(accounts))
+	ds.logger.Debugf("Loaded %d accounts", len(accounts))
 	return accounts, nil
 }
 
@@ -40,11 +40,11 @@ func (ds *DataStore) SaveAccounts(accounts []model.Account) error {
 		return fmt.Errorf("error saving accounts: %w", err)
 	}
 
-	ds.logger.Infof("Saved %d accounts", len(accounts))
+	ds.logger.Debugf("Saved %d accounts", len(accounts))
 	return nil
 }
 
-func (ds *DataStore) DeleteAccount() error {
+func (ds *DataStore) DeleteAccounts() error {
 	idFile := ds.getAccountFileName()
 	if err := os.Remove(idFile); err != nil && !os.IsNotExist(err) {
 		ds.logger.WithError(err).Errorf("Failed to delete identity file %s", idFile)
@@ -56,7 +56,7 @@ func (ds *DataStore) DeleteAccount() error {
 
 func (ds *DataStore) SaveUnassignedCharacters(unassignedCharacters []model.CharacterIdentity) error {
 	filePath := ds.getUnassignedCharactersFileName()
-	ds.logger.Infof("Saving %d unassigned characters", len(unassignedCharacters))
+	ds.logger.Debugf("Saving %d unassigned characters", len(unassignedCharacters))
 	return ds.encryptData(unassignedCharacters, filePath)
 }
 
@@ -151,11 +151,11 @@ func (ds *DataStore) GetWriteablePath() (string, error) {
 
 // Assume ds.encryptData and ds.decryptData call utils.EncryptData/decryptData respectively
 func (ds *DataStore) encryptData(data interface{}, outputFile string) error {
-	ds.logger.Infof("Encrypting data to %s", outputFile)
+	ds.logger.Debugf("Encrypting data to %s", outputFile)
 	return utils.EncryptData(data, outputFile)
 }
 
 func (ds *DataStore) decryptData(inputFile string, data interface{}) error {
-	ds.logger.Infof("Decrypting data from %s", inputFile)
+	ds.logger.Debugf("Decrypting data from %s", inputFile)
 	return utils.DecryptData(inputFile, data)
 }

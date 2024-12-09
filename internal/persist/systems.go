@@ -52,7 +52,7 @@ func (ds *DataStore) LoadSystems() error {
 		ds.SysNameToID[sysName] = sysID
 	}
 
-	ds.logger.Infof("Loaded %d systems, %d wormhole suggestions", len(ds.SysIdToName))
+	ds.logger.Debugf("Loaded %d systems", len(ds.SysIdToName))
 	return nil
 }
 

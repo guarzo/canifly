@@ -24,13 +24,13 @@ func (ds *DataStore) ProcessSkillPlans() error {
 		return fmt.Errorf("failed to copy embedded plans: %w", err)
 	}
 
-	ds.logger.Infof("Loading skill plans from %s", writablePath)
+	ds.logger.Debugf("Loading skill plans from %s", writablePath)
 	skillPlans, err := ds.loadSkillPlans(writablePath)
 	if err != nil {
 		return fmt.Errorf("failed to load skill plans: %w", err)
 	}
 	ds.skillPlans = skillPlans
-	ds.logger.Infof("Loaded %d skill plans", len(ds.skillPlans))
+	ds.logger.Debugf("Loaded %d skill plans", len(ds.skillPlans))
 	return nil
 }
 
@@ -158,7 +158,7 @@ func (ds *DataStore) copyEmbeddedFile(srcPath, destPath string) error {
 		return fmt.Errorf("failed to copy content to %s: %w", destPath, err)
 	}
 
-	ds.logger.Infof("Copied embedded file %s to %s", srcPath, destPath)
+	ds.logger.Debugf("Copied embedded file %s to %s", srcPath, destPath)
 	return nil
 }
 
@@ -232,6 +232,6 @@ func (ds *DataStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 		return nil, fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
-	ds.logger.Infof("Read %d skills from %s", len(skills), filePath)
+	ds.logger.Debugf("Read %d skills from %s", len(skills), filePath)
 	return skills, nil
 }

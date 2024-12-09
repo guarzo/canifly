@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
 
-	http2 "github.com/guarzo/canifly/internal/http"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services"
@@ -17,7 +17,7 @@ import (
 
 // DashboardHandler holds the dependencies needed by the home-related handlers.
 type DashboardHandler struct {
-	sessionService *http2.SessionService
+	sessionService *flyHttp.SessionService
 	esiService     esi.ESIService
 	skillService   *services.SkillService
 	dataStore      *persist.DataStore
@@ -26,7 +26,7 @@ type DashboardHandler struct {
 }
 
 // NewDashboardHandler creates a new DashboardHandler with the given session and ESI services.
-func NewDashboardHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, skill *services.SkillService, data *persist.DataStore, configService *services.ConfigService) *DashboardHandler {
+func NewDashboardHandler(s *flyHttp.SessionService, e esi.ESIService, l *logrus.Logger, skill *services.SkillService, data *persist.DataStore, configService *services.ConfigService) *DashboardHandler {
 	return &DashboardHandler{
 		sessionService: s,
 		esiService:     e,
@@ -37,187 +37,123 @@ func NewDashboardHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Lo
 	}
 }
 
+func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache bool) {
+	// If noCache is true, we directly refresh from scratch
+	// If noCache is false, we can check if we have cached data first
+
+	storeData := h.dataStore.GetAppState()
+
+	// If we are not forcing no-cache and we have cached data
+	// immediately return cached data and trigger background refresh
+	if !noCache && len(storeData.Accounts) > 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(storeData)
+		go h.refreshDataInBackground()
+		return
+	}
+
+	updatedData, err := h.refreshAccountsAndState(storeData)
+	if err != nil {
+		h.logger.Errorf("%v", err)
+		http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(updatedData); err != nil {
+		http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *DashboardHandler) refreshAccountsAndState(storeData model.AppState) (model.AppState, error) {
+	err := h.refreshAccounts(storeData)
+	if err != nil {
+		return model.AppState{}, fmt.Errorf("failed to validate accounts: %v", err)
+	}
+
+	updatedData := prepareAppData(storeData.Accounts, h.logger, h.skillService, h.dataStore, h.configService)
+	if err = h.updateAndSaveAppState(updatedData); err != nil {
+		// Log the error but still try to return updatedData if we have it
+		h.logger.Errorf("Failed to update persist and session: %v", err)
+	}
+	return updatedData, nil
+}
+
+func (h *DashboardHandler) updateAndSaveAppState(data model.AppState) error {
+	h.dataStore.SetAppState(data)
+	if err := h.dataStore.SaveAppStateSnapshot(data); err != nil {
+		return fmt.Errorf("failed to save app state snapshot: %w", err)
+	}
+
+	return nil
+}
+
 func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, _ := h.sessionService.Get(r, http2.SessionName)
-		sessionValues := http2.GetSessionValues(session)
-
-		if sessionValues.LoggedInUser == 0 {
-			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusUnauthorized)
-			return
-		}
-
-		storeData, etag, ok := h.dataStore.GetAppState()
-		if ok {
-			// If we have something cached, return it immediately.
-			// The front-end will have something to display instantly.
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(storeData)
-
-			// In the background, trigger a refresh of data without blocking the response
-			go h.refreshDataInBackground(session, sessionValues, w, r)
-
-			return
-		}
-
-		accounts, err := h.validateAccounts(session, storeData)
-		if err != nil {
-			h.logger.Errorf("Failed to validate accounts: %v", err)
-			http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
-			return
-		}
-
-		data := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
-
-		_, err = updateStoreAndSession(data, etag, session, h.dataStore, r, w)
-		if err != nil {
-			h.logger.Errorf("Failed to update persist and session: %v", err)
-			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
-			return
-		}
+		h.handleAppStateRefresh(w, false)
 	}
 }
 
 func (h *DashboardHandler) GetDashboardDataNoCache() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, _ := h.sessionService.Get(r, http2.SessionName)
-		sessionValues := http2.GetSessionValues(session)
-
-		if sessionValues.LoggedInUser == 0 {
-			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusUnauthorized)
-			return
-		}
-
-		storeData, etag, _ := h.dataStore.GetAppState()
-
-		accounts, err := h.validateAccounts(session, storeData)
-		if err != nil {
-			h.logger.Errorf("Failed to validate accounts: %v", err)
-			http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
-			return
-		}
-
-		data := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
-
-		_, err = updateStoreAndSession(data, etag, session, h.dataStore, r, w)
-		if err != nil {
-			h.logger.Errorf("Failed to update persist and session: %v", err)
-			http.Error(w, `{"error":"Failed to update session"}`, http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
-			return
-		}
+		h.handleAppStateRefresh(w, true)
 	}
 }
 
-func (h *DashboardHandler) refreshDataInBackground(session *sessions.Session, sessionValues http2.SessionValues, w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("Refreshing data in background...")
+func (h *DashboardHandler) refreshDataInBackground() {
+	start := time.Now()
+	h.logger.Debugf("Refreshing data in background...")
+	storeData := h.dataStore.GetAppState()
 
-	storeData, etag, canSkip := checkIfCanSkip(session, sessionValues, h.dataStore)
-	if canSkip {
-		h.logger.Info("background refresh not needed")
-	}
-
-	// Re-validate accounts and re-prepare data
-	accounts, err := h.validateAccounts(session, storeData)
+	_, err := h.refreshAccountsAndState(storeData)
 	if err != nil {
 		h.logger.Errorf("Failed in background refresh: %v", err)
 		return
 	}
 
-	updatedData := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
-
-	// Update the store
-	_, err = updateStoreAndSession(updatedData, etag, session, h.dataStore, r, w)
-	if err != nil {
-		h.logger.Errorf("Failed to update persist and session: %v", err)
-	}
-
-	h.logger.Info("Background refresh complete")
+	timeElapsed := time.Since(start)
+	h.logger.Infof("Background refresh complete in %s", timeElapsed)
 }
 
-// validateAccounts is now a method on DashboardHandler, allowing access to h.esiService.
-// It replaces the direct calls to esi.ProcessIdentity with h.esiService.ProcessIdentity.
-func (h *DashboardHandler) validateAccounts(session *sessions.Session, storeData model.AppState) ([]model.Account, error) {
-	authenticatedUsers, ok := session.Values[http2.AllAuthenticatedCharacters].([]int64)
-	if !ok {
-		h.logger.Errorf("Failed to retrieve authenticated users from session")
-		return nil, fmt.Errorf("failed to retrieve authenticated users from session")
+func (h *DashboardHandler) refreshAccounts(storeData model.AppState) error {
+	h.logger.Debugf("Refreshing accounts ")
+	accounts, err := h.dataStore.FetchAccounts()
+	if err != nil {
+		return fmt.Errorf("failed to load accounts: %w", err)
 	}
 
-	needIdentityPopulation := len(authenticatedUsers) == 0
-	if len(storeData.Accounts) != 0 {
-		for _, account := range storeData.Accounts {
-			var accountCharacterIDs []int64
-			for _, charIdentity := range account.Characters {
-				accountCharacterIDs = append(accountCharacterIDs, charIdentity.Character.CharacterID)
+	h.logger.Debugf("Fetched %d accounts", len(accounts))
+
+	// Process each account and its characters using the injected ESIService
+	for i := range accounts {
+		account := &accounts[i]
+		h.logger.Debugf("Processing account: %s", account.Name)
+
+		for j := range account.Characters {
+			charIdentity := &account.Characters[j]
+			h.logger.Debugf("Processing character: %s (ID: %d)", charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
+
+			// Use h.esiService instead of directly calling esi.ProcessIdentity
+			updatedCharIdentity, err := h.esiService.ProcessIdentity(charIdentity)
+			if err != nil {
+				h.logger.Errorf("Failed to process identity for character %d: %v", charIdentity.Character.CharacterID, err)
+				continue
 			}
-			needIdentityPopulation = needIdentityPopulation || !sameIdentities(authenticatedUsers, accountCharacterIDs)
+
+			account.Characters[j] = *updatedCharIdentity
 		}
-	} else {
-		needIdentityPopulation = true
+
+		h.logger.Debugf("Account %s has %d characters after processing", account.Name, len(account.Characters))
 	}
 
-	if needIdentityPopulation {
-		h.logger.Infof("Need to populate identities")
-		accounts, err := h.dataStore.FetchAccounts()
-		if err != nil {
-			h.logger.Errorf("Failed to load accounts: %v", err)
-			return nil, fmt.Errorf("failed to load accounts: %w", err)
-		}
-
-		h.logger.Infof("Fetched %d accounts", len(accounts))
-
-		// Process each account and its characters using the injected ESIService
-		for i := range accounts {
-			account := &accounts[i]
-			h.logger.Infof("Processing account: %s", account.Name)
-
-			for j := range account.Characters {
-				charIdentity := &account.Characters[j]
-				h.logger.Infof("Processing character: %s (ID: %d)", charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
-
-				// Use h.esiService instead of directly calling esi.ProcessIdentity
-				updatedCharIdentity, err := h.esiService.ProcessIdentity(charIdentity)
-				if err != nil {
-					h.logger.Errorf("Failed to process identity for character %d: %v", charIdentity.Character.CharacterID, err)
-					continue
-				}
-
-				account.Characters[j] = *updatedCharIdentity
-			}
-
-			h.logger.Infof("Account %s has %d characters after processing", account.Name, len(account.Characters))
-		}
-
-		// Save the updated accounts
-		if err := h.dataStore.SaveAccounts(accounts); err != nil {
-			h.logger.Errorf("Failed to save accounts: %v", err)
-			return nil, fmt.Errorf("failed to save accounts: %w", err)
-		}
-
-		storeData.Accounts = accounts
-
-		var allCharacterIDs []int64
-		for _, account := range accounts {
-			for _, charIdentity := range account.Characters {
-				allCharacterIDs = append(allCharacterIDs, charIdentity.Character.CharacterID)
-			}
-		}
-
-		session.Values[http2.AllAuthenticatedCharacters] = allCharacterIDs
-		_ = h.dataStore.SaveApiCache()
+	// Save the updated accounts
+	if err := h.dataStore.SaveAccounts(accounts); err != nil {
+		return fmt.Errorf("failed to save accounts: %w", err)
 	}
 
-	return storeData.Accounts, nil
+	storeData.Accounts = accounts
+	_ = h.dataStore.SaveApiCache()
+
+	return nil
 }

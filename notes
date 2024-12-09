@@ -7,13 +7,10 @@ SECRET_KEY=
 
 
 todo
-- startup performance -- save appdata?
 - login modal (better UI and explanation)
 - add delete account / delete character -- remove unassigned characters
 - backup - choose file location
 - can we get mct / active queue / omega status
-
-- do we need session?
 - add clone locations - can we get implants??
 
 

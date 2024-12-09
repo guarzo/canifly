@@ -7,18 +7,18 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	http2 "github.com/guarzo/canifly/internal/http"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 )
 
 type AccountHandler struct {
-	sessionService *http2.SessionService
+	sessionService *flyHttp.SessionService
 	dataStore      *persist.DataStore
 	logger         *logrus.Logger
 }
 
-func NewAccountHandler(s *http2.SessionService, l *logrus.Logger, data *persist.DataStore) *AccountHandler {
+func NewAccountHandler(s *flyHttp.SessionService, l *logrus.Logger, data *persist.DataStore) *AccountHandler {
 	return &AccountHandler{
 		sessionService: s,
 		logger:         l,
@@ -38,18 +38,6 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 		}
 		if request.AccountName == "" {
 			http.Error(w, "Account name cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		session, err := h.sessionService.Get(r, http2.SessionName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error retrieving session: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			http.Error(w, "Main identity not found in session", http.StatusUnauthorized)
 			return
 		}
 
@@ -95,18 +83,6 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 		}
 		if request.AccountID == 0 {
 			http.Error(w, "AccountID is required", http.StatusBadRequest)
-			return
-		}
-
-		session, err := h.sessionService.Get(r, http2.SessionName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error retrieving session: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			http.Error(w, "User not authenticated", http.StatusUnauthorized)
 			return
 		}
 

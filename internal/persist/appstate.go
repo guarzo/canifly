@@ -1,4 +1,4 @@
-// persist/snapshot.go
+// Package persist persist/snapshot.go
 package persist
 
 import (
@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/guarzo/canifly/internal/model"
 )
@@ -49,17 +50,10 @@ func (ds *DataStore) loadAppStateFromFile() error {
 		return fmt.Errorf("failed to unmarshal app state: %w", err)
 	}
 
-	// If successfully unmarshaled, set it and compute ETag
-	etag, err := GenerateETag(appState)
-	if err != nil {
-		return fmt.Errorf("failed to generate ETag: %w", err)
-	}
-
 	ds.appStateStore.Lock()
 	defer ds.appStateStore.Unlock()
 	ds.appStateStore.appState = appState
-	ds.appStateStore.ETag = etag
-	ds.logger.Infof("Loaded persisted AppState from %s", path)
+	ds.logger.Debugf("Loaded persisted AppState from %s", path)
 
 	return nil
 }
@@ -72,4 +66,38 @@ func (ds *DataStore) getAppStateFilePath() (string, error) {
 
 	return filepath.Join(configDir, "appstate_snapshot.json"), nil
 
+}
+
+// AppStateStore in memory AppState protected by a mutex.
+type AppStateStore struct {
+	sync.RWMutex
+	appState model.AppState
+}
+
+// SetAppState updates the in-memory AppState and computes a new ETag.
+func (ds *DataStore) SetAppState(homeData model.AppState) {
+	ds.appStateStore.Lock()
+	defer ds.appStateStore.Unlock()
+	ds.appStateStore.appState = homeData
+}
+
+// GetAppState returns the currently stored AppState
+func (ds *DataStore) GetAppState() model.AppState {
+	ds.appStateStore.RLock()
+	defer ds.appStateStore.RUnlock()
+	return ds.appStateStore.appState
+}
+
+func (ds *DataStore) SetAppStateLogin(isLoggedIn bool) error {
+	appState := ds.GetAppState()
+	appState.LoggedIn = isLoggedIn
+	ds.SetAppState(appState)
+	return ds.SaveAppStateSnapshot(appState)
+}
+
+// ClearAppState removes the stored AppState
+func (ds *DataStore) ClearAppState() {
+	ds.appStateStore.Lock()
+	defer ds.appStateStore.Unlock()
+	ds.appStateStore.appState = model.AppState{}
 }

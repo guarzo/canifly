@@ -15,7 +15,7 @@ type SkillService struct {
 	logger *logrus.Logger
 }
 
-// NewConfigService returns a new ConfigService with a logger
+// NewSkillService  returns a new ConfigService with a logger
 func NewSkillService(logger *logrus.Logger) *SkillService {
 	return &SkillService{
 		logger: logger,

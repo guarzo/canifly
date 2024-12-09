@@ -10,7 +10,6 @@ import (
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
 type esiService struct {
@@ -40,43 +39,41 @@ func NewESIService(httpClient HTTPClient, auth AuthClient, l *logrus.Logger, d *
 // We'll now implement them as methods on esiService.
 
 func (s *esiService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
-	xlog.Logf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
+	s.logger.Debugf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
 
 	newToken, err := s.auth.RefreshToken(charIdentity.Token.RefreshToken)
 	if err != nil {
-		xlog.Logf("Failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
 		return nil, fmt.Errorf("failed to refresh token for character %d: %v", charIdentity.Character.CharacterID, err)
 	}
-	xlog.Logf("Token refreshed for character %d", charIdentity.Character.CharacterID)
+	s.logger.Debugf("Token refreshed for character %d", charIdentity.Character.CharacterID)
 	charIdentity.Token = *newToken
 
 	skills, err := s.GetCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		xlog.Logf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
+		s.logger.Warnf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
 		skills = &model.CharacterSkillsResponse{Skills: []model.SkillResponse{}}
 	}
-	xlog.Logf("Fetched %d skills for character %d", len(skills.Skills), charIdentity.Character.CharacterID)
+	s.logger.Debugf("Fetched %d skills for character %d", len(skills.Skills), charIdentity.Character.CharacterID)
 
 	skillQueue, err := s.GetCharacterSkillQueue(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		xlog.Logf("Failed to get skill queue for character %d: %v", charIdentity.Character.CharacterID, err)
+		s.logger.Warnf("Failed to get skill queue for character %d: %v", charIdentity.Character.CharacterID, err)
 		skillQueue = &[]model.SkillQueue{}
 	}
-	xlog.Logf("Fetched %d skill queue entries for character %d", len(*skillQueue), charIdentity.Character.CharacterID)
+	s.logger.Debugf("Fetched %d skill queue entries for character %d", len(*skillQueue), charIdentity.Character.CharacterID)
 
 	characterLocation, err := s.GetCharacterLocation(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		xlog.Logf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
+		s.logger.Warnf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
 		characterLocation = 0
 	}
-	xlog.Logf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
+	s.logger.Debugf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
 
 	user, err := s.GetUserInfo(&charIdentity.Token)
 	if err != nil {
-		xlog.Logf("Failed to get user info for character %d: %v", charIdentity.Character.CharacterID, err)
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
-	xlog.Logf("Fetched user info for character %s (ID: %d)", user.CharacterName, user.CharacterID)
+	s.logger.Debugf("Fetched user info for character %s (ID: %d)", user.CharacterName, user.CharacterID)
 
 	charIdentity.Character.UserInfoResponse = *user
 	charIdentity.Character.CharacterSkillsResponse = *skills
@@ -160,7 +157,7 @@ func (s *esiService) GetCharacterSkillQueue(characterID int64, token *oauth2.Tok
 
 func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error) {
 	url := fmt.Sprintf("https://esi.evetech.net/latest/characters/%d/location/?datasource=tranquility", characterID)
-	s.logger.Infof("Getting character location for %d", characterID)
+	s.logger.Debugf("Getting character location for %d", characterID)
 
 	bodyBytes, err := getResultsWithCache(url, token, s.dataStore, s.logger)
 	if err != nil {
@@ -172,6 +169,5 @@ func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token
 		return 0, fmt.Errorf("failed to decode response body: %v", err)
 	}
 
-	xlog.Logf("Character %d location: %v", characterID, location)
 	return location.SolarSystemID, nil
 }

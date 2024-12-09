@@ -45,18 +45,6 @@ func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 			return
 		}
 
-		session, err := h.sessionService.Get(r, http2.SessionName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error retrieving session: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			http.Error(w, "User not authenticated", http.StatusUnauthorized)
-			return
-		}
-
 		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
@@ -113,16 +101,7 @@ func (h *CharacterHandler) UpdateCharacter() http.HandlerFunc {
 
 func (h *CharacterHandler) GetUnassignedCharacters() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h.logger.Info("start of get unassigned characters handler")
-
-		session, _ := h.sessionService.Get(r, http2.SessionName)
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			h.logger.Error("Attempt to get unassigned characters without main identity")
-			handleErrorWithRedirect(w, r, "/logout")
-			return
-		}
+		h.logger.Debugf("start of get unassigned characters handler")
 
 		unassignedCharacters, err := h.datastore.FetchUnassignedCharacters()
 		if err != nil {
@@ -144,18 +123,6 @@ func (h *CharacterHandler) AssignCharacter() http.HandlerFunc {
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-			return
-		}
-
-		session, err := h.sessionService.Get(r, http2.SessionName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error retrieving session: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			http.Error(w, "Main identity not found in session", http.StatusUnauthorized)
 			return
 		}
 
@@ -239,18 +206,6 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 		}
 		if request.CharacterID == 0 {
 			http.Error(w, "CharacterID is required", http.StatusBadRequest)
-			return
-		}
-
-		session, err := h.sessionService.Get(r, http2.SessionName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error retrieving session: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			http.Error(w, "User not authenticated", http.StatusUnauthorized)
 			return
 		}
 

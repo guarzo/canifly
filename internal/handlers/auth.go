@@ -3,27 +3,25 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/guarzo/canifly/internal/services"
-	"net/http"
-	"slices"
-
 	"github.com/sirupsen/logrus"
+	"net/http"
 
 	"github.com/guarzo/canifly/internal/auth"
-	http2 "github.com/guarzo/canifly/internal/http"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/esi"
 )
 
 // AuthHandler holds dependencies needed by auth-related handlers.
 type AuthHandler struct {
-	sessionService *http2.SessionService
+	sessionService *flyHttp.SessionService
 	esiService     esi.ESIService
 	logger         *logrus.Logger
 	dataStore      *persist.DataStore
 	configService  *services.ConfigService
 }
 
-func NewAuthHandler(s *http2.SessionService, e esi.ESIService, l *logrus.Logger, data *persist.DataStore, c *services.ConfigService) *AuthHandler {
+func NewAuthHandler(s *flyHttp.SessionService, e esi.ESIService, l *logrus.Logger, data *persist.DataStore, c *services.ConfigService) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
 		esiService:     e,
@@ -51,13 +49,11 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		state := "Placeholder"
-		if request.Account != "" {
-			h.logger.Infof("setting state to be: %v", request.Account)
-			state = request.Account
+		if request.Account == "" {
+			http.Error(w, "Invalid request body, account must be provided", http.StatusBadRequest)
 		}
 
-		url := auth.GetAuthURL(state)
+		url := auth.GetAuthURL(request.Account)
 
 		json.NewEncoder(w).Encode(map[string]string{"redirectURL": url})
 	}
@@ -112,21 +108,15 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		}
 		h.logger.Warnf("character is %s", user.CharacterName)
 
-		session, _ := h.sessionService.Get(r, http2.SessionName)
-
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-		if !ok || loggedIn == 0 {
-			session.Values[http2.LoggedInUser] = user.CharacterID
+		err = h.dataStore.SetAppStateLogin(true)
+		if err != nil {
+			h.logger.Errorf("Failed to get set appstate: %v", err)
+			handleErrorWithRedirect(w, r, "/")
+			return
 		}
 
-		authCharacters, ok := session.Values[http2.AllAuthenticatedCharacters].([]int64)
-		if !ok {
-			authCharacters = []int64{}
-		}
-		if !slices.Contains(authCharacters, user.CharacterID) {
-			authCharacters = append(authCharacters, user.CharacterID)
-		}
-		session.Values[http2.AllAuthenticatedCharacters] = authCharacters
+		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+		session.Values[flyHttp.LoggedIn] = true
 
 		err = h.configService.FindOrCreateAccount(state, user, token)
 		if err != nil {
@@ -145,7 +135,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 
 func (h *AuthHandler) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, err := h.sessionService.Get(r, http2.SessionName)
+		session, err := h.sessionService.Get(r, flyHttp.SessionName)
 		if err != nil {
 			http.Error(w, "Failed to get session", http.StatusInternalServerError)
 			return
@@ -164,18 +154,9 @@ func (h *AuthHandler) Logout() http.HandlerFunc {
 
 func (h *AuthHandler) ResetAccounts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session, _ := h.sessionService.Get(r, http2.SessionName)
-		loggedIn, ok := session.Values[http2.LoggedInUser].(int64)
-
-		if !ok || loggedIn == 0 {
-			h.logger.Error("Attempt to reset identities without a main identity")
-			handleErrorWithRedirect(w, r, "/logout")
-			return
-		}
-
-		err := h.dataStore.DeleteAccount()
+		err := h.dataStore.DeleteAccounts()
 		if err != nil {
-			h.logger.Errorf("Failed to delete identity %d: %v", loggedIn, err)
+			h.logger.Errorf("Failed to delete identity %d", err)
 		}
 
 		http.Redirect(w, r, "/logout", http.StatusSeeOther)

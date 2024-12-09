@@ -13,14 +13,14 @@ import (
 const skillTypeFile = "static/invTypes.csv"
 
 func (ds *DataStore) LoadSkillTypes() error {
-	ds.logger.Infof("Loading skill types from %s", skillTypeFile)
+	ds.logger.Debugf("Loading skill types from %s", skillTypeFile)
 	skillTypes, err := ds.readSkillTypes(skillTypeFile)
 	if err != nil {
 		ds.logger.WithError(err).Error("Failed to load skill types")
 		return err
 	}
 	ds.skillTypes = skillTypes
-	ds.logger.Infof("Loaded %d skill types", len(ds.skillTypes))
+	ds.logger.Debugf("Loaded %d skill types", len(ds.skillTypes))
 	return nil
 }
 

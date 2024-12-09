@@ -130,10 +130,10 @@ func getResults(address string, token *oauth2.Token) ([]byte, error) {
 func getResultsWithCache(address string, token *oauth2.Token, dataStore *persist.DataStore, logger *logrus.Logger) ([]byte, error) {
 	// Check the cache first
 	if cachedData, found := dataStore.GetFromCache(address); found {
-		logger.Infof("using cache data for call to %s", address)
+		logger.Debugf("using cache data for call to %s", address)
 		return cachedData, nil // Return cached data
 	} else {
-		logger.Infof("no cache data found for call to %s", address)
+		logger.Debugf("no cache data found for call to %s", address)
 	}
 
 	bodyBytes, err := getResults(address, token)

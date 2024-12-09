@@ -15,6 +15,8 @@ import {
     ListItemText,
     Divider,
     ListItemButton,
+    Tooltip,
+    CircularProgress
 } from '@mui/material';
 import {
     Menu as MenuIcon,
@@ -26,6 +28,7 @@ import {
     People as RoleIcon,
     Sync as SyncIcon,
     AccountTree as MappingIcon,
+    Cached as RefreshIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
@@ -38,10 +41,11 @@ const StyledAppBar = styled(AppBar)(() => ({
     borderBottom: '4px solid #14b8a6',
 }));
 
-const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }) => {
+const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
@@ -64,7 +68,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }
     ];
 
     const handleAddCharacterClick = () => {
-        // Instead of direct redirect, open the modal to get account name
         setModalOpen(true);
     };
 
@@ -79,8 +82,8 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({account}),
                 credentials: 'include',
-            })
-                if (response.ok) {
+            });
+            if (response.ok) {
                 const data = await response.json();
                 if (data.redirectURL) {
                     window.location.href = data.redirectURL;
@@ -96,6 +99,19 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }
             toast.error('An error occurred while adding character.');
         } finally {
             setModalOpen(false);
+        }
+    };
+
+    const handleRefreshClick = async () => {
+        if (!onSilentRefresh) return;
+        setIsRefreshing(true);
+        try {
+            await onSilentRefresh();
+            console.log('Data refreshed!');
+        } catch (err) {
+            console.error('Error during silent refresh:', err);
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -130,22 +146,40 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts }
                         {loggedIn && (
                             <>
                                 {/* Add Character Icon */}
-                                <IconButton onClick={handleAddCharacterClick} title="Add Character">
-                                    <AddCircleOutline sx={{ color: '#22c55e' }} />
-                                </IconButton>
+                                <Tooltip title="Add Character">
+                                    <IconButton onClick={handleAddCharacterClick}>
+                                        <AddCircleOutline sx={{ color: '#22c55e' }} />
+                                    </IconButton>
+                                </Tooltip>
                                 {/* Add Skill Plan Icon */}
-                                <IconButton onClick={openSkillPlanModal} title="Add Skill Plan">
-                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} />
-                                </IconButton>
+                                <Tooltip title="Add Skill Plan">
+                                    <IconButton onClick={openSkillPlanModal}>
+                                        <SkillPlansIcon sx={{ color: '#f59e0b' }} />
+                                    </IconButton>
+                                </Tooltip>
+                                {/* Refresh Icon or Spinner */}
+                                <Tooltip title="Refresh Data">
+                                    <IconButton onClick={handleRefreshClick}>
+                                        {isRefreshing ? (
+                                            <CircularProgress size={24} sx={{ color: '#9ca3af' }} />
+                                        ) : (
+                                            <RefreshIcon sx={{ color: '#9ca3af' }} />
+                                        )}
+                                    </IconButton>
+                                </Tooltip>
                                 {/* Logout Icon */}
-                                <IconButton onClick={handleLogout} title="Logout">
-                                    <ExitToApp sx={{ color: '#ef4444' }} />
-                                </IconButton>
+                                <Tooltip title="Logout">
+                                    <IconButton onClick={handleLogout}>
+                                        <ExitToApp sx={{ color: '#ef4444' }} />
+                                    </IconButton>
+                                </Tooltip>
                             </>
                         )}
-                        <IconButton onClick={handleCloseWindow} title="Close">
-                            <Close sx={{ color: '#9ca3af' }} />
-                        </IconButton>
+                        <Tooltip title="Close">
+                            <IconButton onClick={handleCloseWindow}>
+                                <Close sx={{ color: '#9ca3af' }} />
+                            </IconButton>
+                        </Tooltip>
                     </div>
                 </Toolbar>
             </StyledAppBar>
@@ -192,6 +226,7 @@ Header.propTypes = {
     handleLogout: PropTypes.func.isRequired,
     openSkillPlanModal: PropTypes.func.isRequired,
     existingAccounts: PropTypes.array.isRequired,
+    onSilentRefresh: PropTypes.func
 };
 
 export default Header;

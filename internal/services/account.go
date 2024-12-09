@@ -47,7 +47,7 @@ func (c *ConfigService) FindOrCreateAccount(state string, char *model.UserInfoRe
 			if account.Characters[i].Character.CharacterID == char.CharacterID {
 				account.Characters[i].Token = *token
 				characterAssigned = true
-				c.logger.Infof("found character: %d already assigned", char.CharacterID)
+				c.logger.Debugf("found character: %d already assigned", char.CharacterID)
 				break
 			}
 		}
@@ -68,7 +68,7 @@ func (c *ConfigService) FindOrCreateAccount(state string, char *model.UserInfoRe
 
 	err = c.updateAssociationsAfterNewCharacter(account, char.CharacterID)
 	if err != nil {
-		c.logger.Infof("error updating associations after updating character %v", err)
+		c.logger.Warnf("error updating associations after updating character %v", err)
 	}
 
 	err = c.dataStore.SaveAccounts(accounts)
@@ -234,8 +234,7 @@ func (c *ConfigService) associateCharacter(userId string, charId string, configD
 	// Fetch character name from ESI or fallback
 	character, err := c.esi.GetCharacter(charId)
 	if err != nil {
-		c.logger.Warnf("Failed to fetch character name for ID %s: %v", charId, err)
-		character.Name = fmt.Sprintf("Unknown (%s)", charId)
+		return fmt.Errorf("failed to fetch character name for ID %s: %v", charId, err)
 	}
 
 	configData.Associations = append(configData.Associations, model.Association{
@@ -298,12 +297,12 @@ func (c *ConfigService) associateMissingCharacters(foundAccount *model.Account, 
 		if !assocCharIds[cidStr] && err == nil {
 			err = c.associateCharacter(userId, cidStr, configData)
 			if err != nil {
-				c.logger.Infof("failed to associate character %d: %v", ch.Character.CharacterID, err)
+				c.logger.Warnf("failed to associate character %d: %v", ch.Character.CharacterID, err)
 			}
 			assocCharIds[cidStr] = true
 		} else {
 			assocCharIds[cidStr] = true
-			c.logger.Infof("character %s already associated", ch.Character.CharacterName)
+			c.logger.Debugf("character %s already associated", ch.Character.CharacterName)
 		}
 	}
 	return nil
@@ -328,7 +327,7 @@ func (c *ConfigService) syncAccountWithUserFileAndAssociations(
 
 	// Associate any missing characters from the account
 	if err = c.associateMissingCharacters(account, foundUserID, configData); err != nil {
-		c.logger.Infof("failed to associate missing characters for account %s, userId %s: %v", account.Name, foundUserID, err)
+		c.logger.Warnf("failed to associate missing characters for account %s, userId %s: %v", account.Name, foundUserID, err)
 		// Non-fatal: we tried to associate missing chars; log and continue
 	}
 
