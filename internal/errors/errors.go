@@ -21,7 +21,7 @@ func NewCustomError(statusCode int, message string) *CustomError {
 	return &CustomError{StatusCode: statusCode, Message: message}
 }
 
-// Map of HTTP status codes to custom errors
+// HttpStatusErrors Map of HTTP status codes to custom errors
 var HttpStatusErrors = map[int]*CustomError{
 	http.StatusForbidden:           ErrForbidden,
 	http.StatusServiceUnavailable:  ErrServiceUnavailable,

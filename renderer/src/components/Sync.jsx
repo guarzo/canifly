@@ -14,10 +14,9 @@ import {
     Grid,
     Typography,
     Card,
-    CardContent,
-    Box,
     Divider,
     Tooltip,
+    Box,
 } from '@mui/material';
 import LoadingButton from '@mui/lab/LoadingButton';
 import BackupIcon from '@mui/icons-material/Backup';
@@ -39,7 +38,6 @@ const Sync = ({
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
 
-    // Initialize selections from userSelections or create empty ones if not present
     useEffect(() => {
         if (settingsData && settingsData.length > 0) {
             const initialSelections = { ...userSelections };
@@ -66,9 +64,7 @@ const Sync = ({
                 body: JSON.stringify(newSelections),
             });
             const result = await response.json();
-            if (response.ok && result.success) {
-                // Successfully saved selections
-            } else {
+            if (!response.ok || !result.success) {
                 toast.error('Failed to save user selections.');
             }
         } catch (error) {
@@ -86,7 +82,6 @@ const Sync = ({
                     [field]: value,
                 }
             };
-            // Save updated selections to backend
             saveUserSelections(updated);
             return updated;
         });
@@ -295,28 +290,19 @@ const Sync = ({
     };
 
     return (
-        <Box sx={{ pt: 10, px: 4, pb: 10, backgroundColor: 'background.default', minHeight: '100vh' }}>
-            {/* Top Buttons Section */}
-            <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ marginBottom: 4 }}>
+        <div className="pt-8 px-4 pb-10 bg-gray-900 min-h-screen text-teal-200">
+            <Grid container spacing={2} justifyContent="center" alignItems="center" className="mb-4">
                 <Grid item>
                     <Tooltip title="Backup Settings">
                         <span>
                             <Button
                                 variant="contained"
                                 color="primary"
-                                startIcon={<BackupIcon />}
                                 onClick={handleBackup}
                                 disabled={isLoading}
-                                fullWidth
-                                sx={{
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
-                                    '&:hover': {
-                                        transform: 'scale(1.02)',
-                                        boxShadow: 6,
-                                    },
-                                }}
+                                className="w-10 h-10 p-0 flex items-center justify-center"
                             >
-                                Backup
+                                <BackupIcon fontSize="small" />
                             </Button>
                         </span>
                     </Tooltip>
@@ -327,19 +313,11 @@ const Sync = ({
                             <Button
                                 variant="contained"
                                 color="secondary"
-                                startIcon={<DeleteIcon />}
                                 onClick={handleDeleteBackups}
                                 disabled={isLoading}
-                                fullWidth
-                                sx={{
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
-                                    '&:hover': {
-                                        transform: 'scale(1.02)',
-                                        boxShadow: 6,
-                                    },
-                                }}
+                                className="w-10 h-10 p-0 flex items-center justify-center"
                             >
-                                Delete Backups
+                                <DeleteIcon fontSize="small" />
                             </Button>
                         </span>
                     </Tooltip>
@@ -347,7 +325,7 @@ const Sync = ({
             </Grid>
 
             {isLoading && (
-                <Box display="flex" justifyContent="center" alignItems="center" sx={{ marginBottom: 4 }}>
+                <Box display="flex" justifyContent="center" alignItems="center" className="mb-4">
                     <CircularProgress color="primary" />
                 </Box>
             )}
@@ -355,38 +333,22 @@ const Sync = ({
             <Grid container spacing={4}>
                 {settingsData.map(subDir => (
                     <Grid item xs={12} sm={6} md={4} key={subDir.subDir}>
-                        <Card
-                            sx={{
-                                boxShadow: 3,
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                '&:hover': {
-                                    transform: 'scale(1.02)',
-                                    boxShadow: 6,
-                                },
-                                backgroundColor: 'background.paper',
-                            }}
-                        >
-                            <CardContent>
+                        <Card className="bg-gray-800 text-teal-200 p-4 rounded-md shadow-md flex flex-col justify-between h-full">
+                            <div>
                                 <Typography
                                     variant="h6"
                                     gutterBottom
-                                    sx={{ textAlign: 'center', fontWeight: 600 }}
+                                    sx={{ textAlign: 'center', fontWeight: 700 }}
                                 >
                                     {subDir.subDir.replace('settings_', '')}
                                 </Typography>
-                                <Divider sx={{ marginY: 2 }} />
-
-                                <Box
-                                    sx={{
-                                        padding: 2,
-                                        border: '1px solid rgba(0, 0, 0, 0.12)',
-                                        borderRadius: 2,
-                                        bgcolor: 'rgba(0, 0, 0, 0.03)',
-                                        marginBottom: 2,
-                                    }}
-                                >
+                                <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.2)' }} />
+                                <div className="p-2 rounded-md border border-gray-600 bg-gray-700 mb-2">
                                     <FormControl fullWidth margin="normal">
-                                        <InputLabel id={`char-select-label-${subDir.subDir}`}>
+                                        <InputLabel
+                                            id={`char-select-label-${subDir.subDir}`}
+                                            sx={{ color: '#fff' }}
+                                        >
                                             Select Character
                                         </InputLabel>
                                         <Select
@@ -402,10 +364,16 @@ const Sync = ({
                                                 )
                                             }
                                             sx={{
-                                                backgroundColor: 'background.paper',
                                                 borderRadius: 1,
-                                                '& .MuiSelect-select': {
-                                                    padding: '10px 14px',
+                                                color: '#fff',
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: 'rgba(255,255,255,0.2)',
+                                                },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#ffffff',
+                                                },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#ffffff',
                                                 },
                                             }}
                                         >
@@ -420,7 +388,12 @@ const Sync = ({
                                         </Select>
                                     </FormControl>
                                     <FormControl fullWidth margin="normal">
-                                        <InputLabel id={`user-select-label-${subDir.subDir}`}>Select User</InputLabel>
+                                        <InputLabel
+                                            id={`user-select-label-${subDir.subDir}`}
+                                            sx={{ color: '#fff' }}
+                                        >
+                                            Select User
+                                        </InputLabel>
                                         <Select
                                             labelId={`user-select-label-${subDir.subDir}`}
                                             id={`user-select-${subDir.subDir}`}
@@ -434,10 +407,16 @@ const Sync = ({
                                                 )
                                             }
                                             sx={{
-                                                backgroundColor: 'background.paper',
                                                 borderRadius: 1,
-                                                '& .MuiSelect-select': {
-                                                    padding: '10px 14px',
+                                                color: '#fff',
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: 'rgba(255,255,255,0.2)',
+                                                },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#ffffff',
+                                                },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: '#ffffff',
                                                 },
                                             }}
                                         >
@@ -451,11 +430,12 @@ const Sync = ({
                                             ))}
                                         </Select>
                                     </FormControl>
-                                </Box>
-
+                                </div>
+                            </div>
+                            <div>
                                 <Grid container spacing={2}>
                                     <Grid item xs={6}>
-                                        <Tooltip title="Sync Profile">
+                                        <Tooltip title="Sync this specific profile">
                                             <span style={{ width: '100%', display: 'block' }}>
                                                 <LoadingButton
                                                     variant="contained"
@@ -468,22 +448,15 @@ const Sync = ({
                                                         !selections[subDir.subDir]?.charId ||
                                                         !selections[subDir.subDir]?.userId
                                                     }
-                                                    sx={{
-                                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.02)',
-                                                            boxShadow: 6,
-                                                        },
-                                                        minWidth: 0,
-                                                        padding: '6px',
-                                                    }}
-                                                    startIcon={<SyncIcon color="inherit" />}
-                                                />
+                                                    className="p-0"
+                                                >
+                                                    <SyncIcon fontSize="small" />
+                                                </LoadingButton>
                                             </span>
                                         </Tooltip>
                                     </Grid>
                                     <Grid item xs={6}>
-                                        <Tooltip title="Sync All Profiles">
+                                        <Tooltip title="Sync all profiles based on this selection">
                                             <span style={{ width: '100%', display: 'block' }}>
                                                 <LoadingButton
                                                     variant="contained"
@@ -496,22 +469,15 @@ const Sync = ({
                                                         !selections[subDir.subDir]?.charId ||
                                                         !selections[subDir.subDir]?.userId
                                                     }
-                                                    sx={{
-                                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                                        '&:hover': {
-                                                            transform: 'scale(1.02)',
-                                                            boxShadow: 6,
-                                                        },
-                                                        minWidth: 0,
-                                                        padding: '6px',
-                                                    }}
-                                                    startIcon={<SyncAllIcon color="inherit" />}
-                                                />
+                                                    className="p-0"
+                                                >
+                                                    <SyncAllIcon fontSize="small" />
+                                                </LoadingButton>
                                             </span>
                                         </Tooltip>
                                     </Grid>
                                 </Grid>
-                            </CardContent>
+                            </div>
                         </Card>
                     </Grid>
                 ))}
@@ -524,19 +490,11 @@ const Sync = ({
                             <Button
                                 variant="contained"
                                 color="info"
-                                startIcon={<FolderOpenIcon />}
                                 onClick={handleChooseSettingsDir}
                                 disabled={isLoading}
-                                fullWidth
-                                sx={{
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
-                                    '&:hover': {
-                                        transform: 'scale(1.02)',
-                                        boxShadow: 6,
-                                    },
-                                }}
+                                className="w-10 h-10 p-0 flex items-center justify-center"
                             >
-                                Choose Directory
+                                <FolderOpenIcon fontSize="small" />
                             </Button>
                         </span>
                     </Tooltip>
@@ -548,26 +506,18 @@ const Sync = ({
                                 <Button
                                     variant="contained"
                                     color="warning"
-                                    startIcon={<UndoIcon />}
                                     onClick={handleResetToDefault}
                                     disabled={isLoading}
-                                    fullWidth
-                                    sx={{
-                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                        '&:hover': {
-                                            transform: 'scale(1.02)',
-                                            boxShadow: 6,
-                                        },
-                                    }}
+                                    className="w-10 h-10 p-0 flex items-center justify-center"
                                 >
-                                    Reset to Default
+                                    <UndoIcon fontSize="small" />
                                 </Button>
                             </span>
                         </Tooltip>
                     </Grid>
                 )}
             </Grid>
-        </Box>
+        </div>
     );
 };
 

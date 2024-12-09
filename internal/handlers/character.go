@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	http2 "github.com/guarzo/canifly/internal/http"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services"
@@ -14,14 +14,14 @@ import (
 
 // CharacterHandler manages character-related API endpoints.
 type CharacterHandler struct {
-	sessionService *http2.SessionService
+	sessionService *flyHttp.SessionService
 	logger         *logrus.Logger
 	configService  *services.ConfigService
 	datastore      *persist.DataStore
 }
 
 // NewCharacterHandler constructs a CharacterHandler with the given dependencies.
-func NewCharacterHandler(s *http2.SessionService, l *logrus.Logger, c *services.ConfigService, d *persist.DataStore) *CharacterHandler {
+func NewCharacterHandler(s *flyHttp.SessionService, l *logrus.Logger, c *services.ConfigService, d *persist.DataStore) *CharacterHandler {
 	return &CharacterHandler{
 		sessionService: s,
 		logger:         l,
