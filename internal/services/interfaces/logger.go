@@ -10,4 +10,9 @@ type Logger interface {
 	Warnf(format string, args ...interface{})
 	Error(args ...interface{})
 	Errorf(format string, args ...interface{})
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	WithError(err error) Logger
+	WithFields(fields map[string]interface{}) Logger
+	WithField(key string, value interface{}) Logger
 }

@@ -3,40 +3,37 @@ package account
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/services/esi"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/sirupsen/logrus"
 )
 
 type accountService struct {
-	logger       *logrus.Logger
-	dataStore    interfaces.DataStore
-	esi          esi.ESIService
-	cacheService interfaces.CacheService
+	logger       interfaces.Logger
+	accountRepo  interfaces.AccountRepository
+	esi          interfaces.ESIService
+	assocService interfaces.AssociationService
 }
 
 func NewAccountService(
-	logger *logrus.Logger,
-	data interfaces.DataStore,
-	esi esi.ESIService,
-	cache interfaces.CacheService,
+	logger interfaces.Logger,
+	accountRepo interfaces.AssocRepository,
+	esi interfaces.ESIService,
+	assoc interfaces.AssociationService,
 ) interfaces.AccountService {
 	return &accountService{
 		logger:       logger,
-		dataStore:    data,
+		accountRepo:  accountRepo,
 		esi:          esi,
-		cacheService: cache,
+		assocService: assoc,
 	}
 }
 
 func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
-	accounts, err := a.dataStore.FetchAccounts()
+	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {
 		return err
 	}
@@ -71,16 +68,23 @@ func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoR
 		}
 	}
 
-	// Now handle associations and syncing
-	if err := a.updateAssociationsAfterNewCharacter(account, char.CharacterID); err != nil {
+	// Update associations after new character via AssociationService
+	if err := a.assocService.UpdateAssociationsAfterNewCharacter(account, char.CharacterID); err != nil {
 		a.logger.Warnf("error updating associations after updating character %v", err)
 	}
 
 	// Save updated accounts
-	if err := a.dataStore.SaveAccounts(accounts); err != nil {
+	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (a *accountService) DeleteAllAccounts() error {
+	if err := a.accountRepo.DeleteAccounts(); err != nil {
+		return fmt.Errorf("failed to delete accounts: %w", err)
+	}
 	return nil
 }
 
@@ -103,62 +107,6 @@ func createNewAccountWithCharacter(name string, token *oauth2.Token, user *model
 	}
 }
 
-func (a *accountService) updateAssociationsAfterNewCharacter(account *model.Account, char int64) error {
-	configData, err := a.dataStore.FetchConfigData()
-	if err != nil {
-		return err
-	}
-
-	err = a.syncAccountWithUserFileAndAssociations(account, char, configData)
-	if err != nil {
-		return err
-	}
-
-	err = a.dataStore.SaveConfigData(configData)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *accountService) updateAccountNameAndId(account *model.Account, configData *model.ConfigData, userID string) error {
-	convertedFoundUserID, err := strconv.ParseInt(userID, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	if configData.UserAccount == nil {
-		configData.UserAccount = make(map[string]string)
-	}
-
-	if convertedFoundUserID != account.ID {
-		configData.UserAccount[userID] = account.Name
-		account.ID = convertedFoundUserID
-	}
-
-	return nil
-}
-
-func (a *accountService) getUserIdWithCharId(configData *model.ConfigData, charID string) (string, error) {
-	assocCharIds := a.getAssociationMap(configData)
-
-	foundUserID, ok := assocCharIds[charID]
-	if !ok {
-		return "", fmt.Errorf("no matching user file for character id %s", charID)
-	}
-
-	return foundUserID, nil
-}
-
-func (a *accountService) getAssociationMap(configData *model.ConfigData) map[string]string {
-	assocCharIds := make(map[string]string)
-	for _, assoc := range configData.Associations {
-		assocCharIds[assoc.CharId] = assoc.UserId
-	}
-	return assocCharIds
-}
-
 func (a *accountService) FindAccountByName(accountName string, accounts []model.Account) *model.Account {
 	for i := range accounts {
 		if accounts[i].Name == accountName {
@@ -168,193 +116,16 @@ func (a *accountService) FindAccountByName(accountName string, accounts []model.
 	return nil
 }
 
-func (a *accountService) updateAccountAfterNewAssociation(userId string, charId string, configData *model.ConfigData) error {
-	accounts, err := a.dataStore.FetchAccounts()
-	if err != nil {
-		return fmt.Errorf("failed to load accounts: %w", err)
-	}
-
-	charIdInt, err := strconv.ParseInt(charId, 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid charId %s: %w", charId, err)
-	}
-
-	foundAccount := a.FindAccountByCharacterID(accounts, charIdInt)
-	if foundAccount == nil {
-		return fmt.Errorf("no matching account found")
-	}
-
-	if strconv.FormatInt(foundAccount.ID, 10) == userId {
-		return fmt.Errorf("account already matched with user file")
-	}
-
-	err = a.syncAccountWithUserFileAndAssociations(foundAccount, charIdInt, configData)
-	if err != nil {
-		return err
-	}
-
-	err = a.dataStore.SaveAccounts(accounts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *accountService) FindAccountByCharacterID(accounts []model.Account, charIdInt int64) *model.Account {
-	for i := range accounts {
-		for j := range accounts[i].Characters {
-			if accounts[i].Characters[j].Character.CharacterID == charIdInt {
-				return &accounts[i]
-			}
-		}
-	}
-	return nil
-}
-
 func (a *accountService) AssociateCharacter(userId, charId string) error {
-	configData, err := a.dataStore.FetchConfigData()
-	if err != nil {
-		return fmt.Errorf("failed to fetch config data: %w", err)
-	}
-
-	err = a.associateCharacter(userId, charId, configData)
-	if err != nil {
-		return err
-	}
-
-	err = a.updateAccountAfterNewAssociation(userId, charId, configData)
-	if err != nil {
-		a.logger.Infof(err.Error())
-	}
-
-	if err = a.dataStore.SaveConfigData(configData); err != nil {
-		return fmt.Errorf("failed to save updated associations: %w", err)
-	}
-
-	return nil
-}
-
-func (a *accountService) associateCharacter(userId string, charId string, configData *model.ConfigData) error {
-	// Enforce a maximum of 3 characters per user
-	userAssociations := 0
-	for _, assoc := range configData.Associations {
-		if assoc.UserId == userId {
-			userAssociations++
-		}
-	}
-	if userAssociations >= 3 {
-		return fmt.Errorf("user ID %s already has the maximum of 3 associated characters", userId)
-	}
-
-	err := checkForExistingAssociation(configData, charId)
-	if err != nil {
-		a.logger.Errorf("already associated")
-		return err
-	}
-
-	// Fetch character name from ESI or fallback
-	character, err := a.esi.GetCharacter(charId)
-	if err != nil {
-		return fmt.Errorf("failed to fetch character name for ID %s: %v", charId, err)
-	}
-
-	configData.Associations = append(configData.Associations, model.Association{
-		UserId:   userId,
-		CharId:   charId,
-		CharName: character.Name,
-	})
-
-	return nil
-}
-
-func checkForExistingAssociation(configData *model.ConfigData, charId string) error {
-	for _, assoc := range configData.Associations {
-		if assoc.CharId == charId {
-			return fmt.Errorf("character ID %s is already associated with User ID %s", charId, assoc.UserId)
-		}
-	}
-	return nil
+	return a.assocService.AssociateCharacter(userId, charId)
 }
 
 func (a *accountService) UnassociateCharacter(userId, charId string) error {
-	configData, err := a.dataStore.FetchConfigData()
-	if err != nil {
-		return fmt.Errorf("failed to fetch config data: %w", err)
-	}
-
-	index := -1
-	for i, assoc := range configData.Associations {
-		if assoc.UserId == userId && assoc.CharId == charId {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
-		return fmt.Errorf("association between User ID %s and Character ID %s not found", userId, charId)
-	}
-
-	// Remove the association
-	configData.Associations = append(configData.Associations[:index], configData.Associations[index+1:]...)
-
-	// Save updated config data
-	if err := a.dataStore.SaveConfigData(configData); err != nil {
-		return fmt.Errorf("failed to save updated associations: %w", err)
-	}
-
-	return nil
-}
-
-func (a *accountService) associateMissingCharacters(foundAccount *model.Account, userId string, configData *model.ConfigData) error {
-	// Map of already associated chars
-	assocCharIds := make(map[string]bool)
-	for _, as := range configData.Associations {
-		assocCharIds[as.CharId] = true
-	}
-
-	for _, ch := range foundAccount.Characters {
-		cidStr := fmt.Sprintf("%d", ch.Character.CharacterID)
-		err := checkForExistingAssociation(configData, cidStr)
-		if !assocCharIds[cidStr] && err == nil {
-			err = a.associateCharacter(userId, cidStr, configData)
-			if err != nil {
-				a.logger.Warnf("failed to associate character %d: %v", ch.Character.CharacterID, err)
-			}
-			assocCharIds[cidStr] = true
-		} else {
-			assocCharIds[cidStr] = true
-			a.logger.Debugf("character %s already associated", ch.Character.CharacterName)
-		}
-	}
-	return nil
-}
-
-func (a *accountService) syncAccountWithUserFileAndAssociations(
-	account *model.Account,
-	charID int64,
-	configData *model.ConfigData,
-) error {
-	foundUserID, err := a.getUserIdWithCharId(configData, strconv.FormatInt(charID, 10))
-	if err != nil {
-		return err
-	}
-
-	// Update the account's userID (account.ID) and UserAccount map
-	if err = a.updateAccountNameAndId(account, configData, foundUserID); err != nil {
-		return fmt.Errorf("failed to update account name and id: %w", err)
-	}
-
-	// Associate any missing characters from the account
-	if err = a.associateMissingCharacters(account, foundUserID, configData); err != nil {
-		a.logger.Warnf("failed to associate missing characters for account %s, userId %s: %v", account.Name, foundUserID, err)
-	}
-
-	return nil
+	return a.assocService.UnassociateCharacter(userId, charId)
 }
 
 func (a *accountService) UpdateAccountName(accountID int64, accountName string) error {
-	accounts, err := a.dataStore.FetchAccounts()
+	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {
 		return fmt.Errorf("error fetching accounts: %w", err)
 	}
@@ -373,7 +144,7 @@ func (a *accountService) UpdateAccountName(accountID int64, accountName string) 
 
 	accountToUpdate.Name = accountName
 
-	if err = a.dataStore.SaveAccounts(accounts); err != nil {
+	if err = a.accountRepo.SaveAccounts(accounts); err != nil {
 		return fmt.Errorf("failed to save accounts: %w", err)
 	}
 
@@ -381,7 +152,7 @@ func (a *accountService) UpdateAccountName(accountID int64, accountName string) 
 }
 
 func (a *accountService) ToggleAccountStatus(accountID int64) error {
-	accounts, err := a.dataStore.FetchAccounts()
+	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {
 		return fmt.Errorf("error fetching accounts: %w", err)
 	}
@@ -403,7 +174,7 @@ func (a *accountService) ToggleAccountStatus(accountID int64) error {
 		return fmt.Errorf("account not found")
 	}
 
-	if err = a.dataStore.SaveAccounts(accounts); err != nil {
+	if err = a.accountRepo.SaveAccounts(accounts); err != nil {
 		return fmt.Errorf("failed to save accounts: %w", err)
 	}
 
@@ -411,7 +182,7 @@ func (a *accountService) ToggleAccountStatus(accountID int64) error {
 }
 
 func (a *accountService) RemoveAccountByName(accountName string) error {
-	accounts, err := a.dataStore.FetchAccounts()
+	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {
 		return fmt.Errorf("error fetching accounts: %w", err)
 	}
@@ -430,7 +201,7 @@ func (a *accountService) RemoveAccountByName(accountName string) error {
 
 	accounts = append(accounts[:index], accounts[index+1:]...)
 
-	if err := a.dataStore.SaveAccounts(accounts); err != nil {
+	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
 		return fmt.Errorf("failed to save accounts: %w", err)
 	}
 
@@ -439,7 +210,7 @@ func (a *accountService) RemoveAccountByName(accountName string) error {
 
 func (a *accountService) RefreshAccounts(characterSvc interfaces.CharacterService) ([]model.Account, error) {
 	a.logger.Debug("Refreshing accounts")
-	accounts, err := a.dataStore.FetchAccounts()
+	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load accounts: %w", err)
 	}
@@ -466,13 +237,21 @@ func (a *accountService) RefreshAccounts(characterSvc interfaces.CharacterServic
 		a.logger.Debugf("Account %s has %d characters after processing", account.Name, len(account.Characters))
 	}
 
-	if err := a.dataStore.SaveAccounts(accounts); err != nil {
+	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
 		return nil, fmt.Errorf("failed to save accounts: %w", err)
 	}
 
-	if err := a.cacheService.SaveCache(); err != nil {
+	if err := a.esi.SaveEsiCache(); err != nil {
 		a.logger.WithError(err).Infof("save cache failed in refresh accounts")
 	}
 
 	return accounts, nil
+}
+
+func (a *accountService) FetchAccounts() ([]model.Account, error) {
+	return a.accountRepo.FetchAccounts()
+}
+
+func (a *accountService) SaveAccounts(accounts []model.Account) error {
+	return a.accountRepo.SaveAccounts(accounts)
 }

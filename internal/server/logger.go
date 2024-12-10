@@ -2,14 +2,18 @@ package server
 
 import (
 	"github.com/sirupsen/logrus"
+
+	"github.com/guarzo/canifly/internal/services/interfaces"
+	flyLogger "github.com/guarzo/canifly/internal/services/logger"
 )
 
-func SetupLogger() *logrus.Logger {
-	logger := logrus.New()
+func SetupLogger() interfaces.Logger {
 
-	// logger.SetReportCaller(true) // Enable caller reporting
+	logrusLogger := logrus.New()
 
-	logger.SetFormatter(&logrus.TextFormatter{
+	// logrusLogger.SetReportCaller(true) // Enable caller reporting
+
+	logrusLogger.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: false,
 		//CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
@@ -19,6 +23,6 @@ func SetupLogger() *logrus.Logger {
 		//},
 	})
 
-	logger.SetLevel(logrus.InfoLevel)
-	return logger
+	logrusLogger.SetLevel(logrus.InfoLevel)
+	return flyLogger.NewLogrusAdapter(logrusLogger)
 }

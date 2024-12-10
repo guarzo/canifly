@@ -4,8 +4,6 @@ package esi
 import (
 	"errors"
 	"fmt"
-	"github.com/guarzo/canifly/internal/auth"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,9 +11,10 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/guarzo/canifly/internal/auth"
 	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/sirupsen/logrus"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 const (
@@ -123,7 +122,7 @@ func getResults(address string, token *oauth2.Token, auth auth.AuthClient) ([]by
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger *logrus.Logger, auth auth.AuthClient) ([]byte, error) {
+func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger interfaces.Logger, auth auth.AuthClient) ([]byte, error) {
 	if cachedData, found := cacheService.Get(address); found {
 		logger.Debugf("using cacheService data for call to %s", address)
 		return cachedData, nil

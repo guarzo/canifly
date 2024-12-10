@@ -2,23 +2,24 @@ package skill
 
 import (
 	"bufio"
-	"github.com/guarzo/canifly/internal/services/interfaces"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type skillService struct {
-	logger    *logrus.Logger
+	logger    interfaces.Logger
 	skillRepo interfaces.SkillRepository
 }
 
 // NewSkillService  returns a new SettingsService with a logger
-func NewSkillService(logger *logrus.Logger, skillRepo interfaces.SkillRepository) interfaces.SkillService {
+func NewSkillService(logger interfaces.Logger, skillRepo interfaces.SkillRepository) interfaces.SkillService {
 	return &skillService{logger: logger, skillRepo: skillRepo}
 }
 
@@ -26,8 +27,30 @@ var romanToInt = map[string]int{
 	"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
 }
 
-// ParseSkillPlanContents takes the contents as a string and parses it into a map of skills.
-func (s *skillService) ParseSkillPlanContents(contents string) map[string]model.Skill {
+func (s *skillService) GetSkillPlanFile(planName string) ([]byte, error) {
+	planName += ".txt"
+	s.logger.Infof("Attempting to serve skill plan file: %s", planName)
+
+	skillPlanDir, err := s.skillRepo.GetWriteablePlansPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve skill plan directory: %v", err)
+	}
+
+	filePath := filepath.Join(skillPlanDir, planName)
+	return os.ReadFile(filePath)
+}
+
+func (s *skillService) DeleteSkillPlan(name string) error {
+	return s.skillRepo.DeleteSkillPlan(name)
+}
+
+func (s *skillService) ParseAndSaveSkillPlan(contents, name string) error {
+	skills := s.parseSkillPlanContents(contents)
+	return s.skillRepo.SaveSkillPlan(name, skills)
+}
+
+// parseSkillPlanContents takes the contents as a string and parses it into a map of skills.
+func (s *skillService) parseSkillPlanContents(contents string) map[string]model.Skill {
 	skills := make(map[string]model.Skill)
 	scanner := bufio.NewScanner(strings.NewReader(contents))
 

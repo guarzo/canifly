@@ -3,42 +3,78 @@ package esi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/guarzo/canifly/internal/services/interfaces"
+	"net/http"
+	"slices"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	"github.com/guarzo/canifly/internal/auth"
-	"github.com/guarzo/canifly/internal/http"
+	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
-
-type ESIService interface {
-	GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error)
-	GetCharacter(id string) (*model.CharacterResponse, error)
-	GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error)
-	GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error)
-	GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error)
-}
 
 type esiService struct {
 	httpClient   interfaces.HTTPClient
 	auth         interfaces.AuthClient
-	logger       *logrus.Logger
-	dataStore    *persist.DataStore
+	logger       interfaces.Logger
+	deleted      interfaces.DeletedCharactersRepository
 	cacheService interfaces.CacheService
 }
 
-func NewESIService(httpClient http.HTTPClient, auth auth.AuthClient, l *logrus.Logger, d *persist.DataStore, cache interfaces.CacheService) ESIService {
+func NewESIService(httpClient interfaces.HTTPClient, auth interfaces.AuthClient, l interfaces.Logger, cache interfaces.CacheService, deleted interfaces.DeletedCharactersRepository) interfaces.ESIService {
 	return &esiService{
 		httpClient:   httpClient,
 		auth:         auth,
 		logger:       l,
-		dataStore:    d,
 		cacheService: cache,
+		deleted:      deleted,
 	}
+}
+
+func (s *esiService) SaveEsiCache() error {
+	return s.cacheService.SaveCache()
+}
+
+func (s *esiService) ResolveCharacterNames(charIds []string) (map[string]string, error) {
+	charIdToName := make(map[string]string)
+	deletedChars, err := s.deleted.FetchDeletedCharacters()
+	if err != nil {
+		s.logger.WithError(err).Info("resolve character names running without deleted characters info")
+		// If we can't fetch deletedChars, just proceed with empty list
+		deletedChars = []string{}
+	}
+
+	for _, id := range charIds {
+		// Skip if already known deleted
+		if slices.Contains(deletedChars, id) {
+			continue
+		}
+
+		character, err := s.GetCharacter(id)
+		if err != nil {
+			s.logger.Warnf("failed to retrieve name for %s", id)
+			var customErr *flyErrors.CustomError
+			if errors.As(err, &customErr) && customErr.StatusCode == http.StatusNotFound {
+				s.logger.Warnf("adding %s to deleted characters", id)
+				deletedChars = append(deletedChars, id)
+			}
+		} else {
+			charIdToName[id] = character.Name
+		}
+	}
+
+	// Save updated deletedChars
+	if saveErr := s.deleted.SaveDeletedCharacters(deletedChars); saveErr != nil {
+		s.logger.Warnf("failed to save deleted characters %v", saveErr)
+	}
+	err = s.SaveEsiCache()
+	if err != nil {
+		s.logger.WithError(err).Infof("failed to save esi cache after processing identity")
+	}
+
+	return charIdToName, nil
 }
 
 func (s *esiService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error) {

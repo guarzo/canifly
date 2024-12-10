@@ -7,7 +7,6 @@ import (
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/guarzo/canifly/internal/services/settings"
 )
 
 type dashboardService struct {
@@ -15,9 +14,8 @@ type dashboardService struct {
 	skillService     interfaces.SkillService
 	characterService interfaces.CharacterService
 	accountService   interfaces.AccountService
-	settingsService  settings.SettingsService
+	settingsService  interfaces.SettingsService
 	stateService     interfaces.StateService
-	dataStore        interfaces.DataStore
 }
 
 func NewDashboardService(
@@ -25,9 +23,8 @@ func NewDashboardService(
 	skillSvc interfaces.SkillService,
 	charSvc interfaces.CharacterService,
 	accSvc interfaces.AccountService,
-	setSvc settings.SettingsService,
+	setSvc interfaces.SettingsService,
 	stateSvc interfaces.StateService,
-	ds interfaces.DataStore,
 ) interfaces.DashboardService {
 	return &dashboardService{
 		logger:           logger,
@@ -36,7 +33,6 @@ func NewDashboardService(
 		accountService:   accSvc,
 		settingsService:  setSvc,
 		stateService:     stateSvc,
-		dataStore:        ds,
 	}
 }
 
@@ -47,7 +43,7 @@ func (d *dashboardService) RefreshAccountsAndState() (model.AppState, error) {
 		return model.AppState{}, fmt.Errorf("failed to validate accounts: %v", err)
 	}
 
-	updatedData := d.PrepareAppData(accounts)
+	updatedData := d.prepareAppData(accounts)
 
 	if err = d.stateService.UpdateAndSaveAppState(updatedData); err != nil {
 		d.logger.Errorf("Failed to update persist and session: %v", err)
@@ -56,14 +52,18 @@ func (d *dashboardService) RefreshAccountsAndState() (model.AppState, error) {
 	return updatedData, nil
 }
 
-func (d *dashboardService) PrepareAppData(accounts []model.Account) model.AppState {
+func (d *dashboardService) GetCurrentAppState() model.AppState {
+	return d.stateService.GetAppState()
+}
+
+func (d *dashboardService) prepareAppData(accounts []model.Account) model.AppState {
 	skillPlans := d.skillService.GetMatchingSkillPlans(
 		accounts,
 		d.skillService.GetSkillPlans(),
 		d.skillService.GetSkillTypes(),
 	)
 
-	configData, err := d.dataStore.FetchConfigData()
+	configData, err := d.settingsService.FetchConfigData()
 	if err != nil {
 		d.logger.Errorf("Failed to fetch config data: %v", err)
 		configData = &model.ConfigData{}
@@ -75,7 +75,7 @@ func (d *dashboardService) PrepareAppData(accounts []model.Account) model.AppSta
 		d.logger.Errorf("Failed to load character settings: %v", err)
 	}
 
-	userSelections, err := d.settingsService.LoadUserSelections()
+	userSelections, err := d.settingsService.FetchUserSelections()
 	if err != nil {
 		d.logger.Warnf("Failed to load user selections, defaulting to empty: %v", err)
 		userSelections = make(map[string]model.UserSelection)

@@ -4,17 +4,15 @@ package cache
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type cacheService struct {
-	logger       *logrus.Logger
+	logger       interfaces.Logger
 	persistCache interfaces.CacheRepository // We'll define CacheRepository below
 }
 
-func NewCacheService(logger *logrus.Logger, persistCache interfaces.CacheRepository) interfaces.CacheService {
+func NewCacheService(logger interfaces.Logger, persistCache interfaces.CacheRepository) interfaces.CacheService {
 	return &cacheService{
 		logger:       logger,
 		persistCache: persistCache,

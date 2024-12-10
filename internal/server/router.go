@@ -1,10 +1,10 @@
 package server
 
 import (
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/embed"
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
@@ -12,43 +12,52 @@ import (
 )
 
 // SetupRouter configures and returns the app’s router
-func SetupRouter(secret string, logger *logrus.Logger, appServices *AppServices) *mux.Router {
+func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServices) *mux.Router {
 	sessionStore := flyHttp.NewSessionService(secret)
 	r := mux.NewRouter()
 
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
-	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.SkillService, appServices.DataStore, appServices.SettingsService, appServices.CharacterService)
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.DataStore, appServices.SettingsService)
-	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, *appServices.AccountService)
-	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, appServices.SettingsService, appServices.DataStore)
-	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService, appServices.DataStore)
+	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.DashBoardService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.AccountService, appServices.StateService)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountService)
+	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService)
+	settingsHandler := flyHandlers.NewSettingsHandler(logger, appServices.SettingsService)
+	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AccountService)
 
-	// Define routes
+	// Public routes
 	r.HandleFunc("/callback/", authHandler.CallBack())
 	r.HandleFunc("/api/add-character", authHandler.AddCharacterHandler())
+
+	// Auth routes
 	r.HandleFunc("/api/app-data", dashboardHandler.GetDashboardData()).Methods("GET")
 	r.HandleFunc("/api/app-data-no-cache", dashboardHandler.GetDashboardDataNoCache()).Methods("GET")
+
 	r.HandleFunc("/api/logout", authHandler.Logout())
 	r.HandleFunc("/api/login", authHandler.Login())
+	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
+
 	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
 	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
 	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
+
 	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
-	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
-	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter())
 	r.HandleFunc("/api/remove-account", accountHandler.RemoveAccount())
 
-	r.HandleFunc("/api/choose-settings-dir", characterHandler.ChooseSettingsDir)
-	r.HandleFunc("/api/sync-sub-dir", characterHandler.SyncSubDirectory)
-	r.HandleFunc("/api/backup-directory", characterHandler.BackupDirectory)
-	r.HandleFunc("/api/associate-character", characterHandler.AssociateCharacter)
-	r.HandleFunc("/api/unassociate-character", characterHandler.UnassociateCharacter)
-	r.HandleFunc("/api/save-user-selections", characterHandler.SaveUserSelections)
-	r.HandleFunc("/api/sync-all-dirs", characterHandler.SyncAllSubdirectories)
+	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter)
+	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
-	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
+	r.HandleFunc("/api/choose-settings-dir", settingsHandler.ChooseSettingsDir)
+	r.HandleFunc("/api/sync-sub-dir", settingsHandler.SyncSubDirectory)
+	r.HandleFunc("/api/backup-directory", settingsHandler.BackupDirectory)
+
+	r.HandleFunc("/api/save-user-selections", settingsHandler.SaveUserSelections)
+	r.HandleFunc("/api/sync-all-dirs", settingsHandler.SyncAllSubdirectories)
+
+	r.HandleFunc("/api/associate-character", assocHandler.AssociateCharacter)
+	r.HandleFunc("/api/unassociate-character", assocHandler.UnassociateCharacter)
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))

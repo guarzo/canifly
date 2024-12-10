@@ -7,13 +7,12 @@ import (
 
 	"github.com/guarzo/canifly/internal/auth"
 	flyHttp "github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/services/esi"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type AuthHandler struct {
 	sessionService *flyHttp.SessionService
-	esiService     esi.ESIService
+	esiService     interfaces.ESIService
 	logger         interfaces.Logger
 	accountService interfaces.AccountService
 	stateService   interfaces.StateService
@@ -21,7 +20,7 @@ type AuthHandler struct {
 
 func NewAuthHandler(
 	s *flyHttp.SessionService,
-	e esi.ESIService,
+	e interfaces.ESIService,
 	l interfaces.Logger,
 	accountSvc interfaces.AccountService,
 	stateSvc interfaces.StateService,
@@ -156,7 +155,7 @@ func (h *AuthHandler) Logout() http.HandlerFunc {
 
 func (h *AuthHandler) ResetAccounts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := h.stateService.DeleteAllAccounts()
+		err := h.accountService.DeleteAllAccounts()
 		if err != nil {
 			h.logger.Errorf("Failed to delete identity %v", err)
 		}

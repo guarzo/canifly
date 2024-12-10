@@ -378,7 +378,7 @@ const App = () => {
                             openSkillPlanModal={openSkillPlanModal}
                             existingAccounts={existingAccounts}
                             onSilentRefresh={silentRefreshData}
-                            onAddCharacter={handleAddCharacter} {/* PASS THE FUNCTION DOWN */}
+                            onAddCharacter={handleAddCharacter}
                         />
                         <main className="flex-grow container mx-auto px-4 py-8">
                             {!isAuthenticated ? (

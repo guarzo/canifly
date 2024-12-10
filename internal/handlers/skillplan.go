@@ -3,27 +3,21 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 	"os"
-	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type SkillPlanHandler struct {
-	logger       *logrus.Logger
-	skillService *interfaces.SkillService
-	dataStore    *persist.DataStore
+	logger       interfaces.Logger
+	skillService interfaces.SkillService
 }
 
-func NewSkillPlanHandler(l *logrus.Logger, s *interfaces.SkillService, d *persist.DataStore) *SkillPlanHandler {
+func NewSkillPlanHandler(l interfaces.Logger, s interfaces.SkillService) *SkillPlanHandler {
 	return &SkillPlanHandler{
 		logger:       l,
 		skillService: s,
-		dataStore:    d,
 	}
 }
 
@@ -35,18 +29,7 @@ func (h *SkillPlanHandler) GetSkillPlanFile() http.HandlerFunc {
 			return
 		}
 
-		planName += ".txt"
-		h.logger.Infof("Attempting to serve skill plan file: %s", planName)
-
-		skillPlanDir, err := h.dataStore.GetWriteablePlansPath()
-		if err != nil {
-			h.logger.Errorf("Failed to retrieve skill plan directory: %v", err)
-			http.Error(w, fmt.Sprintf("Failed to retrieve skill plan directory: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		filePath := filepath.Join(skillPlanDir, planName)
-		content, err := os.ReadFile(filePath)
+		content, err := h.skillService.GetSkillPlanFile(planName)
 		if err != nil {
 			if os.IsNotExist(err) {
 				http.Error(w, "Skill plan file not found", http.StatusNotFound)
@@ -82,8 +65,7 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		skills := h.skillService.ParseSkillPlanContents(requestData.Contents)
-		if err := h.dataStore.SaveSkillPlan(requestData.PlanName, skills); err != nil {
+		if err := h.skillService.ParseAndSaveSkillPlan(requestData.Contents, requestData.PlanName); err != nil {
 			h.logger.Errorf("Failed to save skill plan: %v", err)
 			http.Error(w, "Failed to save skill plan", http.StatusInternalServerError)
 			return
@@ -107,7 +89,7 @@ func (h *SkillPlanHandler) DeleteSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		if err := h.dataStore.DeleteSkillPlan(planName); err != nil {
+		if err := h.skillService.DeleteSkillPlan(planName); err != nil {
 			h.logger.Errorf("Failed to delete skill plan: %v", err)
 			http.Error(w, "Failed to delete skill plan", http.StatusInternalServerError)
 			return

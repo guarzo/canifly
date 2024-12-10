@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"encoding/base64"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/auth"
 	httpServices "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/server"
@@ -35,7 +34,7 @@ func Start() {
 	startServer(r, port, logger)
 }
 
-func initializeComponents(secret string, logger *logrus.Logger) {
+func initializeComponents(secret string, logger interfaces.Logger) {
 	key, err := base64.StdEncoding.DecodeString(secret)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to decode secret key.")
@@ -53,7 +52,7 @@ func initializeComponents(secret string, logger *logrus.Logger) {
 
 }
 
-func startServer(r *mux.Router, port string, logger *logrus.Logger) {
+func startServer(r *mux.Router, port string, logger interfaces.Logger) {
 	logger.Infof("Listening on port %s", port)
 	corsOptions := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:5173"}),

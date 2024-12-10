@@ -2,18 +2,17 @@ package server
 
 import (
 	"encoding/base64"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"os"
 	"path/filepath"
 
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/utils"
+	"github.com/joho/godotenv"
 )
 
 // LoadEnv loads environment variables from various sources
-func LoadEnv(logger *logrus.Logger) {
+func LoadEnv(logger interfaces.Logger) {
 	if err := godotenv.Load(); err != nil {
 		embeddedEnv, err := embed.StaticFiles.Open("static/.env")
 		if err != nil {
@@ -34,7 +33,7 @@ func LoadEnv(logger *logrus.Logger) {
 }
 
 // GetSecretKey retrieves or generates the encryption secret key
-func GetSecretKey(logger *logrus.Logger) string {
+func GetSecretKey(logger interfaces.Logger) string {
 	secret := os.Getenv("SECRET_KEY")
 	if secret == "" {
 		key, err := utils.GenerateSecret()

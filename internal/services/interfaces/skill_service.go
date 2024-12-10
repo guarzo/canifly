@@ -5,6 +5,8 @@ import "github.com/guarzo/canifly/internal/model"
 type SkillService interface {
 	GetSkillPlans() map[string]model.SkillPlan
 	GetSkillTypes() map[string]model.SkillType
-	ParseSkillPlanContents(contents string) map[string]model.Skill
+	ParseAndSaveSkillPlan(contents, name string) error
+	GetSkillPlanFile(name string) ([]byte, error)
+	DeleteSkillPlan(name string) error
 	GetMatchingSkillPlans(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) map[string]model.SkillPlanWithStatus
 }

@@ -7,6 +7,12 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
+type SettingsRepository interface {
+	ConfigRepository
+	UserSelectionsRepository
+	FileSystemRepository
+}
+
 type ConfigRepository interface {
 	FetchConfigData() (*model.ConfigData, error)
 	SaveConfigData(*model.ConfigData) error
@@ -20,6 +26,7 @@ type AccountRepository interface {
 
 type UserSelectionsRepository interface {
 	SaveUserSelections(model.UserSelections) error
+	FetchUserSelections() (model.UserSelections, error)
 }
 
 type DeletedCharactersRepository interface {
@@ -40,8 +47,13 @@ type StateRepository interface {
 	SetAppState(as model.AppState)
 	GetAppState() model.AppState
 	SetAppStateLogin(in bool) error
-	ClearAppState() error
+	ClearAppState()
 	SaveAppStateSnapshot(as model.AppState) error
+}
+
+type AssocRepository interface {
+	ConfigRepository
+	AccountRepository
 }
 
 type CacheRepository interface {
@@ -54,4 +66,7 @@ type CacheRepository interface {
 type SkillRepository interface {
 	GetSkillPlans() map[string]model.SkillPlan
 	GetSkillTypes() map[string]model.SkillType
+	SaveSkillPlan(planName string, skills map[string]model.Skill) error
+	DeleteSkillPlan(planName string) error
+	GetWriteablePlansPath() (string, error)
 }

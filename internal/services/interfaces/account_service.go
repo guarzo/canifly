@@ -14,4 +14,7 @@ type AccountService interface {
 	ToggleAccountStatus(accountID int64) error
 	RemoveAccountByName(accountName string) error
 	RefreshAccounts(characterService CharacterService) ([]model.Account, error)
+	DeleteAllAccounts() error
+	FetchAccounts() ([]model.Account, error)
+	SaveAccounts(accounts []model.Account) error
 }

@@ -165,7 +165,7 @@ func (ds *DataStore) SaveUserSelections(selections model.UserSelections) error {
 	return os.WriteFile(selectionsPath, data, 0644)
 }
 
-func (ds *DataStore) LoadUserSelections() (model.UserSelections, error) {
+func (ds *DataStore) FetchUserSelections() (model.UserSelections, error) {
 	selectionsPath, err := ds.getUserSelectionsFilePath()
 	if err != nil {
 		ds.logger.Infof("no selection file path %v", err)

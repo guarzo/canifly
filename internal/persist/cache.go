@@ -3,12 +3,12 @@ package persist
 
 import (
 	"fmt"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/patrickmn/go-cache"
-	"github.com/sirupsen/logrus"
 )
 
 const DefaultExpiration = 30 * time.Minute
@@ -37,7 +37,7 @@ func (c *Cache) Set(key string, value []byte, expiration time.Duration) {
 	c.cache.Set(key, value, expiration)
 }
 
-func (c *Cache) SaveToFile(filename string, logger *logrus.Logger) error {
+func (c *Cache) SaveToFile(filename string, logger interfaces.Logger) error {
 	items := c.cache.Items()
 
 	serializable := make(map[string]cacheItem, len(items))
@@ -62,7 +62,7 @@ func (c *Cache) SaveToFile(filename string, logger *logrus.Logger) error {
 	return nil
 }
 
-func (c *Cache) LoadFromFile(filename string, logger *logrus.Logger) error {
+func (c *Cache) LoadFromFile(filename string, logger interfaces.Logger) error {
 	var serializable map[string]cacheItem
 	if err := readJSONFromFile(filename, &serializable); err != nil {
 		if os.IsNotExist(err) {

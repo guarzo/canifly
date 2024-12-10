@@ -3,21 +3,19 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
 	flyHttp "github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type AccountHandler struct {
 	sessionService flyHttp.SessionService
 	accountService interfaces.AccountService
-	logger         *logrus.Logger
+	logger         interfaces.Logger
 }
 
-func NewAccountHandler(session *flyHttp.SessionService, logger *logrus.Logger, accountSrv interfaces.AccountService) *AccountHandler {
+func NewAccountHandler(session *flyHttp.SessionService, logger interfaces.Logger, accountSrv interfaces.AccountService) *AccountHandler {
 	return &AccountHandler{
 		sessionService: *session,
 		logger:         logger,

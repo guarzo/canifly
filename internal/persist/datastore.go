@@ -4,8 +4,6 @@ package persist
 import (
 	"sync"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -14,7 +12,7 @@ import (
 var _ interfaces.AccountRepository = (*DataStore)(nil)
 
 type DataStore struct {
-	logger        *logrus.Logger
+	logger        interfaces.Logger
 	baseDir       string
 	apiCache      *Cache
 	appStateStore AppStateStore
@@ -26,7 +24,7 @@ type DataStore struct {
 }
 
 // NewDataStore initializes a new DataStore and loads AppState from file.
-func NewDataStore(logger *logrus.Logger, baseDir string) *DataStore {
+func NewDataStore(logger interfaces.Logger, baseDir string) *DataStore {
 	ds := &DataStore{
 		logger:        logger,
 		baseDir:       baseDir,

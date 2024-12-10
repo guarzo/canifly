@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"net/http"
 	"net/url"
@@ -67,7 +67,7 @@ func ExchangeCode(code string) (*oauth2.Token, error) {
 }
 
 // RefreshToken performs a token refresh using the global oauth2Config
-func RefreshToken(refreshToken string, logger *logrus.Logger) (*oauth2.Token, error) {
+func RefreshToken(refreshToken string, logger interfaces.Logger) (*oauth2.Token, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
@@ -111,11 +111,11 @@ func RefreshToken(refreshToken string, logger *logrus.Logger) (*oauth2.Token, er
 
 // authClient is a concrete implementation of AuthClient
 type authClient struct {
-	logger *logrus.Logger
+	logger interfaces.Logger
 }
 
 // NewAuthClient returns a concrete AuthClient implementation
-func NewAuthClient(l *logrus.Logger) AuthClient {
+func NewAuthClient(l interfaces.Logger) AuthClient {
 	return &authClient{
 		logger: l,
 	}

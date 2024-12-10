@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"net/http"
 	"time"
@@ -19,12 +20,12 @@ type HTTPClient interface {
 type APIClient struct {
 	BaseURL    string
 	HTTPClient *http.Client
-	Logger     *logrus.Logger
+	Logger     interfaces.Logger
 	Token      string // OAuth token or API key
 }
 
 // NewAPIClient initializes and returns an APIClient instance
-func NewAPIClient(baseURL, token string, logger *logrus.Logger) *APIClient {
+func NewAPIClient(baseURL, token string, logger interfaces.Logger) *APIClient {
 	return &APIClient{
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
