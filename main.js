@@ -1,10 +1,7 @@
-// main.js
-
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const http = require('http')
 
-// Determine if the app is in development mode
 const isDev = !app.isPackaged;
 
 let goProcess;
@@ -12,7 +9,6 @@ const maxRetries = 5;
 const retryDelay = 1000;
 let startTime;
 
-// Create the main Electron window
 function createWindow() {
     console.log("Creating Electron window...");
     const mainWindow = new BrowserWindow({
@@ -31,27 +27,48 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 
     if (isDev) {
-        mainWindow.loadURL('http://localhost:5173'); // Adjust to your dev server
+        mainWindow.loadURL('http://localhost:5173');
         mainWindow.webContents.openDevTools();
     } else {
         mainWindow.loadFile(path.join(__dirname, 'renderer', 'dist', 'index.html'));
     }
 
-    // Listen for close window request
-    ipcMain.on('close-window', () => {
-        mainWindow.close(); // Close the window
+    // Insert CSS to hide scrollbars once the content is loaded
+    mainWindow.webContents.on('did-finish-load', () => {
+        const customCSS = `
+            html, body {
+              overflow: auto !important;
+            }
+            ::-webkit-scrollbar {
+              width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+              background: #1f2937;
+            }
+            ::-webkit-scrollbar-thumb {
+              background-color: #14b8a6;
+              border-radius: 4px;
+              border: 2px solid #1f2937;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background-color: #0d9488;
+            }
+          `;
+        mainWindow.webContents.insertCSS(customCSS);
     });
 
+
+    ipcMain.on('close-window', () => {
+        mainWindow.close();
+    });
 
     ipcMain.handle('choose-directory', async (event, defaultPath) => {
         const options = {
             properties: ['openDirectory']
         };
-
         if (defaultPath) {
             options.defaultPath = defaultPath;
         }
-
         const result = await dialog.showOpenDialog(options);
         if (result.canceled || result.filePaths.length === 0) {
             return null;
@@ -59,27 +76,23 @@ function createWindow() {
         return result.filePaths[0];
     });
 
-    // Add this handler for openExternal calls
     ipcMain.handle('open-external', (event, url) => {
         if (url && typeof url === 'string') {
             shell.openExternal(url);
         }
     });
 
-
     mainWindow.on('closed', function () {
         if (goProcess) {
             goProcess.kill();
             console.log('Go process terminated');
         }
-        app.quit(); // Quit the Electron app completely
-        process.exit(); // Force exit if necessary
+        app.quit();
+        process.exit();
     });
 }
 
-// Initialize and create the window
 app.whenReady().then(async () => {
-
     startTime = Date.now();
     checkBackendReady(maxRetries);
 
@@ -88,15 +101,14 @@ app.whenReady().then(async () => {
     });
 });
 
-// Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
-
 function checkBackendReady(retries) {
     if (retries === 0) {
-        console.error("Go backend did not start in time.");
+        console.error("Go backend did not start in time. Shutting down.");
+        app.quit(); // Quit the app if backend not ready
         return;
     }
 

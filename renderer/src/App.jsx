@@ -386,7 +386,7 @@ const App = () => {
                             onAddCharacter={handleAddCharacter}
                             isRefreshing={isRefreshing} // New prop
                         />
-                        <main className="flex-grow container mx-auto px-4 py-8">
+                        <main className="flex-grow container mx-auto px-4 py-8 pb-16">
                             {!isAuthenticated ? (
                                 <Landing/>
                             ) : isLoading || !appData ? (

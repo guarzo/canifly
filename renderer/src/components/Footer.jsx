@@ -1,9 +1,9 @@
-// Footer.jsx
-import React from 'react';
-
 const Footer = () => {
     return (
-        <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200 py-4 shadow-inner border-t-4 border-teal-500">
+        <footer
+            className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200 py-4 shadow-inner border-t-4 border-teal-500 z-50"
+            style={{ WebkitAppRegion: 'drag' }}
+        >
             <div className="container mx-auto px-4 flex flex-col items-center justify-center">
                 <img
                     src="/images/footer-logo.jpg"
