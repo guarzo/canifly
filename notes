@@ -7,8 +7,6 @@ SECRET_KEY=
 
 
 todo
-- login modal (better UI and explanation) - no pulse after modal
-- add delete account
 - test sync
 - backup - choose file location
 - can we get mct / active queue / omega status
