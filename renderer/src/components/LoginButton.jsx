@@ -61,7 +61,7 @@ const LoginButton = ({ onModalOpenChange }) => {
                 isOpen={modalOpen}
                 onClose={handleCloseModal}
                 onSubmit={handleLoginSubmit}
-                title="Login - Enter Account Name"
+                title="Account Name"
             />
         </>
     );
