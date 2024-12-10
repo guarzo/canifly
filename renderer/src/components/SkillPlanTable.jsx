@@ -1,4 +1,3 @@
-// SkillPlanTable.jsx
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -10,7 +9,6 @@ import {
     TableRow,
     Collapse,
     IconButton,
-    Typography,
     Box,
 } from '@mui/material';
 import {
@@ -27,41 +25,42 @@ import { calculateDaysFromToday } from './Utils';
 const SkillPlanRow = ({ row }) => {
     const [open, setOpen] = React.useState(false);
 
-    console.log('Rendering SkillPlanRow for:', row.planName, 'with children:', row.children);
-
     return (
         <React.Fragment>
-            <TableRow className="bg-gray-800">
-                <TableCell>
+            <TableRow
+                className="bg-gray-800 hover:bg-gray-700 transition-colors"
+                sx={{ borderBottom: row.children.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
+            >
+                <TableCell sx={{ width: '40px' }}>
                     {row.children.length > 0 && (
                         <IconButton
                             size="small"
                             onClick={() => setOpen(!open)}
-                            className="text-teal-200"
+                            sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
                         >
                             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                         </IconButton>
                     )}
                 </TableCell>
-                <TableCell className="text-teal-200 font-semibold">
+                <TableCell className="text-teal-200 font-semibold whitespace-nowrap">
                     {row.planName}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                     <IconButton
                         size="small"
                         onClick={() => window.copySkillPlan(row.planName)}
-                        className="hover:text-teal-200 mr-2"
+                        sx={{ color: '#14b8a6', '&:hover': { color: '#ffffff' }, mr: 1 }}
                         title="Copy Skill Plan"
                     >
-                        <ContentCopy style={{ color: '#14b8a6' }} />
+                        <ContentCopy fontSize="small" />
                     </IconButton>
                     <IconButton
                         size="small"
                         onClick={() => window.deleteSkillPlan(row.planName)}
-                        className="hover:text-red-300"
+                        sx={{ color: '#ef4444', '&:hover': { color: '#ffffff' } }}
                         title="Delete Skill Plan"
                     >
-                        <Delete style={{ color: '#ef4444' }} />
+                        <Delete fontSize="small" />
                     </IconButton>
                 </TableCell>
             </TableRow>
@@ -70,18 +69,21 @@ const SkillPlanRow = ({ row }) => {
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                         <Collapse in={open} timeout="auto" unmountOnExit>
                             <Box margin={1}>
-                                <Table size="small" className="bg-gray-700">
+                                <Table size="small" className="bg-gray-700 rounded-md overflow-hidden">
                                     <TableBody>
                                         {row.children.map((child) => (
-                                            <TableRow key={child.id}>
-                                                <TableCell className="pl-8 text-gray-300 flex items-center">
+                                            <TableRow
+                                                key={child.id}
+                                                className="hover:bg-gray-600 transition-colors"
+                                            >
+                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600">
                                                     {child.statusIcon}
                                                     <span className="ml-2">↳ {child.characterName}</span>
                                                 </TableCell>
-                                                <TableCell className="text-gray-300">
+                                                <TableCell className="text-gray-300 border-b border-gray-600">
                                                     {child.statusText}
                                                 </TableCell>
-                                                <TableCell />
+                                                <TableCell className="border-b border-gray-600" />
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -136,13 +138,6 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
                 })),
             ];
 
-            console.log(`Processed Skill Plan: ${skillPlan.Name}`, {
-                qualifiedCharacters,
-                pendingCharacters,
-                missingCharacters,
-                children,
-            });
-
             return {
                 id: skillPlan.Name,
                 planName: skillPlan.Name,
@@ -150,22 +145,18 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
             };
         });
 
-        console.log('Final SkillPlanData:', data);
         return data;
     }, [skillPlans, identities]);
 
     return (
         <div className="mb-8 w-full">
-            <Typography variant="h5" gutterBottom className="text-teal-200">
-                Skill Plan Table
-            </Typography>
-            <TableContainer>
+            <TableContainer className="rounded-md border border-gray-700 overflow-hidden">
                 <Table>
                     <TableHead>
                         <TableRow className="bg-gray-900">
-                            <TableCell />
-                            <TableCell className="text-teal-200">Skill Plan</TableCell>
-                            <TableCell className="text-teal-200">Actions</TableCell>
+                            <TableCell sx={{ width: '40px' }} />
+                            <TableCell className="text-teal-200 font-bold">Skill Plan</TableCell>
+                            <TableCell className="text-teal-200 font-bold">Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

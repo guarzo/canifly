@@ -1,4 +1,3 @@
-// CharacterTable.jsx
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -10,7 +9,6 @@ import {
     TableRow,
     Collapse,
     IconButton,
-    Typography,
     Box,
 } from '@mui/material';
 import {
@@ -48,55 +46,60 @@ const generatePlanStatus = (planName, characterDetails) => {
     } else if (missingCount > 0) {
         status = {
             statusIcon: <ErrorIcon style={{ color: 'red' }} fontSize="small" />,
-            statusText: `${missingCount} missing`,
+            statusText: `${missingCount} skills missing`,
         };
     }
 
-    console.log(`Character: ${characterDetails.CharacterName}, Plan: ${planName}, Status:`, status);
     return status;
 };
 
 const CharacterRow = ({ row }) => {
     const [open, setOpen] = React.useState(false);
 
-    console.log('Rendering CharacterRow for:', row.CharacterName, 'with plans:', row.plans);
-
     return (
         <React.Fragment>
-            <TableRow className="bg-gray-800">
-                <TableCell>
+            <TableRow
+                className="bg-gray-800 hover:bg-gray-700 transition-colors"
+                sx={{ borderBottom: row.plans.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
+            >
+                <TableCell sx={{ width: '40px' }}>
                     {row.plans.length > 0 && (
                         <IconButton
                             size="small"
                             onClick={() => setOpen(!open)}
-                            className="text-teal-200"
+                            sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
                         >
                             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                         </IconButton>
                     )}
                 </TableCell>
-                <TableCell className="text-teal-200 font-semibold">
+                <TableCell className="text-teal-200 font-semibold whitespace-nowrap">
                     {row.CharacterName}
                 </TableCell>
-                <TableCell>{row.TotalSP}</TableCell>
+                <TableCell className="whitespace-nowrap text-teal-100">
+                    {row.TotalSP}
+                </TableCell>
             </TableRow>
             {row.plans.length > 0 && (
                 <TableRow className="bg-gray-800">
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                         <Collapse in={open} timeout="auto" unmountOnExit>
                             <Box margin={1}>
-                                <Table size="small" className="bg-gray-700">
+                                <Table size="small" className="bg-gray-700 rounded-md overflow-hidden">
                                     <TableBody>
                                         {row.plans.map((plan) => (
-                                            <TableRow key={plan.id}>
-                                                <TableCell className="pl-8 text-gray-300 flex items-center">
+                                            <TableRow
+                                                key={plan.id}
+                                                className="hover:bg-gray-600 transition-colors"
+                                            >
+                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600">
                                                     {plan.statusIcon}
                                                     <span className="ml-2">↳ {plan.planName}</span>
                                                 </TableCell>
-                                                <TableCell className="text-gray-300">
+                                                <TableCell className="text-gray-300 border-b border-gray-600">
                                                     {plan.statusText}
                                                 </TableCell>
-                                                <TableCell />
+                                                <TableCell className="border-b border-gray-600" />
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -116,7 +119,7 @@ CharacterRow.propTypes = {
 
 const CharacterTable = ({ identities, skillPlans }) => {
     const characterData = useMemo(() => {
-        const data = identities.map((identity) => {
+        return identities.map((identity) => {
             const characterDetails = identity.Character || {};
             const TotalSP = formatNumberWithCommas(
                 characterDetails.CharacterSkillsResponse?.total_sp || 0
@@ -132,10 +135,6 @@ const CharacterTable = ({ identities, skillPlans }) => {
                 };
             });
 
-            console.log(`Processed Character: ${characterDetails.CharacterName}`, {
-                plans,
-            });
-
             return {
                 id: characterDetails.CharacterID,
                 CharacterName: characterDetails.CharacterName,
@@ -143,23 +142,17 @@ const CharacterTable = ({ identities, skillPlans }) => {
                 plans,
             };
         });
-
-        console.log('Final CharacterData:', data);
-        return data;
     }, [identities, skillPlans]);
 
     return (
         <div className="mb-8 w-full">
-            <Typography variant="h5" gutterBottom className="text-teal-200">
-                Character Table
-            </Typography>
-            <TableContainer>
+            <TableContainer className="rounded-md border border-gray-700 overflow-hidden">
                 <Table>
                     <TableHead>
                         <TableRow className="bg-gray-900">
-                            <TableCell />
-                            <TableCell className="text-teal-200">Character Name</TableCell>
-                            <TableCell className="text-teal-200">Total Skill Points</TableCell>
+                            <TableCell sx={{ width: '40px' }} />
+                            <TableCell className="text-teal-200 font-bold">Character Name</TableCell>
+                            <TableCell className="text-teal-200 font-bold">Total Skill Points</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

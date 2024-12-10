@@ -1,12 +1,14 @@
-// SkillPlans.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import CharacterTable from './CharacterTable';
 import SkillPlanTable from './SkillPlanTable';
 import { toast } from 'react-toastify';
-import { Container, Paper } from '@mui/material';
+import { Typography, IconButton, Tooltip, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
+import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';
 
 const SkillPlans = ({ identities, skillPlans, setAppData }) => {
+    const [view, setView] = useState('characters'); // 'characters' or 'plans'
+
     useEffect(() => {
         window.copySkillPlan = (planName) => {
             const plan = skillPlans[planName];
@@ -72,16 +74,75 @@ const SkillPlans = ({ identities, skillPlans, setAppData }) => {
         };
     }, [skillPlans, setAppData]);
 
-    return (
-        <Container maxWidth="lg" className="mt-20">
-            <Paper elevation={3} className="p-6 bg-gray-800 text-gray-100">
-                {/* Character Table */}
-                <CharacterTable identities={identities} skillPlans={skillPlans} />
+    const handleViewChange = (event, newValue) => {
+        if (newValue) {
+            setView(newValue);
+        }
+    };
 
-                {/* Skill Plan Table */}
-                <SkillPlanTable skillPlans={skillPlans} identities={identities} />
-            </Paper>
-        </Container>
+    return (
+        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pt-16 pb-10">
+            <div className="max-w-7xl mx-auto">
+                <Box className="flex items-center justify-between mb-4">
+                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold' }}>
+                        Skill Plans
+                    </Typography>
+                    <ToggleButtonGroup
+                        value={view}
+                        exclusive
+                        onChange={handleViewChange}
+                        sx={{
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            borderRadius: '9999px',
+                            '.MuiToggleButton-root': {
+                                textTransform: 'none',
+                                color: '#99f6e4',
+                                fontWeight: 'normal',
+                                border: 'none',
+                                borderRadius: '9999px',
+                                '&.Mui-selected': {
+                                    backgroundColor: '#14b8a6 !important',
+                                    color: '#ffffff !important',
+                                    fontWeight: 'bold',
+                                },
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                },
+                                minWidth: '40px',
+                                minHeight: '40px',
+                            },
+                        }}
+                    >
+                        <ToggleButton value="characters" title="View Characters">
+                            <PeopleIcon fontSize="small" />
+                        </ToggleButton>
+                        <ToggleButton value="plans" title="View Skill Plans">
+                            <SkillPlansIcon fontSize="small" />
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
+
+                <div className="space-y-8">
+                    {view === 'characters' && (
+                        <div className="bg-gray-800 rounded-md p-4 shadow-md">
+                            <Typography variant="h5" gutterBottom sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}>
+                                By Character
+                            </Typography>
+                            <CharacterTable identities={identities} skillPlans={skillPlans} />
+                        </div>
+                    )}
+
+                    {view === 'plans' && (
+                        <div className="bg-gray-800 rounded-md p-4 shadow-md">
+                            <Typography variant="h5" gutterBottom sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}>
+                                By Skill Plan
+                            </Typography>
+                            <SkillPlanTable skillPlans={skillPlans} identities={identities} />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };
 
