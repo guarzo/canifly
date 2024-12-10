@@ -78,8 +78,51 @@ func (assoc *associationService) UnassociateCharacter(userId, charId string) err
 		return fmt.Errorf("association between User ID %s and Character ID %s not found", userId, charId)
 	}
 
+	// Remove the association
 	configData.Associations = append(configData.Associations[:index], configData.Associations[index+1:]...)
 
+	// Check if userId still has any associated characters
+	hasAssociations := false
+	for _, a := range configData.Associations {
+		if a.UserId == userId {
+			hasAssociations = true
+			break
+		}
+	}
+
+	// If no associations remain for this userId
+	if !hasAssociations {
+		assoc.logger.Infof("No more associations for userId %s. Resetting name and account if needed.", userId)
+
+		if configData.UserAccount != nil {
+			configData.UserAccount[userId] = userId
+		}
+
+		// Now reset any account that might be linked to userId
+		accounts, err := assoc.assocRepo.FetchAccounts()
+		if err != nil {
+			return fmt.Errorf("failed to load accounts: %w", err)
+		}
+
+		userIdInt, err := strconv.ParseInt(userId, 10, 64)
+		if err == nil && userIdInt != 0 {
+			// Find account with ID == userIdInt and reset it
+			for i := range accounts {
+				if accounts[i].ID == userIdInt {
+					assoc.logger.Infof("Resetting account with ID %d since no associations remain", userIdInt)
+					accounts[i].ID = 0
+					break
+				}
+			}
+		}
+
+		// Save updated accounts
+		if err = assoc.assocRepo.SaveAccounts(accounts); err != nil {
+			return fmt.Errorf("failed to save accounts after resetting user %s: %w", userId, err)
+		}
+	}
+
+	// Save the updated config data
 	if err := assoc.assocRepo.SaveConfigData(configData); err != nil {
 		return fmt.Errorf("failed to save updated associations: %w", err)
 	}

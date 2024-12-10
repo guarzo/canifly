@@ -39,7 +39,7 @@ type FileSystemRepository interface {
 	GetFilesForDropdown(sd, settingsDir string) ([]model.CharFile, []model.UserFile, error)
 	SyncSubdirectory(subDir, userId, charId, settingsDir string) (int, int, error)
 	SyncAllSubdirectories(baseSubDir, userId, charId, settingsDir string) (int, int, error)
-	BackupDirectory(settingsDir string) (bool, string)
+	BackupDirectory(targetDir, backupDir string) error
 	GetHomeDir() (string, error)
 }
 
@@ -69,4 +69,5 @@ type SkillRepository interface {
 	SaveSkillPlan(planName string, skills map[string]model.Skill) error
 	DeleteSkillPlan(planName string) error
 	GetWriteablePlansPath() (string, error)
+	GetSkillTypeByID(id string) (model.SkillType, bool)
 }

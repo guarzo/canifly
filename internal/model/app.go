@@ -28,11 +28,12 @@ type SubDirData struct {
 }
 
 type ConfigData struct {
-	Roles        []string          `json:"Roles"`
-	SettingsDir  string            `json:"SettingsDir"`
-	SettingsData []SubDirData      `json:"settingsData"`
-	Associations []Association     `json:"associations"`
-	UserAccount  map[string]string `json:"userAccount"`
+	Roles         []string          `json:"Roles"`
+	SettingsDir   string            `json:"SettingsDir"`
+	LastBackupDir string            `json:"LastBackupDir"`
+	SettingsData  []SubDirData      `json:"settingsData"`
+	Associations  []Association     `json:"associations"`
+	UserAccount   map[string]string `json:"userAccount"`
 }
 
 type CharFile struct {

@@ -20,6 +20,7 @@ const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchAppData = async () => {
         try {
@@ -81,12 +82,16 @@ const App = () => {
     };
 
     const silentRefreshData = async () => {
+        if (!isAuthenticated) return;
+        setIsRefreshing(true);
         try {
             await fetchAppDataNoCache();
         } catch (error) {
             if (isAuthenticated) {
                 console.error('Error fetching data:', error);
             }
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -379,6 +384,7 @@ const App = () => {
                             existingAccounts={existingAccounts}
                             onSilentRefresh={silentRefreshData}
                             onAddCharacter={handleAddCharacter}
+                            isRefreshing={isRefreshing} // New prop
                         />
                         <main className="flex-grow container mx-auto px-4 py-8">
                             {!isAuthenticated ? (
@@ -419,6 +425,7 @@ const App = () => {
                                             <CharacterSort
                                                 accounts={appData?.Accounts || []}
                                                 roles={appData?.Roles || []}
+                                                onUpdateCharacter={handleUpdateCharacter}
                                             />
                                         }
                                     />
@@ -431,6 +438,7 @@ const App = () => {
                                                 currentSettingsDir={appData?.SettingsDir || ''}
                                                 isDefaultDir={appData?.IsDefaultDir ?? false}
                                                 userSelections={appData?.UserSelections || {}}
+                                                lastBackupDir={appData?.LastBackupDir || ''}
                                             />
                                         }
                                     />

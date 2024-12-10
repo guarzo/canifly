@@ -81,18 +81,33 @@ func getSavedNameForUserID(userId string, configData *model.ConfigData) string {
 	return name
 }
 
-// BackupDirectory creates a backup tar.gz of the settingsDir
-func (ds *DataStore) BackupDirectory(settingsDir string) (bool, string) {
-	userDataPath, _ := os.UserConfigDir()
+// BackupDirectory creates a backup tar.gz of only the directories under targetDir that start with "settings_"
+func (ds *DataStore) BackupDirectory(targetDir, backupDir string) error {
+	ds.logger.Infof("Starting backup of settings directories from %s to %s", targetDir, backupDir)
+
+	subDirs, err := ds.GetSubDirectories(targetDir)
+	if err != nil {
+		ds.logger.Errorf("Failed to get subdirectories from %s: %v", targetDir, err)
+		return err
+	}
+
+	if len(subDirs) == 0 {
+		errMsg := fmt.Sprintf("No settings_ subdirectories found in %s", targetDir)
+		ds.logger.Warnf(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
 	now := time.Now()
 	formattedDate := now.Format("2006-01-02_15-04-05")
 
-	backupFileName := fmt.Sprintf("%s_%s.bak.tar.gz", filepath.Base(settingsDir), formattedDate)
-	backupFilePath := filepath.Join(userDataPath, backupFileName)
+	backupFileName := fmt.Sprintf("%s_%s.bak.tar.gz", filepath.Base(targetDir), formattedDate)
+	backupFilePath := filepath.Join(backupDir, backupFileName)
 
+	ds.logger.Infof("Creating backup file at %s", backupFilePath)
 	f, err := os.Create(backupFilePath)
 	if err != nil {
-		return false, err.Error()
+		ds.logger.Errorf("Failed to create backup file %s: %v", backupFilePath, err)
+		return err
 	}
 	defer f.Close()
 
@@ -102,39 +117,50 @@ func (ds *DataStore) BackupDirectory(settingsDir string) (bool, string) {
 	tw := tar.NewWriter(gz)
 	defer tw.Close()
 
-	baseDir := filepath.Dir(settingsDir)
-	baseName := filepath.Base(settingsDir)
-
-	filepath.Walk(filepath.Join(baseDir, baseName), func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		relPath, _ := filepath.Rel(baseDir, p)
-
-		header, err := tar.FileInfoHeader(info, relPath)
-		if err != nil {
-			return err
-		}
-		header.Name = relPath
-
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			srcFile, err := os.Open(p)
+	for _, dir := range subDirs {
+		fullPath := filepath.Join(targetDir, dir)
+		ds.logger.Infof("Backing up subdirectory: %s", fullPath)
+		err = filepath.Walk(fullPath, func(p string, info os.FileInfo, err error) error {
 			if err != nil {
+				ds.logger.Errorf("Error walking through %s: %v", p, err)
 				return err
 			}
-			defer srcFile.Close()
-			if _, err := io.Copy(tw, srcFile); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+			relPath, _ := filepath.Rel(filepath.Dir(targetDir), p)
 
-	return true, "Backup created successfully at: " + backupFilePath
+			header, err := tar.FileInfoHeader(info, relPath)
+			if err != nil {
+				ds.logger.Errorf("Failed to get FileInfoHeader for %s: %v", p, err)
+				return err
+			}
+			header.Name = relPath
+
+			if err = tw.WriteHeader(header); err != nil {
+				ds.logger.Errorf("Failed to write tar header for %s: %v", p, err)
+				return err
+			}
+
+			if !info.IsDir() {
+				srcFile, err := os.Open(p)
+				if err != nil {
+					ds.logger.Errorf("Failed to open file %s: %v", p, err)
+					return err
+				}
+				defer srcFile.Close()
+				if _, err := io.Copy(tw, srcFile); err != nil {
+					ds.logger.Errorf("Failed to copy file %s into tar: %v", p, err)
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			ds.logger.Errorf("Error walking subdirectory %s: %v", dir, err)
+			return err
+		}
+	}
+
+	ds.logger.Infof("Backup completed successfully: %s", backupFilePath)
+	return nil
 }
 
 func (ds *DataStore) GetSubDirectories(settingsDir string) ([]string, error) {
@@ -222,29 +248,37 @@ func (ds *DataStore) SyncSubdirectory(subDir, userId, charId, settingsDir string
 }
 
 func (ds *DataStore) SyncAllSubdirectories(baseSubDir, userId, charId, settingsDir string) (int, int, error) {
+	ds.logger.Infof("Starting SyncAllSubdirectories with baseSubDir=%s, userId=%s, charId=%s", baseSubDir, userId, charId)
+
 	baseSubDirPath := filepath.Join(settingsDir, baseSubDir)
 	if _, err := os.Stat(baseSubDirPath); os.IsNotExist(err) {
+		ds.logger.Errorf("Base subdirectory does not exist: %s", baseSubDirPath)
 		return 0, 0, fmt.Errorf("base subdirectory does not exist: %s", baseSubDirPath)
 	}
 
 	userFileName := "core_user_" + userId + ".dat"
 	charFileName := "core_char_" + charId + ".dat"
-
 	userFilePath := filepath.Join(baseSubDirPath, userFileName)
 	charFilePath := filepath.Join(baseSubDirPath, charFileName)
 
+	ds.logger.Infof("Reading user file: %s", userFilePath)
 	userContent, userErr := os.ReadFile(userFilePath)
 	if userErr != nil {
+		ds.logger.Errorf("Failed to read user file %s: %v", userFilePath, userErr)
 		return 0, 0, fmt.Errorf("failed to read user file %s: %v", userFilePath, userErr)
 	}
 
+	ds.logger.Infof("Reading character file: %s", charFilePath)
 	charContent, charErr := os.ReadFile(charFilePath)
 	if charErr != nil {
+		ds.logger.Errorf("Failed to read char file %s: %v", charFilePath, charErr)
 		return 0, 0, fmt.Errorf("failed to read char file %s: %v", charFilePath, charErr)
 	}
 
+	ds.logger.Infof("Retrieving all settings_ subdirectories from %s", settingsDir)
 	subDirs, err := ds.GetSubDirectories(settingsDir)
 	if err != nil {
+		ds.logger.Errorf("Failed to get subdirectories from %s: %v", settingsDir, err)
 		return 0, 0, fmt.Errorf("failed to get subdirectories: %v", err)
 	}
 
@@ -255,18 +289,19 @@ func (ds *DataStore) SyncAllSubdirectories(baseSubDir, userId, charId, settingsD
 		if otherSubDir == baseSubDir {
 			continue
 		}
-
+		ds.logger.Infof("Applying content to subdir: %s", otherSubDir)
 		otherSubDirPath := filepath.Join(settingsDir, otherSubDir)
 		uCopied, cCopied, err := ds.applyContentToSubDir(otherSubDirPath, userFileName, charFileName, userContent, charContent)
 		if err != nil {
 			ds.logger.Warnf("Error applying content to subdir %s: %v", otherSubDir, err)
 			continue
 		}
-
+		ds.logger.Infof("Successfully applied content to %s: %d user files, %d char files copied.", otherSubDir, uCopied, cCopied)
 		totalUserCopied += uCopied
 		totalCharCopied += cCopied
 	}
 
+	ds.logger.Infof("SyncAllSubdirectories complete: %d total user files, %d total char files copied.", totalUserCopied, totalCharCopied)
 	return totalUserCopied, totalCharCopied, nil
 }
 

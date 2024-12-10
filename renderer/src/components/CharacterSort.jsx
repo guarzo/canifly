@@ -1,58 +1,20 @@
-// src/components/CharacterSort.jsx
 import { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
-    Container,
-    Card,
-    CardContent,
     Typography,
-    List,
-    ListItem,
-    ListItemText,
     IconButton,
     Divider,
-    Tabs,
-    Tab,
     Box,
     Tooltip,
+    ToggleButtonGroup,
+    ToggleButton,
 } from '@mui/material';
-import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
-import { makeStyles } from '@mui/styles';
+import { ArrowUpward, ArrowDownward, AccountCircle, Place } from '@mui/icons-material';
+import CharacterItem from './CharacterItem'; // Import the character item component
 
-// Define styles using makeStyles
-const useStyles = makeStyles((theme) => ({
-    container: {
-        marginTop: theme.spacing(4),
-    },
-    card: {
-        backgroundColor: theme.palette.background.paper,
-        color: theme.palette.text.primary,
-    },
-    title: {
-        marginBottom: theme.spacing(2),
-    },
-    listItem: {
-        paddingLeft: theme.spacing(2),
-        paddingRight: theme.spacing(2),
-    },
-    divider: {
-        marginTop: theme.spacing(2),
-        marginBottom: theme.spacing(2),
-    },
-    groupHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-}));
-
-const CharacterSort = ({ accounts, roles }) => {
-    const classes = useStyles();
+const CharacterSort = ({ accounts, roles, onUpdateCharacter }) => {
     const [sortOrder, setSortOrder] = useState('asc');
-    const [tabIndex, setTabIndex] = useState(0); // 0: By Role, 1: By Location
-
-    console.log(accounts)
-    console.log(roles)
+    const [view, setView] = useState('role'); // 'role' or 'location'
 
     // Combine all characters from accounts
     const allCharacters = useMemo(() => {
@@ -63,6 +25,8 @@ const CharacterSort = ({ accounts, roles }) => {
                 (account.Characters || []).map((char) => ({
                     ...char,
                     accountName,
+                    Role: char.Role || '', // Ensure Role field
+                    MCT: typeof char.MCT === 'boolean' ? char.MCT : false, // Ensure MCT boolean
                 }))
             );
         });
@@ -135,84 +99,158 @@ const CharacterSort = ({ accounts, roles }) => {
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     };
 
-    const handleTabChange = (event, newValue) => {
-        setTabIndex(newValue);
+    const handleViewChange = (event, newValue) => {
+        if (newValue !== null) {
+            setView(newValue);
+        }
     };
 
-    // Reusable GroupedList Component
-    const GroupedList = ({ groups, groupMap, groupTitle }) => (
+    // Reusable GroupedList Component using CharacterItem
+    const GroupedList = ({ groups, groupMap }) => (
         <>
-            {groups.map((group, index) => (
-                <Box key={group} mb={3}>
-                    <Box className={classes.groupHeader}>
-                        <Typography variant="h6" style={{ color: '#14b8a6' }}>
-                            {group}
-                        </Typography>
-                        {/* Optional: Add more controls per group if needed */}
-                    </Box>
-                    <List dense>
-                        {groupMap[group]?.map((character) => (
-                            <ListItem key={character.Character.CharacterID} className={classes.listItem}>
-                                <ListItemText
-                                    primary={character.Character.CharacterName}
-                                    secondary={`Account: ${character.accountName} | Location: ${character.Character.LocationName || 'Unknown'}`}
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                    {index < groups.length - 1 && <Divider light />}
+            {groups.length === 0 ? (
+                <Box textAlign="center" mt={4}>
+                    <Typography variant="body1" sx={{ color: '#99f6e4' }}>
+                        No characters found.
+                    </Typography>
                 </Box>
-            ))}
+            ) : (
+                groups.map((group, index) => (
+                    <Box key={group} mb={3}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                mb: 1,
+                            }}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{ color: '#14b8a6', fontWeight: 'bold' }}
+                            >
+                                {group}
+                            </Typography>
+                        </Box>
+                        {/* Display characters using CharacterItem */}
+                        <Box display="flex" flexDirection="column" gap={1}>
+                            {groupMap[group]?.map((character) => (
+                                <CharacterItem
+                                    key={character.Character.CharacterID}
+                                    character={character}
+                                    onUpdateCharacter={onUpdateCharacter}
+                                    roles={roles}
+                                    hideRemoveIcon={true}
+                                />
+                            ))}
+                        </Box>
+                        {index < groups.length - 1 && (
+                            <Divider sx={{ borderColor: 'rgba(255,255,255,0.2)', my: 2 }} />
+                        )}
+                    </Box>
+                ))
+            )}
         </>
     );
 
     GroupedList.propTypes = {
         groups: PropTypes.array.isRequired,
         groupMap: PropTypes.object.isRequired,
-        groupTitle: PropTypes.string.isRequired,
     };
 
+    const groupsToDisplay = view === 'role' ? sortedRoles : sortedLocations;
+    const mapToDisplay = view === 'role' ? roleMap : locationMap;
+
+    // Determine icon styling based on sort order
+    const sortIconColor = sortOrder === 'asc' ? '#14b8a6' : '#f59e0b';
+    const sortIcon = sortOrder === 'asc' ? <ArrowUpward fontSize="small" sx={{ color: sortIconColor }} /> : <ArrowDownward fontSize="small" sx={{ color: sortIconColor }} />;
+
     return (
-        <Container maxWidth="lg" className={classes.container}>
-            <Card className={classes.card} elevation={3}>
-                <CardContent>
-                    <Box className={classes.groupHeader} mb={2}>
-                        <Typography variant="h4" className={classes.title}>
-                            Characters
-                        </Typography>
-                        <Tooltip title={`Sort Order: ${sortOrder === 'asc' ? 'Ascending' : 'Descending'}`}>
-                            <IconButton onClick={toggleSortOrder} color="primary">
-                                {sortOrder === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
-                            </IconButton>
+        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+            {/* Top bar with role/location toggle on left and asc/desc on right */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 3,
+                }}
+            >
+                {/* Role/Location Toggle */}
+                <ToggleButtonGroup
+                    value={view}
+                    exclusive
+                    onChange={handleViewChange}
+                    sx={{
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderRadius: '9999px',
+                        '.MuiToggleButton-root': {
+                            textTransform: 'none',
+                            color: '#99f6e4',
+                            fontWeight: 'normal',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            '&.Mui-selected': {
+                                backgroundColor: '#14b8a6 !important',
+                                color: '#ffffff !important',
+                                fontWeight: 'bold',
+                            },
+                            '&:hover': {
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                            },
+                            minWidth: '40px',
+                            minHeight: '40px',
+                        },
+                    }}
+                >
+                    <ToggleButton value="role">
+                        <Tooltip title="Role">
+                            <AccountCircle fontSize="small" />
                         </Tooltip>
-                    </Box>
-                    <Tabs
-                        value={tabIndex}
-                        onChange={handleTabChange}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        variant="fullWidth"
-                    >
-                        <Tab label="By Role" />
-                        <Tab label="By Location" />
-                    </Tabs>
-                    <Box mt={2}>
-                        {tabIndex === 0 && (
-                            <GroupedList groups={sortedRoles} groupMap={roleMap} groupTitle="Role" />
-                        )}
-                        {tabIndex === 1 && (
-                            <GroupedList groups={sortedLocations} groupMap={locationMap} groupTitle="Location" />
-                        )}
-                    </Box>
-                </CardContent>
-            </Card>
-        </Container>
+                    </ToggleButton>
+                    <ToggleButton value="location">
+                        <Tooltip title="Location">
+                            <Place fontSize="small" />
+                        </Tooltip>
+                    </ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* Sort Order Control */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        borderRadius: '9999px',
+                        paddingX: 1,
+                        paddingY: 0.5,
+                    }}
+                >
+                        <IconButton
+                            onClick={toggleSortOrder}
+                            sx={{
+                                '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
+                                padding: '4px',
+                            }}
+                            size="small"
+                        >
+                            {sortIcon}
+                        </IconButton>
+                </Box>
+            </Box>
+
+            <Box>
+                <GroupedList groups={groupsToDisplay} groupMap={mapToDisplay} />
+            </Box>
+        </div>
     );
 };
 
 CharacterSort.propTypes = {
     accounts: PropTypes.array.isRequired,
     roles: PropTypes.array.isRequired,
+    onUpdateCharacter: PropTypes.func.isRequired,
 };
 
 export default CharacterSort;

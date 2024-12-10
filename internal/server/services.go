@@ -57,7 +57,7 @@ func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClien
 	esiService := esi.NewESIService(httpClient, authClient, logger, cacheService, dataStore)
 	assocService := association.NewAssociationService(logger, dataStore, esiService)
 	accountService := account.NewAccountService(logger, dataStore, esiService, assocService)
-	sysResolver := persist.NewSystemNameResolver(dataStore)
+	sysResolver := persist.NewNameResolver(dataStore)
 	skillService := skill.NewSkillService(logger, dataStore)
 	settingsService := settings.NewSettingsService(logger, dataStore, esiService)
 	stateService := state.NewStateService(logger, dataStore)

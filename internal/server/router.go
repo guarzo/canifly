@@ -50,11 +50,11 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
 	r.HandleFunc("/api/choose-settings-dir", settingsHandler.ChooseSettingsDir)
-	r.HandleFunc("/api/sync-sub-dir", settingsHandler.SyncSubDirectory)
 	r.HandleFunc("/api/backup-directory", settingsHandler.BackupDirectory)
-
 	r.HandleFunc("/api/save-user-selections", settingsHandler.SaveUserSelections)
-	r.HandleFunc("/api/sync-all-dirs", settingsHandler.SyncAllSubdirectories)
+
+	r.HandleFunc("/api/sync-subdirectory", settingsHandler.SyncSubDirectory)
+	r.HandleFunc("/api/sync-all-subdirectories", settingsHandler.SyncAllSubdirectories)
 
 	r.HandleFunc("/api/associate-character", assocHandler.AssociateCharacter)
 	r.HandleFunc("/api/unassociate-character", assocHandler.UnassociateCharacter)

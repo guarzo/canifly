@@ -6,9 +6,16 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type AccountStatus string
+
+const (
+	Alpha AccountStatus = "Alpha"
+	Omega AccountStatus = "Omega"
+)
+
 type Account struct {
 	Name       string
-	Status     string // "Omega", "Alpha"
+	Status     AccountStatus
 	Characters []CharacterIdentity
 	ID         int64 // dynamically generated for now
 }
@@ -18,6 +25,7 @@ type CharacterIdentity struct {
 	Character Character
 	Role      string
 	MCT       bool
+	Training  string
 }
 
 type Character struct {

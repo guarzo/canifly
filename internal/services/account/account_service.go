@@ -11,6 +11,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+const AlphaMaxSp = 5000000
+
 type accountService struct {
 	logger       interfaces.Logger
 	accountRepo  interfaces.AccountRepository
@@ -101,7 +103,7 @@ func createNewAccountWithCharacter(name string, token *oauth2.Token, user *model
 
 	return &model.Account{
 		Name:       name,
-		Status:     "Alpha",
+		Status:     model.Alpha,
 		Characters: []model.CharacterIdentity{newChar},
 		ID:         time.Now().Unix(),
 	}
@@ -231,7 +233,13 @@ func (a *accountService) RefreshAccounts(characterSvc interfaces.CharacterServic
 				continue
 			}
 
+			// best effort --if they're actively training and have more than alpha sp limit
+			if updatedCharIdentity.MCT && updatedCharIdentity.Character.TotalSP > AlphaMaxSp {
+				account.Status = model.Omega
+			}
+
 			account.Characters[j] = *updatedCharIdentity
+
 		}
 
 		a.logger.Debugf("Account %s has %d characters after processing", account.Name, len(account.Characters))

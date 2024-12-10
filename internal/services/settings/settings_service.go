@@ -151,12 +151,23 @@ func (s *settingsService) SyncAllDir(baseSubDir, charId, userId string) (int, in
 	return s.settingsRepo.SyncAllSubdirectories(baseSubDir, userId, charId, configData.SettingsDir)
 }
 
-func (s *settingsService) BackupDir() (bool, string) {
+func (s *settingsService) BackupDir(targetDir, backupDir string) error {
 	configData, err := s.settingsRepo.FetchConfigData()
 	if err != nil {
-		return false, "Error fetching config data"
+		return err
 	}
-	return s.settingsRepo.BackupDirectory(configData.SettingsDir)
+	err = s.settingsRepo.BackupDirectory(targetDir, backupDir)
+	if err != nil {
+		return err
+	}
+
+	configData.LastBackupDir = backupDir
+	err = s.settingsRepo.SaveConfigData(configData)
+	if err != nil {
+		s.logger.Infof("returning success as backup succeeded, but update config failed %v", err)
+	}
+
+	return nil
 }
 
 func (s *settingsService) EnsureSettingsDir() error {

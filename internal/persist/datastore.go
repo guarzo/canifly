@@ -18,6 +18,7 @@ type DataStore struct {
 	appStateStore AppStateStore
 	skillPlans    map[string]model.SkillPlan
 	skillTypes    map[string]model.SkillType
+	skillIdToType map[string]model.SkillType
 	SysIdToName   map[string]string
 	SysNameToID   map[string]string
 	mut           sync.RWMutex

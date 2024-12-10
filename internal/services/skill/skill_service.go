@@ -253,3 +253,7 @@ func (s *skillService) GetSkillPlans() map[string]model.SkillPlan {
 func (s *skillService) GetSkillTypes() map[string]model.SkillType {
 	return s.skillRepo.GetSkillTypes()
 }
+
+func (s *skillService) GetSkillTypeByID(id string) (model.SkillType, bool) {
+	return s.skillRepo.GetSkillTypeByID(id)
+}

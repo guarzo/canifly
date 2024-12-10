@@ -1,6 +1,6 @@
 // main.js
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const http = require('http')
 
@@ -41,6 +41,31 @@ function createWindow() {
     ipcMain.on('close-window', () => {
         mainWindow.close(); // Close the window
     });
+
+
+    ipcMain.handle('choose-directory', async (event, defaultPath) => {
+        const options = {
+            properties: ['openDirectory']
+        };
+
+        if (defaultPath) {
+            options.defaultPath = defaultPath;
+        }
+
+        const result = await dialog.showOpenDialog(options);
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+        return result.filePaths[0];
+    });
+
+    // Add this handler for openExternal calls
+    ipcMain.handle('open-external', (event, url) => {
+        if (url && typeof url === 'string') {
+            shell.openExternal(url);
+        }
+    });
+
 
     mainWindow.on('closed', function () {
         if (goProcess) {

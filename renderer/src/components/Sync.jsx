@@ -1,32 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-import 'sweetalert2/dist/sweetalert2.min.css';
+import { useConfirmDialog } from './useConfirmDialog';
 import {
-    Button,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
     CircularProgress,
     Grid,
-    Typography,
-    Card,
-    Divider,
-    Tooltip,
     Box,
 } from '@mui/material';
-import LoadingButton from '@mui/lab/LoadingButton';
-import BackupIcon from '@mui/icons-material/Backup';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import UndoIcon from '@mui/icons-material/Undo';
-import SyncIcon from '@mui/icons-material/Sync';
-import SyncAllIcon from '@mui/icons-material/SyncAlt';
-
-const MySwal = withReactContent(Swal);
+import SyncActionsBar from './SyncActionsBar';
+import SubDirectoryCard from './SubDirectoryCard';
 
 const Sync = ({
                   settingsData,
@@ -34,9 +16,12 @@ const Sync = ({
                   currentSettingsDir,
                   isDefaultDir,
                   userSelections,
+                  lastBackupDir,
               }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
+    const [showConfirmDialog, confirmDialog] = useConfirmDialog();
+
 
     useEffect(() => {
         if (settingsData && settingsData.length > 0) {
@@ -50,9 +35,26 @@ const Sync = ({
         }
     }, [settingsData, userSelections]);
 
-    const getCharacterNameById = (charId) => {
-        const assoc = associations.find(a => a.charId === charId);
-        return assoc ? assoc.charName : 'Unknown';
+    // Helper: Given a subDir name and userId, find the user's name from availableUserFiles
+    const getUserInfo = (subDirName, userId) => {
+        const subDir = settingsData.find(s => s.subDir === subDirName);
+        if (!subDir) return { userName: 'Unknown', userId };
+        const userFile = subDir.availableUserFiles.find(u => u.userId === userId);
+        if (!userFile) return { userName: 'Unknown', userId };
+        return { userName: userFile.name, userId };
+    };
+
+    // Helper: Given a subDir name and charId, find the char's name from availableCharFiles
+    const getCharacterInfo = (subDirName, charId) => {
+        const subDir = settingsData.find(s => s.subDir === subDirName);
+        if (!subDir) return { charName: 'Unknown', charId };
+        const charFile = subDir.availableCharFiles.find(c => c.charId === charId);
+        if (!charFile) {
+            // fallback to associations if not found
+            const assoc = associations.find(a => a.charId === charId);
+            return { charName: assoc ? assoc.charName : 'Unknown', charId };
+        }
+        return { charName: charFile.name, charId };
     };
 
     const saveUserSelections = useCallback(async (newSelections) => {
@@ -75,13 +77,23 @@ const Sync = ({
 
     const handleSelectionChange = (subDir, field, value) => {
         setSelections(prev => {
-            const updated = {
+            let updated = {
                 ...prev,
                 [subDir]: {
                     ...prev[subDir],
                     [field]: value,
                 }
             };
+
+            // If we just changed the charId, auto-select the user if we can find it in associations
+            if (field === 'charId' && value) {
+                const assoc = associations.find(a => a.charId === value);
+                if (assoc) {
+                    // If we found a matching association, update the userId as well
+                    updated[subDir].userId = assoc.userId;
+                }
+            }
+
             saveUserSelections(updated);
             return updated;
         });
@@ -94,14 +106,13 @@ const Sync = ({
             return;
         }
 
-        const charName = getCharacterNameById(charId);
-        const confirmSync = await MySwal.fire({
+        const { charName } = getCharacterInfo(subDir, charId);
+        const { userName } = getUserInfo(subDir, userId);
+        const displaySubDir = subDir.replace('settings_', '');
+
+        const confirmSync = await showConfirmDialog({
             title: 'Confirm Sync',
-            text: `Use "${charName}" (${charId}) on account ${userId} to overwrite all files in profile "${subDir}"?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, sync it!',
-            cancelButtonText: 'Cancel',
+            message: `Use "${charName}" (${charId}) on account "${userName}" (${userId}) to overwrite all files in profile "${displaySubDir}"?`,
         });
 
         if (!confirmSync.isConfirmed) return;
@@ -136,14 +147,13 @@ const Sync = ({
             return;
         }
 
-        const charName = getCharacterNameById(charId);
-        const confirmSyncAll = await MySwal.fire({
+        const { charName } = getCharacterInfo(subDir, charId);
+        const { userName } = getUserInfo(subDir, userId);
+        const displaySubDir = subDir.replace('settings_', '');
+
+        const confirmSyncAll = await showConfirmDialog({
             title: 'Confirm Sync All',
-            text: `Use "${charName}" with ${userId} to overwrite files across all profiles?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, sync all!',
-            cancelButtonText: 'Cancel',
+            message: `Use "${charName}" (${charId}) on account "${userName}" (${userId}) to overwrite files across all profiles (based on "${displaySubDir}")?`,
         });
 
         if (!confirmSyncAll.isConfirmed) return;
@@ -158,7 +168,7 @@ const Sync = ({
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                toast.success(result.message);
+                toast.success(`Sync-All complete using "${charName}" (${charId}) on account "${userName}" (${userId}): ${result.message}`);
             } else {
                 toast.error(`Sync-All failed: ${result.message}`);
             }
@@ -173,15 +183,24 @@ const Sync = ({
     const handleChooseSettingsDir = async () => {
         try {
             setIsLoading(true);
+            const chosenDir = await window.electronAPI.chooseDirectory();
+            if (!chosenDir) {
+                toast.info('No directory chosen.');
+                return;
+            }
+
             const response = await fetch('/api/choose-settings-dir', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
+                body: JSON.stringify({ directory: chosenDir }),
             });
+
             const result = await response.json();
             if (response.ok && result.success) {
-                toast.success('Settings directory chosen');
+                toast.success(`Settings directory chosen: ${chosenDir}`);
             } else {
-                toast.error('Failed to choose settings directory.');
+                toast.error(`Failed to choose settings directory: ${result.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error choosing settings directory:', error);
@@ -191,14 +210,44 @@ const Sync = ({
         }
     };
 
+    const handleBackup = async () => {
+        try {
+            setIsLoading(true);
+
+            const chosenDir = await window.electronAPI.chooseDirectory(lastBackupDir || null);
+            if (!chosenDir) {
+                toast.info('No backup directory chosen. Backup canceled.');
+                setIsLoading(false);
+                return;
+            }
+
+            toast.info('Starting backup...');
+
+            const response = await fetch('/api/backup-directory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ targetDir: currentSettingsDir, backupDir: chosenDir }),
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                toast.success(result.message);
+            } else {
+                toast.error(`Backup failed: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Error during backup:', error);
+            toast.error('Backup operation failed.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleResetToDefault = async () => {
-        const confirmReset = await MySwal.fire({
+        const confirmReset = await showConfirmDialog({
             title: 'Reset to Default',
-            text: 'Are you sure you want to reset the settings directory to default (Tranquility)?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, reset it!',
-            cancelButtonText: 'Cancel',
+            message: 'Are you sure you want to reset the settings directory to default (Tranquility)?',
         });
 
         if (!confirmReset.isConfirmed) return;
@@ -223,104 +272,15 @@ const Sync = ({
         }
     };
 
-    const handleBackup = async () => {
-        const confirmBackup = await MySwal.fire({
-            title: 'Confirm Backup',
-            text: 'Are you sure you want to backup your settings?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, backup it!',
-            cancelButtonText: 'Cancel',
-        });
-
-        if (!confirmBackup.isConfirmed) return;
-
-        try {
-            setIsLoading(true);
-            const response = await fetch('/api/backup-directory', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ targetDir: currentSettingsDir }),
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
-                toast.success(result.message);
-            } else {
-                toast.error(`Backup failed: ${result.message}`);
-            }
-        } catch (error) {
-            console.error('Error during backup:', error);
-            toast.error('Backup operation failed.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleDeleteBackups = async () => {
-        const confirmDelete = await MySwal.fire({
-            title: 'Confirm Delete',
-            text: 'Are you sure you want to delete all backups?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete them!',
-            cancelButtonText: 'Cancel',
-        });
-
-        if (!confirmDelete.isConfirmed) return;
-
-        try {
-            setIsLoading(true);
-            const response = await fetch('/api/delete-backups', {
-                method: 'POST',
-                credentials: 'include',
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
-                toast.success(result.message);
-            } else {
-                toast.error(`Delete backups failed: ${result.message}`);
-            }
-        } catch (error) {
-            console.error('Error deleting backups:', error);
-            toast.error('Delete backups operation failed.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10">
-            {/* Add more top margin so buttons aren't touching the header */}
-            <div className="mt-16 mb-4 flex justify-center space-x-2">
-                <Tooltip title="Backup Settings">
-                    <span>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={handleBackup}
-                            disabled={isLoading}
-                            className="w-10 h-10 p-0 flex items-center justify-center"
-                        >
-                            <BackupIcon fontSize="small" />
-                        </Button>
-                    </span>
-                </Tooltip>
-
-                <Tooltip title="Delete All Backups">
-                    <span>
-                        <Button
-                            variant="contained"
-                            color="secondary"
-                            onClick={handleDeleteBackups}
-                            disabled={isLoading}
-                            className="w-10 h-10 p-0 flex items-center justify-center"
-                        >
-                            <DeleteIcon fontSize="small" />
-                        </Button>
-                    </span>
-                </Tooltip>
-            </div>
+            <SyncActionsBar
+                handleBackup={handleBackup}
+                handleChooseSettingsDir={handleChooseSettingsDir}
+                handleResetToDefault={handleResetToDefault}
+                isDefaultDir={isDefaultDir}
+                isLoading={isLoading}
+            />
 
             {isLoading && (
                 <Box display="flex" justifyContent="center" alignItems="center" className="mb-4">
@@ -331,226 +291,27 @@ const Sync = ({
             <Grid container spacing={4}>
                 {settingsData.map(subDir => (
                     <Grid item xs={12} sm={6} md={4} key={subDir.subDir}>
-                        {/* Added hover effect */}
-                        <Card className="bg-gray-800 text-teal-200 p-4 rounded-md shadow-md flex flex-col justify-between h-full transform transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg">
-                            <div>
-                                <Typography
-                                    variant="h6"
-                                    gutterBottom
-                                    sx={{ textAlign: 'center', fontWeight: 700 }}
-                                >
-                                    {subDir.subDir.replace('settings_', '')}
-                                </Typography>
-                                <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.2)' }} />
-                                <div className="p-2 rounded-md border border-gray-600 bg-gray-700 mb-2">
-                                    <FormControl fullWidth margin="normal">
-                                        <InputLabel
-                                            id={`char-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#99f6e4' }}
-                                        >
-                                            Select Character
-                                        </InputLabel>
-                                        <Select
-                                            labelId={`char-select-label-${subDir.subDir}`}
-                                            id={`char-select-${subDir.subDir}`}
-                                            value={selections[subDir.subDir]?.charId || ''}
-                                            label="Select Character"
-                                            onChange={(e) =>
-                                                handleSelectionChange(
-                                                    subDir.subDir,
-                                                    'charId',
-                                                    e.target.value
-                                                )
-                                            }
-                                            sx={{
-                                                borderRadius: 1,
-                                                color: '#fff',
-                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: 'rgba(255,255,255,0.2)',
-                                                },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: '#ffffff',
-                                                },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: '#ffffff',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value="">
-                                                <em>-- Select Character --</em>
-                                            </MenuItem>
-                                            {subDir.availableCharFiles.map(char => (
-                                                <MenuItem key={char.charId} value={char.charId}>
-                                                    {char.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    <FormControl fullWidth margin="normal">
-                                        <InputLabel
-                                            id={`user-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#99f6e4' }}
-                                        >
-                                            Select User
-                                        </InputLabel>
-                                        <Select
-                                            labelId={`user-select-label-${subDir.subDir}`}
-                                            id={`user-select-${subDir.subDir}`}
-                                            value={selections[subDir.subDir]?.userId || ''}
-                                            label="Select User"
-                                            onChange={(e) =>
-                                                handleSelectionChange(
-                                                    subDir.subDir,
-                                                    'userId',
-                                                    e.target.value
-                                                )
-                                            }
-                                            sx={{
-                                                borderRadius: 1,
-                                                color: '#fff',
-                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: 'rgba(255,255,255,0.2)',
-                                                },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: '#ffffff',
-                                                },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: '#ffffff',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value="">
-                                                <em>-- Select User --</em>
-                                            </MenuItem>
-                                            {subDir.availableUserFiles.map(user => (
-                                                <MenuItem key={user.userId} value={user.userId}>
-                                                    {user.userId}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </div>
-                            </div>
-                            <div>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={6}>
-                                        <Tooltip title="Sync this specific profile">
-                                            <span style={{ width: '100%', display: 'block' }}>
-                                                <LoadingButton
-                                                    variant="contained"
-                                                    color="primary"
-                                                    onClick={() => handleSync(subDir.subDir)}
-                                                    loading={isLoading}
-                                                    fullWidth
-                                                    disabled={
-                                                        isLoading ||
-                                                        !selections[subDir.subDir]?.charId ||
-                                                        !selections[subDir.subDir]?.userId
-                                                    }
-                                                    className="p-0"
-                                                >
-                                                    <SyncIcon fontSize="small" />
-                                                </LoadingButton>
-                                            </span>
-                                        </Tooltip>
-                                    </Grid>
-                                    <Grid item xs={6}>
-                                        <Tooltip title="Sync all profiles based on this selection">
-                                            <span style={{ width: '100%', display: 'block' }}>
-                                                <LoadingButton
-                                                    variant="contained"
-                                                    color="secondary"
-                                                    onClick={() => handleSyncAll(subDir.subDir)}
-                                                    loading={isLoading}
-                                                    fullWidth
-                                                    disabled={
-                                                        isLoading ||
-                                                        !selections[subDir.subDir]?.charId ||
-                                                        !selections[subDir.subDir]?.userId
-                                                    }
-                                                    className="p-0"
-                                                >
-                                                    <SyncAllIcon fontSize="small" />
-                                                </LoadingButton>
-                                            </span>
-                                        </Tooltip>
-                                    </Grid>
-                                </Grid>
-                            </div>
-                        </Card>
+                        <SubDirectoryCard
+                            subDir={subDir}
+                            selections={selections}
+                            handleSelectionChange={handleSelectionChange}
+                            handleSync={handleSync}
+                            handleSyncAll={handleSyncAll}
+                            isLoading={isLoading}
+                        />
                     </Grid>
                 ))}
             </Grid>
-
-            <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ marginTop: 4 }}>
-                <Grid item>
-                    <Tooltip title="Choose Settings Directory">
-                        <span>
-                            <Button
-                                variant="contained"
-                                color="info"
-                                onClick={handleChooseSettingsDir}
-                                disabled={isLoading}
-                                className="w-10 h-10 p-0 flex items-center justify-center"
-                            >
-                                <FolderOpenIcon fontSize="small" />
-                            </Button>
-                        </span>
-                    </Tooltip>
-                </Grid>
-                {!isDefaultDir && (
-                    <Grid item>
-                        <Tooltip title="Reset to Default Directory">
-                            <span>
-                                <Button
-                                    variant="contained"
-                                    color="warning"
-                                    onClick={handleResetToDefault}
-                                    disabled={isLoading}
-                                    className="w-10 h-10 p-0 flex items-center justify-center"
-                                >
-                                    <UndoIcon fontSize="small" />
-                                </Button>
-                            </span>
-                        </Tooltip>
-                    </Grid>
-                )}
-            </Grid>
+            {confirmDialog}
         </div>
     );
 };
 
 Sync.propTypes = {
-    settingsData: PropTypes.arrayOf(
-        PropTypes.shape({
-            subDir: PropTypes.string.isRequired,
-            availableCharFiles: PropTypes.arrayOf(
-                PropTypes.shape({
-                    file: PropTypes.string.isRequired,
-                    charId: PropTypes.string.isRequired,
-                    name: PropTypes.string.isRequired,
-                    mtime: PropTypes.string.isRequired,
-                })
-            ).isRequired,
-            availableUserFiles: PropTypes.arrayOf(
-                PropTypes.shape({
-                    file: PropTypes.string.isRequired,
-                    userId: PropTypes.string.isRequired,
-                    name: PropTypes.string.isRequired,
-                    mtime: PropTypes.string.isRequired,
-                })
-            ).isRequired,
-        })
-    ).isRequired,
-    associations: PropTypes.arrayOf(
-        PropTypes.shape({
-            userId: PropTypes.string.isRequired,
-            charId: PropTypes.string.isRequired,
-            charName: PropTypes.string.isRequired,
-            mtime: PropTypes.string,
-        })
-    ).isRequired,
+    settingsData: PropTypes.array.isRequired,
+    associations: PropTypes.array.isRequired,
     currentSettingsDir: PropTypes.string.isRequired,
+    lastBackupDir: PropTypes.string.isRequired,
     isDefaultDir: PropTypes.bool.isRequired,
     userSelections: PropTypes.object.isRequired,
 };

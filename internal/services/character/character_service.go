@@ -16,14 +16,14 @@ type characterService struct {
 	esi             interfaces.ESIService
 	auth            auth.AuthClient
 	logger          interfaces.Logger
-	sysResolver     persist.SystemNameResolver
+	sysResolver     persist.NameResolver
 	accountService  interfaces.AccountService
 	settingsService interfaces.SettingsService
 }
 
 func NewCharacterService(esi interfaces.ESIService,
 	auth auth.AuthClient, logger interfaces.Logger,
-	resolver persist.SystemNameResolver,
+	resolver persist.NameResolver,
 	as interfaces.AccountService, s interfaces.SettingsService) interfaces.CharacterService {
 	return &characterService{
 		esi:             esi,
@@ -35,7 +35,6 @@ func NewCharacterService(esi interfaces.ESIService,
 	}
 }
 
-// ProcessIdentity previously lived in esiService. Now it's here.
 func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
 	c.logger.Debugf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
 
@@ -75,11 +74,16 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	c.logger.Debugf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
 
 	// Update charIdentity with fetched data
+	c.logger.Debugf("updating %s", user.CharacterName)
 	charIdentity.Character.UserInfoResponse = *user
 	charIdentity.Character.CharacterSkillsResponse = *skills
 	charIdentity.Character.SkillQueue = *skillQueue
 	charIdentity.Character.Location = characterLocation
 	charIdentity.Character.LocationName = c.sysResolver.GetSystemName(charIdentity.Character.Location)
+	charIdentity.MCT = c.isCharacterTraining(*skillQueue)
+	if charIdentity.MCT {
+		charIdentity.Training = c.sysResolver.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
+	}
 
 	// Initialize maps if nil
 	if charIdentity.Character.QualifiedPlans == nil {
@@ -101,6 +105,16 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	}
 
 	return charIdentity, nil
+}
+
+func (c *characterService) isCharacterTraining(queue []model.SkillQueue) bool {
+	for _, q := range queue {
+		if q.StartDate != nil && q.FinishDate != nil && q.FinishDate.After(time.Now()) {
+			c.logger.Debugf("training - start %s, finish %s, skill %d", q.StartDate, q.FinishDate, q.SkillID)
+			return true
+		}
+	}
+	return false
 }
 
 func (c *characterService) DoesCharacterExist(characterID int64) (bool, *model.CharacterIdentity, error) {

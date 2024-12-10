@@ -15,7 +15,7 @@ const skillTypeFile = "static/invTypes.csv"
 
 func (ds *DataStore) LoadSkillTypes() error {
 	ds.logger.Debugf("Loading skill types from %s", skillTypeFile)
-	skillTypes, err := ds.readSkillTypes(skillTypeFile)
+	skillTypes, skillIDTypes, err := ds.readSkillTypes(skillTypeFile)
 	if err != nil {
 		ds.logger.WithError(err).Error("Failed to load skill types")
 		return err
@@ -23,6 +23,7 @@ func (ds *DataStore) LoadSkillTypes() error {
 
 	ds.mut.Lock()
 	ds.skillTypes = skillTypes
+	ds.skillIdToType = skillIDTypes
 	ds.mut.Unlock()
 
 	ds.logger.Debugf("Loaded %d skill types", len(ds.skillTypes))
@@ -35,19 +36,28 @@ func (ds *DataStore) GetSkillTypes() map[string]model.SkillType {
 	return ds.skillTypes
 }
 
-func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType, error) {
+func (ds *DataStore) GetSkillTypeByID(id string) (model.SkillType, bool) {
+	ds.mut.RLock()
+	defer ds.mut.RUnlock()
+	st, ok := ds.skillIdToType[id]
+	return st, ok
+}
+
+// Adjust readSkillTypes to return both maps
+func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType, map[string]model.SkillType, error) {
 	file, err := embed.StaticFiles.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
+		return nil, nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
 	skillTypes := make(map[string]model.SkillType)
+	skillIDTypes := make(map[string]model.SkillType)
 
 	headers, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read header row from file %s: %w", filePath, err)
+		return nil, nil, fmt.Errorf("failed to read header row from file %s: %w", filePath, err)
 	}
 
 	colIndices := map[string]int{"typeID": -1, "typeName": -1, "description": -1}
@@ -63,7 +73,7 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 	}
 
 	if colIndices["typeID"] == -1 || colIndices["typeName"] == -1 {
-		return nil, fmt.Errorf("required columns (typeID, typeName) are missing from file headers")
+		return nil, nil, fmt.Errorf("required columns (typeID, typeName) are missing from file headers")
 	}
 
 	lineNumber := 1
@@ -90,13 +100,18 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 			desc = strings.TrimSpace(row[colIndices["description"]])
 		}
 
-		// Key the map by the skill name (typeName) so that lookups by skill name work.
-		skillTypes[typeName] = model.SkillType{
+		st := model.SkillType{
 			TypeID:      typeID,
 			TypeName:    typeName,
 			Description: desc,
 		}
+
+		// Key by typeName
+		skillTypes[typeName] = st
+
+		// Also key by typeID
+		skillIDTypes[typeID] = st
 	}
 
-	return skillTypes, nil
+	return skillTypes, skillIDTypes, nil
 }

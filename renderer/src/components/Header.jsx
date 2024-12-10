@@ -38,11 +38,10 @@ const StyledAppBar = styled(AppBar)(() => ({
     borderBottom: '4px solid #14b8a6',
 }));
 
-const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh, onAddCharacter }) => {
+const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh, onAddCharacter, isRefreshing }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
@@ -81,15 +80,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
 
     const handleRefreshClick = async () => {
         if (!onSilentRefresh) return;
-        setIsRefreshing(true);
-        try {
-            await onSilentRefresh();
-            console.log('Data refreshed!');
-        } catch (err) {
-            console.error('Error during silent refresh:', err);
-        } finally {
-            setIsRefreshing(false);
-        }
+        await onSilentRefresh();
     };
 
     return (
@@ -199,7 +190,8 @@ Header.propTypes = {
     openSkillPlanModal: PropTypes.func.isRequired,
     existingAccounts: PropTypes.array.isRequired,
     onSilentRefresh: PropTypes.func,
-    onAddCharacter: PropTypes.func.isRequired, // New prop
+    onAddCharacter: PropTypes.func.isRequired,
+    isRefreshing: PropTypes.bool.isRequired
 };
 
 export default Header;

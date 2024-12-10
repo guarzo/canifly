@@ -7,7 +7,7 @@ type SettingsService interface {
 	GetSettingsDir() (string, error)
 	EnsureSettingsDir() error
 	LoadCharacterSettings() ([]model.SubDirData, error)
-	BackupDir() (bool, string)
+	BackupDir(targetDir, backupDir string) error
 	SyncDir(subDir, charId, userId string) (int, int, error)
 	SyncAllDir(baseSubDir, charId, userId string) (int, int, error)
 	SaveUserSelections(model.UserSelections) error
