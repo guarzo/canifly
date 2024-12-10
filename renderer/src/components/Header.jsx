@@ -1,5 +1,3 @@
-// Header.jsx
-
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, Link } from 'react-router-dom';
@@ -31,7 +29,6 @@ import {
     Cached as RefreshIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import { toast } from 'react-toastify';
 import AccountPromptModal from './AccountPromptModal';
 
 const StyledAppBar = styled(AppBar)(() => ({
@@ -41,7 +38,7 @@ const StyledAppBar = styled(AppBar)(() => ({
     borderBottom: '4px solid #14b8a6',
 }));
 
-const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh }) => {
+const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh, onAddCharacter }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -75,31 +72,11 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
         setModalOpen(false);
     };
 
+    // Updated to call onAddCharacter from props
     const handleAddCharacterSubmit = async (account) => {
-        try {
-            const response = await fetch('/api/add-character', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({account}),
-                credentials: 'include',
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (data.redirectURL) {
-                    window.location.href = data.redirectURL;
-                } else {
-                    toast.error("No redirect URL received from server.");
-                }
-            } else {
-                const errorText = await response.text();
-                toast.error(`Failed to initiate login: ${errorText}`);
-            }
-        } catch (error) {
-            console.error('Error initiating add character:', error);
-            toast.error('An error occurred while adding character.');
-        } finally {
-            setModalOpen(false);
-        }
+        // Just call the prop from App
+        await onAddCharacter(account);
+        setModalOpen(false);
     };
 
     const handleRefreshClick = async () => {
@@ -145,19 +122,16 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                     >
                         {loggedIn && (
                             <>
-                                {/* Add Character Icon */}
                                 <Tooltip title="Add Character">
                                     <IconButton onClick={handleAddCharacterClick}>
                                         <AddCircleOutline sx={{ color: '#22c55e' }} />
                                     </IconButton>
                                 </Tooltip>
-                                {/* Add Skill Plan Icon */}
                                 <Tooltip title="Add Skill Plan">
                                     <IconButton onClick={openSkillPlanModal}>
                                         <SkillPlansIcon sx={{ color: '#f59e0b' }} />
                                     </IconButton>
                                 </Tooltip>
-                                {/* Refresh Icon or Spinner */}
                                 <Tooltip title="Refresh Data">
                                     <IconButton onClick={handleRefreshClick}>
                                         {isRefreshing ? (
@@ -167,7 +141,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                                         )}
                                     </IconButton>
                                 </Tooltip>
-                                {/* Logout Icon */}
                                 <Tooltip title="Logout">
                                     <IconButton onClick={handleLogout}>
                                         <ExitToApp sx={{ color: '#ef4444' }} />
@@ -209,7 +182,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                 </div>
             </Drawer>
 
-            {/* Account Prompt Modal for Add Character */}
             <AccountPromptModal
                 isOpen={modalOpen}
                 onClose={handleCloseModal}
@@ -226,7 +198,8 @@ Header.propTypes = {
     handleLogout: PropTypes.func.isRequired,
     openSkillPlanModal: PropTypes.func.isRequired,
     existingAccounts: PropTypes.array.isRequired,
-    onSilentRefresh: PropTypes.func
+    onSilentRefresh: PropTypes.func,
+    onAddCharacter: PropTypes.func.isRequired, // New prop
 };
 
 export default Header;

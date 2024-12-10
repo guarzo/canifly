@@ -4,9 +4,14 @@ package persist
 import (
 	"sync"
 
-	"github.com/guarzo/canifly/internal/model"
 	"github.com/sirupsen/logrus"
+
+	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
+
+// Ensure DataStore implements AccountRepository
+var _ interfaces.AccountRepository = (*DataStore)(nil)
 
 type DataStore struct {
 	logger        *logrus.Logger

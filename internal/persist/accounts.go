@@ -4,11 +4,11 @@ package persist
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guarzo/canifly/internal/utils"
 	"os"
 	"path/filepath"
 
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/utils"
 )
 
 func (ds *DataStore) FetchAccounts() ([]model.Account, error) {

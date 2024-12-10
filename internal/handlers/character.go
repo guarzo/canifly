@@ -128,6 +128,7 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 			respondError(w, "CharacterID is required", http.StatusBadRequest)
 			return
 		}
+		h.logger.Infof("Beginning character removal for %d", request.CharacterID)
 
 		accounts, err := h.datastore.FetchAccounts()
 		if err != nil {
@@ -140,6 +141,7 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 			respondError(w, "Character not found in accounts", http.StatusNotFound)
 			return
 		}
+		h.logger.Infof("before removal length of %s characters is %d", accounts[accountIndex].Name, len(accounts[accountIndex].Characters))
 
 		// Remove the character from the account
 		accounts[accountIndex].Characters = append(
@@ -147,9 +149,23 @@ func (h *CharacterHandler) RemoveCharacter() http.HandlerFunc {
 			accounts[accountIndex].Characters[charIndex+1:]...,
 		)
 
+		accountName := accounts[accountIndex].Name
+
+		h.logger.Infof("after removal - length of %s characters is %d", accountName, len(accounts[accountIndex].Characters))
+
 		if err := h.datastore.SaveAccounts(accounts); err != nil {
 			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
+		}
+
+		accounts, err = h.datastore.FetchAccounts()
+		if err != nil {
+			h.logger.Infof("unable to retrieve accounts for verification")
+		} else {
+			index, found := findAccountIndex(accounts, accountName)
+			if found {
+				h.logger.Infof("after removal - length of %s characters is %d", accountName, len(accounts[index].Characters))
+			}
 		}
 
 		respondJSON(w, map[string]bool{"success": true})

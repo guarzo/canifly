@@ -1,21 +1,27 @@
 package server
 
 import (
+	"github.com/guarzo/canifly/internal/services/account"
+	"github.com/guarzo/canifly/internal/services/character"
+	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/settings"
+	"github.com/guarzo/canifly/internal/services/skill"
 	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/auth"
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/services"
 	"github.com/guarzo/canifly/internal/services/esi"
 )
 
 type AppServices struct {
-	EsiService    esi.ESIService
-	ConfigService *services.ConfigService
-	SkillService  *services.SkillService
-	DataStore     *persist.DataStore
+	EsiService       esi.ESIService
+	SettingsService  *settings.SettingsService
+	AccountService   *interfaces.AccountService
+	SkillService     *interfaces.SkillService
+	DataStore        *persist.DataStore
+	CharacterService *interfaces.CharacterService
 }
 
 func GetServices(logger *logrus.Logger, authClient auth.AuthClient, httpClient *http.APIClient) *AppServices {
@@ -43,16 +49,22 @@ func GetServices(logger *logrus.Logger, authClient auth.AuthClient, httpClient *
 	}
 
 	esiService := esi.NewESIService(httpClient, authClient, logger, dataStore)
-	configService := services.NewConfigService(logger, dataStore, esiService)
-	if err = configService.EnsureSettingsDir(); err != nil {
+	accountService := account.NewAccountService(logger, dataStore, esiService)
+	settingsService := settings.NewSettingsService(logger, dataStore, esiService)
+	if err = settingsService.EnsureSettingsDir(); err != nil {
 		logger.Errorf("Unable to ensure settings dir %v", err)
 	}
-	skillService := services.NewSkillService(logger)
+	skillService := skill.NewSkillService(logger)
+
+	sysResolver := persist.NewSystemNameResolver(dataStore)
+	characterService := character.NewCharacterService(esiService, authClient, logger, sysResolver)
 
 	return &AppServices{
-		EsiService:    esiService,
-		ConfigService: configService,
-		SkillService:  skillService,
-		DataStore:     dataStore,
+		EsiService:       esiService,
+		SettingsService:  &settingsService,
+		AccountService:   &accountService,
+		SkillService:     &skillService,
+		DataStore:        dataStore,
+		CharacterService: characterService,
 	}
 }

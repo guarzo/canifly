@@ -1,11 +1,11 @@
-// esi/helpers.go
-
+// services/esi/helpers.go
 package esi
 
 import (
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/guarzo/canifly/internal/auth"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/guarzo/canifly/internal/auth"
 	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/persist"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,7 +24,6 @@ const (
 	maxDelay   = 32 * time.Second
 )
 
-// retryWithExponentialBackoff retries the given function with exponential backoff
 func retryWithExponentialBackoff(operation func() (interface{}, error)) (interface{}, error) {
 	var result interface{}
 	var err error
@@ -35,9 +34,8 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 			return result, nil
 		}
 
-		// Retry only on specific error types
 		var customErr *flyErrors.CustomError
-		if !errors.As(err, &customErr) || (customErr.StatusCode != http.StatusServiceUnavailable && customErr.StatusCode != http.StatusGatewayTimeout) && customErr.StatusCode != http.StatusInternalServerError {
+		if !errors.As(err, &customErr) || (customErr.StatusCode != http.StatusServiceUnavailable && customErr.StatusCode != http.StatusGatewayTimeout && customErr.StatusCode != http.StatusInternalServerError) {
 			break
 		}
 
@@ -45,7 +43,6 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 			break
 		}
 
-		// Random jitter helps prevent retry storms
 		jitter := time.Duration(rand.Int63n(int64(delay)))
 		time.Sleep(delay + jitter)
 
@@ -58,17 +55,18 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 	return nil, err
 }
 
-func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
+func makeRequest(url string, token *oauth2.Token, auth auth.AuthClient) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
-	if token != nil {
+	client := &http.Client{}
+
+	if token != nil && token.AccessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	}
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %v", err)
@@ -76,15 +74,14 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized && token != nil {
-		// Refresh the token
+		// Refresh the token using auth client
 		newToken, err := auth.RefreshToken(token.RefreshToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to refresh token: %v", err)
 		}
 		*token = *newToken
-
 		// Retry the request with the new access token
-		return makeRequest(url, newToken)
+		return makeRequest(url, newToken, auth)
 	}
 
 	if customErr, exists := flyErrors.HttpStatusErrors[resp.StatusCode]; exists {
@@ -103,15 +100,14 @@ func makeRequest(url string, token *oauth2.Token) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-// createOperation creates an operation function for the given URL and token
-func createOperation(url string, token *oauth2.Token) func() (interface{}, error) {
+func createOperation(url string, token *oauth2.Token, auth auth.AuthClient) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		return makeRequest(url, token)
+		return makeRequest(url, token, auth)
 	}
 }
 
-func getResults(address string, token *oauth2.Token) ([]byte, error) {
-	operation := createOperation(address, token)
+func getResults(address string, token *oauth2.Token, auth auth.AuthClient) ([]byte, error) {
+	operation := createOperation(address, token, auth)
 
 	// Use retryWithExponentialBackoff to handle retries
 	result, err := retryWithExponentialBackoff(operation)
@@ -127,22 +123,19 @@ func getResults(address string, token *oauth2.Token) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token, dataStore *persist.DataStore, logger *logrus.Logger) ([]byte, error) {
-	// Check the cache first
-	if cachedData, found := dataStore.GetFromCache(address); found {
-		logger.Debugf("using cache data for call to %s", address)
-		return cachedData, nil // Return cached data
+func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger *logrus.Logger, auth auth.AuthClient) ([]byte, error) {
+	if cachedData, found := cacheService.Get(address); found {
+		logger.Debugf("using cacheService data for call to %s", address)
+		return cachedData, nil
 	} else {
-		logger.Debugf("no cache data found for call to %s", address)
+		logger.Debugf("no cacheService data found for call to %s", address)
 	}
 
-	bodyBytes, err := getResults(address, token)
+	bodyBytes, err := getResults(address, token, auth)
 	if err != nil {
 		return nil, err
 	}
 
-	// Store the result in the cache
-	dataStore.SetToCache(address, bodyBytes, persist.DefaultExpiration)
-
+	cacheService.Set(address, bodyBytes, persist.DefaultExpiration)
 	return bodyBytes, nil
 }

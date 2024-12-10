@@ -1,3 +1,4 @@
+// handlers/dashboard_handler.go
 package handlers
 
 import (
@@ -6,45 +7,48 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/services"
-	"github.com/guarzo/canifly/internal/services/esi"
+	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/settings"
 )
 
-// DashboardHandler holds the dependencies needed by the home-related handlers.
 type DashboardHandler struct {
-	sessionService *flyHttp.SessionService
-	esiService     esi.ESIService
-	skillService   *services.SkillService
-	dataStore      *persist.DataStore
-	logger         *logrus.Logger
-	configService  *services.ConfigService
+	sessionService   *flyHttp.SessionService
+	skillService     interfaces.SkillService
+	characterService interfaces.CharacterService
+	accountService   interfaces.AccountService
+	settingsService  settings.SettingsService
+	stateService     interfaces.StateService
+	dataStore        interfaces.DataStore // to retrieve skill plans, skill types, user selections, config
+	logger           interfaces.Logger
 }
 
-// NewDashboardHandler creates a new DashboardHandler with the given session and ESI services.
-func NewDashboardHandler(s *flyHttp.SessionService, e esi.ESIService, l *logrus.Logger, skill *services.SkillService, data *persist.DataStore, configService *services.ConfigService) *DashboardHandler {
+func NewDashboardHandler(
+	s *flyHttp.SessionService,
+	logger interfaces.Logger,
+	skillService interfaces.SkillService,
+	characterService interfaces.CharacterService,
+	accountService interfaces.AccountService,
+	settingsService settings.SettingsService,
+	stateService interfaces.StateService,
+	dataStore interfaces.DataStore,
+) *DashboardHandler {
 	return &DashboardHandler{
-		sessionService: s,
-		esiService:     e,
-		logger:         l,
-		skillService:   skill,
-		dataStore:      data,
-		configService:  configService,
+		sessionService:   s,
+		logger:           logger,
+		skillService:     skillService,
+		characterService: characterService,
+		accountService:   accountService,
+		settingsService:  settingsService,
+		stateService:     stateService,
+		dataStore:        dataStore,
 	}
 }
 
 func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache bool) {
-	// If noCache is true, we directly refresh from scratch
-	// If noCache is false, we can check if we have cached data first
+	storeData := h.stateService.GetAppState()
 
-	storeData := h.dataStore.GetAppState()
-
-	// If we are not forcing no-cache and we have cached data
-	// immediately return cached data and trigger background refresh
 	if !noCache && len(storeData.Accounts) > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(storeData)
@@ -72,7 +76,7 @@ func (h *DashboardHandler) refreshAccountsAndState() (model.AppState, error) {
 		return model.AppState{}, fmt.Errorf("failed to validate accounts: %v", err)
 	}
 
-	updatedData := prepareAppData(accounts, h.logger, h.skillService, h.dataStore, h.configService)
+	updatedData := h.prepareAppData(accounts)
 	if err = h.updateAndSaveAppState(updatedData); err != nil {
 		// Log the error but still try to return updatedData if we have it
 		h.logger.Errorf("Failed to update persist and session: %v", err)
@@ -81,11 +85,12 @@ func (h *DashboardHandler) refreshAccountsAndState() (model.AppState, error) {
 }
 
 func (h *DashboardHandler) updateAndSaveAppState(data model.AppState) error {
-	h.dataStore.SetAppState(data)
-	if err := h.dataStore.SaveAppStateSnapshot(data); err != nil {
+	if err := h.stateService.SetAppState(data); err != nil {
+		return fmt.Errorf("failed to set app state: %w", err)
+	}
+	if err := h.stateService.SaveAppStateSnapshot(data); err != nil {
 		return fmt.Errorf("failed to save app state snapshot: %w", err)
 	}
-
 	return nil
 }
 
@@ -118,15 +123,14 @@ func (h *DashboardHandler) refreshDataInBackground() {
 }
 
 func (h *DashboardHandler) refreshAccounts() ([]model.Account, error) {
-	h.logger.Debugf("Refreshing accounts ")
-	accounts, err := h.dataStore.FetchAccounts()
+	h.logger.Debugf("Refreshing accounts")
+	accounts, err := h.accountService.FetchAccounts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load accounts: %w", err)
 	}
 
 	h.logger.Debugf("Fetched %d accounts", len(accounts))
 
-	// Process each account and its characters using the injected ESIService
 	for i := range accounts {
 		account := &accounts[i]
 		h.logger.Debugf("Processing account: %s", account.Name)
@@ -135,8 +139,7 @@ func (h *DashboardHandler) refreshAccounts() ([]model.Account, error) {
 			charIdentity := &account.Characters[j]
 			h.logger.Debugf("Processing character: %s (ID: %d)", charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
 
-			// Use h.esiService instead of directly calling esi.ProcessIdentity
-			updatedCharIdentity, err := h.esiService.ProcessIdentity(charIdentity)
+			updatedCharIdentity, err := h.characterService.ProcessIdentity(charIdentity)
 			if err != nil {
 				h.logger.Errorf("Failed to process identity for character %d: %v", charIdentity.Character.CharacterID, err)
 				continue
@@ -149,11 +152,51 @@ func (h *DashboardHandler) refreshAccounts() ([]model.Account, error) {
 	}
 
 	// Save the updated accounts
-	if err := h.dataStore.SaveAccounts(accounts); err != nil {
+	if err := h.accountService.SaveAccounts(accounts); err != nil {
 		return nil, fmt.Errorf("failed to save accounts: %w", err)
 	}
 
-	_ = h.dataStore.SaveApiCache()
+	// If DataStore or StateService handles cache saving, call that here if needed
+	// Assuming DataStore directly since we haven't abstracted cache operations:
+	if c, ok := h.dataStore.(interfaces.CacheRepository); ok {
+		_ = c.SaveApiCache()
+	}
 
 	return accounts, nil
+}
+
+func (h *DashboardHandler) prepareAppData(accounts []model.Account) model.AppState {
+	// Retrieve skill plans and skill types from the dataStore through interfaces.DataStore
+	skillPlans := h.skillService.GetMatchingSkillPlans(
+		accounts,
+		h.dataStore.GetSkillPlans(),
+		h.dataStore.GetSkillTypes(),
+	)
+
+	// Fetch config data
+	configData, err := h.dataStore.FetchConfigData()
+	if err != nil {
+		h.logger.Errorf("Failed to fetch config data: %v", err)
+		configData = &model.ConfigData{}
+	}
+
+	subDirData, err := h.settingsService.LoadCharacterSettings()
+	if err != nil {
+		h.logger.Errorf("Failed to load character settings: %v", err)
+	}
+
+	userSelections, err := h.dataStore.LoadUserSelections()
+	if err != nil {
+		h.logger.Warnf("Failed to load user selections, defaulting to empty: %v", err)
+		userSelections = make(map[string]model.UserSelection)
+	}
+
+	return model.AppState{
+		LoggedIn:       true,
+		Accounts:       accounts,
+		SkillPlans:     skillPlans,
+		ConfigData:     *configData,
+		SubDirs:        subDirData,
+		UserSelections: userSelections,
+	}
 }

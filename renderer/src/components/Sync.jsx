@@ -291,8 +291,8 @@ const Sync = ({
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10">
-            {/* Add top margin so the buttons don't touch header */}
-            <div className="mt-8 mb-4 flex justify-center space-x-2">
+            {/* Add more top margin so buttons aren't touching the header */}
+            <div className="mt-16 mb-4 flex justify-center space-x-2">
                 <Tooltip title="Backup Settings">
                     <span>
                         <Button
@@ -331,7 +331,8 @@ const Sync = ({
             <Grid container spacing={4}>
                 {settingsData.map(subDir => (
                     <Grid item xs={12} sm={6} md={4} key={subDir.subDir}>
-                        <Card className="bg-gray-800 text-teal-200 p-4 rounded-md shadow-md flex flex-col justify-between h-full">
+                        {/* Added hover effect */}
+                        <Card className="bg-gray-800 text-teal-200 p-4 rounded-md shadow-md flex flex-col justify-between h-full transform transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg">
                             <div>
                                 <Typography
                                     variant="h6"
@@ -345,7 +346,7 @@ const Sync = ({
                                     <FormControl fullWidth margin="normal">
                                         <InputLabel
                                             id={`char-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#99f6e4' }} // light teal label
+                                            sx={{ color: '#99f6e4' }}
                                         >
                                             Select Character
                                         </InputLabel>
@@ -388,7 +389,7 @@ const Sync = ({
                                     <FormControl fullWidth margin="normal">
                                         <InputLabel
                                             id={`user-select-label-${subDir.subDir}`}
-                                            sx={{ color: '#99f6e4' }} // light teal label
+                                            sx={{ color: '#99f6e4' }}
                                         >
                                             Select User
                                         </InputLabel>

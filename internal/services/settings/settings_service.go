@@ -1,103 +1,78 @@
-package services
+// services/config/settings_service.go
+package settings
 
 import (
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/esi"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-type ConfigService struct {
+type SettingsService interface {
+	UpdateSettingsDir(dir string) error
+	GetSettingsDir() (string, error)
+	EnsureSettingsDir() error
+	LoadCharacterSettings() ([]model.SubDirData, error)
+	BackupDir() (bool, string)
+	SyncDir(subDir, charId, userId string) (int, int, error)
+	SyncAllDir(baseSubDir, charId, userId string) (int, int, error)
+}
+
+type settingsService struct {
 	logger    *logrus.Logger
-	dataStore *persist.DataStore
+	dataStore interfaces.DataStore
 	esi       esi.ESIService
 }
 
-// NewConfigService returns a new ConfigService with a logger
-func NewConfigService(logger *logrus.Logger, dataStore *persist.DataStore, e esi.ESIService) *ConfigService {
-	return &ConfigService{
+func NewSettingsService(logger *logrus.Logger, dataStore interfaces.DataStore, esi esi.ESIService) SettingsService {
+	return &settingsService{
 		logger:    logger,
 		dataStore: dataStore,
-		esi:       e,
+		esi:       esi,
 	}
 }
 
-func (c *ConfigService) UpdateRoles(newRole string) error {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) UpdateSettingsDir(dir string) error {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
-		c.logger.Warnf("error fetching config data %v", configData)
-		return nil
-	}
-
-	// Update the roles list if new role
-	roleExists := false
-	for _, role := range configData.Roles {
-		if role == newRole {
-			roleExists = true
-			c.logger.Debugf("role exists %s", newRole)
-			break
-		}
-	}
-	if !roleExists {
-		configData.Roles = append(configData.Roles, newRole)
-	}
-
-	// Save updated ConfigData
-	err = c.dataStore.SaveConfigData(configData)
-	if err != nil {
-		return fmt.Errorf("failed to save config data %v", err)
-	}
-
-	return nil
-}
-
-func (c *ConfigService) UpdateSettingsDir(dir string) error {
-	configData, err := c.dataStore.FetchConfigData()
-	if err != nil {
-		c.logger.Infof("error fetching config data %v", err)
 		return err
 	}
 
 	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("unable to find directory %s, %v", dir, err)
+		return fmt.Errorf("unable to find directory %a, %v", dir, err)
 	}
 
 	configData.SettingsDir = dir
-
-	err = c.dataStore.SaveConfigData(configData)
-	if err != nil {
-		return fmt.Errorf("failed to save config data %v", err)
-	}
-
-	return nil
+	return a.dataStore.SaveConfigData(configData)
 }
 
-func (c *ConfigService) GetSettingsDir() (string, error) {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) GetSettingsDir() (string, error) {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
-		c.logger.Infof("error fetching config data %v", err)
+		a.logger.Infof("error fetching config data %v", err)
 		return "", err
 	}
 	return configData.SettingsDir, nil
 }
 
-func (c *ConfigService) LoadCharacterSettings() ([]model.SubDirData, error) {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) LoadCharacterSettings() ([]model.SubDirData, error) {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch config data: %w", err)
 	}
 	settingsDir := configData.SettingsDir
 
-	subDirs, err := c.dataStore.GetSubDirectories(settingsDir)
+	subDirs, err := a.dataStore.GetSubDirectories(settingsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subdirectories: %w", err)
 	}
@@ -106,9 +81,9 @@ func (c *ConfigService) LoadCharacterSettings() ([]model.SubDirData, error) {
 	allCharIDs := make(map[string]struct{}) // use a map to deduplicate charIds
 
 	for _, sd := range subDirs {
-		charFiles, userFiles, err := c.dataStore.GetFilesForDropdown(sd, settingsDir)
+		charFiles, userFiles, err := a.dataStore.GetFilesForDropdown(sd, settingsDir)
 		if err != nil {
-			c.logger.Warnf("Error fetching dropdown files for subDir %s: %v", sd, err)
+			a.logger.Warnf("Error fetching dropdown files for subDir %s: %v", sd, err)
 			// continue loading other subdirectories even if one fails
 			continue
 		}
@@ -131,7 +106,7 @@ func (c *ConfigService) LoadCharacterSettings() ([]model.SubDirData, error) {
 		charIdList = append(charIdList, id)
 	}
 
-	charIdToName, err := c.fetchESINames(charIdList)
+	charIdToName, err := a.fetchESINames(charIdList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ESI names: %w", err)
 	}
@@ -155,48 +130,48 @@ func (c *ConfigService) LoadCharacterSettings() ([]model.SubDirData, error) {
 	return settingsData, nil
 }
 
-func (c *ConfigService) fetchESINames(charIds []string) (map[string]string, error) {
+func (a *settingsService) fetchESINames(charIds []string) (map[string]string, error) {
 	charIdToName := make(map[string]string)
-	deletedChars, err := c.dataStore.FetchDeletedCharacters()
+	deletedChars, err := a.dataStore.FetchDeletedCharacters()
 	if err != nil {
-		c.logger.WithError(err).Infof("fetch esi names runnnig without deleted characters info")
+		a.logger.WithError(err).Infof("fetch esi names runnnig without deleted characters info")
 	}
 	for _, id := range charIds {
 		if slices.Contains(deletedChars, id) {
 			continue
 		}
-		character, err := c.esi.GetCharacter(id) // Assuming c.esi.GetCharacter(id) returns (Character, error)
+		character, err := a.esi.GetCharacter(id) // Assuming a.esi.GetCharacter(id) returns (Character, error)
 		if err != nil {
-			c.logger.Warnf("failed to retrieve name for %s", id)
+			a.logger.Warnf("failed to retrieve name for %s", id)
 			var customErr *flyErrors.CustomError
 			if errors.As(err, &customErr) && customErr.StatusCode == http.StatusNotFound {
-				c.logger.Warnf("adding %s to deleted characters", id)
+				a.logger.Warnf("adding %s to deleted characters", id)
 				deletedChars = append(deletedChars, id)
 			}
 		} else {
 			charIdToName[id] = character.Name
 		}
 	}
-	err = c.dataStore.SaveDeletedCharacters(deletedChars)
+	err = a.dataStore.SaveDeletedCharacters(deletedChars)
 	if err != nil {
-		c.logger.Warnf("failed to save deleted characters %v", err)
+		a.logger.Warnf("failed to save deleted characters %v", err)
 	}
 	return charIdToName, nil
 }
 
-func (c *ConfigService) SyncDir(subDir, charId, userId string) (int, int, error) {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) SyncDir(subDir, charId, userId string) (int, int, error) {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
 		return 0, 0, err
 	}
 
-	return c.dataStore.SyncSubdirectory(subDir, userId, charId, configData.SettingsDir)
+	return a.dataStore.SyncSubdirectory(subDir, userId, charId, configData.SettingsDir)
 }
 
-// In ConfigService
+// In SettingsService
 
-func (c *ConfigService) SyncAllDir(baseSubDir, charId, userId string) (int, int, error) {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) SyncAllDir(baseSubDir, charId, userId string) (int, int, error) {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to fetch config data: %w", err)
 	}
@@ -204,33 +179,33 @@ func (c *ConfigService) SyncAllDir(baseSubDir, charId, userId string) (int, int,
 		return 0, 0, fmt.Errorf("SettingsDir not set")
 	}
 
-	return c.dataStore.SyncAllSubdirectories(baseSubDir, userId, charId, configData.SettingsDir)
+	return a.dataStore.SyncAllSubdirectories(baseSubDir, userId, charId, configData.SettingsDir)
 }
 
-func (c *ConfigService) BackupDir() (bool, string) {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) BackupDir() (bool, string) {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
 		return false, "Error fetching config data"
 	}
-	return c.dataStore.BackupDirectory(configData.SettingsDir)
+	return a.dataStore.BackupDirectory(configData.SettingsDir)
 }
 
-func (c *ConfigService) EnsureSettingsDir() error {
-	configData, err := c.dataStore.FetchConfigData()
+func (a *settingsService) EnsureSettingsDir() error {
+	configData, err := a.dataStore.FetchConfigData()
 	if err != nil {
 		return fmt.Errorf("failed to fetch config data: %w", err)
 	}
 
 	if configData.SettingsDir != "" {
 		if _, err := os.Stat(configData.SettingsDir); os.IsNotExist(err) {
-			c.logger.Warnf("SettingsDir %s does not exist, attempting to reset to default", configData.SettingsDir)
+			a.logger.Warnf("SettingsDir %s does not exist, attempting to reset to default", configData.SettingsDir)
 		} else {
 			// SettingsDir exists and is accessible
 			return nil
 		}
 	}
 
-	defaultDir, err := c.dataStore.GetHomeDir()
+	defaultDir, err := a.dataStore.GetHomeDir()
 	if err != nil {
 		return err
 	}
@@ -243,7 +218,7 @@ func (c *ConfigService) EnsureSettingsDir() error {
 			return fmt.Errorf("default directory does not exist and failed to get home directory: %v", homeErr)
 		}
 
-		searchPath, findErr := c.findEveSettingsDir(homeDir, "c_ccp_eve_online_tq_tranquility")
+		searchPath, findErr := a.findEveSettingsDir(homeDir, "c_ccp_eve_online_tq_tranquility")
 		if findErr != nil {
 			return fmt.Errorf("default directory does not exist and failed to find c_ccp_eve_online_tq_tranquility: %w", findErr)
 		}
@@ -255,16 +230,16 @@ func (c *ConfigService) EnsureSettingsDir() error {
 		configData.SettingsDir = defaultDir
 	}
 
-	if err = c.dataStore.SaveConfigData(configData); err != nil {
+	if err = a.dataStore.SaveConfigData(configData); err != nil {
 		return fmt.Errorf("failed to save default SettingsDir: %w", err)
 	}
 
-	c.logger.Debugf("Set default SettingsDir to: %s", configData.SettingsDir)
+	a.logger.Debugf("Set default SettingsDir to: %s", configData.SettingsDir)
 	return nil
 }
 
 // findEveSettingsDir searches recursively starting from startDir for a directory path containing targetName.
-func (c *ConfigService) findEveSettingsDir(startDir, targetName string) (string, error) {
+func (a *settingsService) findEveSettingsDir(startDir, targetName string) (string, error) {
 	var foundPath string
 	err := filepath.Walk(startDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -287,6 +262,23 @@ func (c *ConfigService) findEveSettingsDir(startDir, targetName string) (string,
 	return foundPath, nil
 }
 
-func (c *ConfigService) UpdateUserSelections(selections model.UserSelections) error {
-	return c.dataStore.SaveUserSelections(selections)
+func (a *settingsService) UpdateUserSelections(selections model.UserSelections) error {
+	return a.dataStore.SaveUserSelections(selections)
+}
+
+func (a *settingsService) UpdateRoles(newRole string) error {
+	configData, err := a.dataStore.FetchConfigData()
+	if err != nil {
+		return err
+	}
+
+	for _, role := range configData.Roles {
+		if role == newRole {
+			a.logger.Debugf("role exists %s", newRole)
+			return nil
+		}
+	}
+	configData.Roles = append(configData.Roles, newRole)
+
+	return a.dataStore.SaveConfigData(configData)
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,16 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/services"
 )
 
 type SkillPlanHandler struct {
 	logger       *logrus.Logger
-	skillService *services.SkillService
+	skillService *interfaces.SkillService
 	dataStore    *persist.DataStore
 }
 
-func NewSkillPlanHandler(l *logrus.Logger, s *services.SkillService, d *persist.DataStore) *SkillPlanHandler {
+func NewSkillPlanHandler(l *logrus.Logger, s *interfaces.SkillService, d *persist.DataStore) *SkillPlanHandler {
 	return &SkillPlanHandler{
 		logger:       l,
 		skillService: s,

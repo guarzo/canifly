@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-
-	"github.com/guarzo/canifly/internal/utils/xlog"
 )
 
 const (
@@ -68,14 +67,14 @@ func ExchangeCode(code string) (*oauth2.Token, error) {
 }
 
 // RefreshToken performs a token refresh using the global oauth2Config
-func RefreshToken(refreshToken string) (*oauth2.Token, error) {
+func RefreshToken(refreshToken string, logger *logrus.Logger) (*oauth2.Token, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
 
 	req, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
-		xlog.Logf("Failed to create request to refresh token: %v", err)
+		logger.Errorf("Failed to create request to refresh token: %v", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -84,7 +83,7 @@ func RefreshToken(refreshToken string) (*oauth2.Token, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		xlog.Logf("Failed to make request to refresh token: %v", err)
+		logger.Errorf("Failed to make request to refresh token: %v", err)
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -92,18 +91,18 @@ func RefreshToken(refreshToken string) (*oauth2.Token, error) {
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			xlog.Logf("Failed to read response body: %v", readErr)
+			logger.Infof("Failed to read response body: %v", readErr)
 			return nil, fmt.Errorf("failed to read response body: %w", readErr)
 		}
 		bodyString := string(bodyBytes)
 
-		xlog.Logf("Received non-OK status code %d for request to refresh token. Response body: %s", resp.StatusCode, bodyString)
+		logger.Warnf("Received non-OK status code %d for request to refresh token. Response body: %s", resp.StatusCode, bodyString)
 		return nil, fmt.Errorf("received non-OK status code %d: %s", resp.StatusCode, bodyString)
 	}
 
 	var token oauth2.Token
 	if decodeErr := json.NewDecoder(resp.Body).Decode(&token); decodeErr != nil {
-		xlog.Logf("Failed to decode response body: %v", decodeErr)
+		logger.Errorf("Failed to decode response body: %v", decodeErr)
 		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
@@ -111,13 +110,17 @@ func RefreshToken(refreshToken string) (*oauth2.Token, error) {
 }
 
 // authClient is a concrete implementation of AuthClient
-type authClient struct{}
+type authClient struct {
+	logger *logrus.Logger
+}
 
 // NewAuthClient returns a concrete AuthClient implementation
-func NewAuthClient() AuthClient {
-	return &authClient{}
+func NewAuthClient(l *logrus.Logger) AuthClient {
+	return &authClient{
+		logger: l,
+	}
 }
 
 func (a *authClient) RefreshToken(refreshToken string) (*oauth2.Token, error) {
-	return RefreshToken(refreshToken)
+	return RefreshToken(refreshToken, a.logger)
 }

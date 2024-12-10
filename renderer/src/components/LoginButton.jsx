@@ -1,17 +1,19 @@
-// LoginButton.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import AccountPromptModal from './AccountPromptModal';
+import PropTypes from 'prop-types';
 
-const LoginButton = () => {
+const LoginButton = ({ onModalOpenChange }) => {
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleOpenModal = () => {
         setModalOpen(true);
+        onModalOpenChange(true); // Inform parent that modal is now open
     };
 
     const handleCloseModal = () => {
         setModalOpen(false);
+        onModalOpenChange(false); // Inform parent that modal is closed
     };
 
     const handleLoginSubmit = async (account) => {
@@ -38,6 +40,7 @@ const LoginButton = () => {
             toast.error('An error occurred while initiating login.');
         } finally {
             setModalOpen(false);
+            onModalOpenChange(false); // Modal closed after submit
         }
     };
 
@@ -48,7 +51,6 @@ const LoginButton = () => {
                 aria-label="Login with Eve SSO"
                 className="inline-flex items-center py-3 px-6 rounded-md transition duration-300 hover:bg-teal-700 bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600"
             >
-                {/* Replace text and icon with image */}
                 <img
                     src="/images/eve-sso.jpg"
                     alt="Login with Eve SSO"
@@ -63,6 +65,10 @@ const LoginButton = () => {
             />
         </>
     );
+};
+
+LoginButton.propTypes = {
+    onModalOpenChange: PropTypes.func.isRequired,
 };
 
 export default LoginButton;

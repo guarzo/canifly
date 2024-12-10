@@ -18,10 +18,10 @@ func SetupRouter(secret string, logger *logrus.Logger, appServices *AppServices)
 
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
-	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, appServices.EsiService, logger, appServices.SkillService, appServices.DataStore, appServices.ConfigService)
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.DataStore, appServices.ConfigService)
-	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.DataStore)
-	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, appServices.ConfigService, appServices.DataStore)
+	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.SkillService, appServices.DataStore, appServices.SettingsService, appServices.CharacterService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.DataStore, appServices.SettingsService)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, *appServices.AccountService)
+	characterHandler := flyHandlers.NewCharacterHandler(sessionStore, logger, appServices.SettingsService, appServices.DataStore)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService, appServices.DataStore)
 
 	// Define routes

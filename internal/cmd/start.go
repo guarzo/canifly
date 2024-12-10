@@ -28,7 +28,7 @@ func Start() {
 	initializeComponents(secret, logger)
 
 	httpClient := httpServices.NewAPIClient("https://esi.evetech.net", "", logger)
-	authClient := auth.NewAuthClient()
+	authClient := auth.NewAuthClient(logger)
 
 	r := server.SetupRouter(secret, logger, server.GetServices(logger, authClient, httpClient))
 	port := server.GetPort()

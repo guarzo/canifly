@@ -1,7 +1,8 @@
-package services
+package skill
 
 import (
 	"bufio"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"strconv"
 	"strings"
 	"time"
@@ -11,15 +12,14 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 )
 
-type SkillService struct {
-	logger *logrus.Logger
+type skillService struct {
+	logger    *logrus.Logger
+	skillRepo interfaces.SkillRepository
 }
 
-// NewSkillService  returns a new ConfigService with a logger
-func NewSkillService(logger *logrus.Logger) *SkillService {
-	return &SkillService{
-		logger: logger,
-	}
+// NewSkillService  returns a new SettingsService with a logger
+func NewSkillService(logger *logrus.Logger, skillRepo interfaces.SkillRepository) interfaces.SkillService {
+	return &skillService{logger: logger, skillRepo: skillRepo}
 }
 
 var romanToInt = map[string]int{
@@ -27,7 +27,7 @@ var romanToInt = map[string]int{
 }
 
 // ParseSkillPlanContents takes the contents as a string and parses it into a map of skills.
-func (s *SkillService) ParseSkillPlanContents(contents string) map[string]model.Skill {
+func (s *skillService) ParseSkillPlanContents(contents string) map[string]model.Skill {
 	skills := make(map[string]model.Skill)
 	scanner := bufio.NewScanner(strings.NewReader(contents))
 
@@ -72,7 +72,7 @@ func parseSkillLevel(levelStr string) (int, error) {
 	return strconv.Atoi(levelStr) // Fall back to numeric conversion
 }
 
-func (s *SkillService) GetMatchingSkillPlans(
+func (s *skillService) GetMatchingSkillPlans(
 	accounts []model.Account,
 	skillPlans map[string]model.SkillPlan,
 	skillTypes map[string]model.SkillType,
@@ -221,4 +221,12 @@ func getStatus(qualifies bool, pending bool) string {
 		return "Pending"
 	}
 	return "Not Qualified"
+}
+
+func (s *skillService) GetSkillPlans() map[string]model.SkillPlan {
+	return s.skillRepo.GetSkillPlans()
+}
+
+func (s *skillService) GetSkillTypes() map[string]model.SkillType {
+	return s.skillRepo.GetSkillTypes()
 }

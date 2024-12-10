@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gorilla/sessions"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/sirupsen/logrus"
 	"net/http"
 
@@ -32,7 +33,7 @@ func clearSession(s *flyHttp.SessionService, w http.ResponseWriter, r *http.Requ
 func prepareAppData(
 	accounts []model.Account,
 	logger *logrus.Logger,
-	skill *services.SkillService,
+	skill *interfaces.SkillService,
 	dataStore *persist.DataStore,
 	configService *services.ConfigService,
 ) model.AppState {

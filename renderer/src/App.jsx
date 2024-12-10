@@ -1,4 +1,3 @@
-// App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
@@ -14,8 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import theme from './components/theme';
 import CharacterSort from './components/CharacterSort.jsx';
 import Sync from './components/Sync';
-import Mapping from './components/Mapping'
-
+import Mapping from './components/Mapping';
 
 const App = () => {
     const [appData, setAppData] = useState(null);
@@ -23,11 +21,10 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
 
-    // Fetch app data
     const fetchAppData = async () => {
         try {
             const response = await fetch('/api/app-data', {
-                credentials: 'include', // Include cookies for authentication
+                credentials: 'include',
             });
             if (response.status === 401) {
                 setIsAuthenticated(false);
@@ -43,18 +40,16 @@ const App = () => {
             }
         } catch (error) {
             if (isAuthenticated) {
-                // Only show this if the user is authenticated. If they're not authenticated,
-                // it's expected behavior and can be silently ignored.
                 console.error('Error fetching app data:', error);
                 toast.error('Failed to load data. Please try again later.');
             }
         }
     };
 
-    const fetchAppDataNoCache= async () => {
+    const fetchAppDataNoCache = async () => {
         try {
             const response = await fetch('/api/app-data-no-cache', {
-                credentials: 'include', // Include cookies for authentication
+                credentials: 'include',
             });
 
             if (response.ok) {
@@ -63,26 +58,21 @@ const App = () => {
                 setIsAuthenticated(true);
             } else {
                 const errorData = await response.json();
-                console.log(errorData.error)
+                console.log(errorData.error);
             }
         } catch (error) {
             if (isAuthenticated) {
-                // Only show this if the user is authenticated. If they're not authenticated,
-                // it's expected behavior and can be silently ignored.
                 console.error('Error fetching no cache app data:', error);
             }
         }
     };
 
-    // Combined data fetching
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            await Promise.all([fetchAppData()]);
+            await fetchAppData();
         } catch (error) {
             if (isAuthenticated) {
-                // Only show this if the user is authenticated. If they're not authenticated,
-                // it's expected behavior and can be silently ignored.
                 console.error('Error fetching data:', error);
             }
         } finally {
@@ -92,8 +82,7 @@ const App = () => {
 
     const silentRefreshData = async () => {
         try {
-            await Promise.all([fetchAppDataNoCache()]);
-            // No isLoading changes here, just update the state once data is loaded.
+            await fetchAppDataNoCache();
         } catch (error) {
             if (isAuthenticated) {
                 console.error('Error fetching data:', error);
@@ -101,7 +90,6 @@ const App = () => {
         }
     };
 
-    // Handle logout
     const handleLogout = async () => {
         try {
             const response = await fetch('/api/logout', {
@@ -122,7 +110,6 @@ const App = () => {
         }
     };
 
-    // Toggle account status (Alpha/Omega)
     const handleToggleAccountStatus = async (accountID) => {
         try {
             const response = await fetch('/api/toggle-account-status', {
@@ -134,7 +121,6 @@ const App = () => {
 
             if (response.ok) {
                 toast.success('Account status toggled successfully!');
-                // Update the account status locally
                 setAppData((prevAppData) => {
                     const updatedAccounts = prevAppData.Accounts.map((account) => {
                         if (account.ID === accountID) {
@@ -165,7 +151,6 @@ const App = () => {
 
             if (response.ok) {
                 toast.success('Character updated successfully!');
-                // Update character and roles locally
                 setAppData((prevAppData) => {
                     const updatedRoles = prevAppData?.Roles
                         ? [...prevAppData.Roles]
@@ -199,9 +184,6 @@ const App = () => {
         }
     };
 
-
-
-    // Remove character from account
     const handleRemoveCharacter = async (characterID) => {
         try {
             const response = await fetch('/api/remove-character', {
@@ -214,8 +196,6 @@ const App = () => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Character removed successfully!');
-
-                // Update appData: Remove character from the account
                 setAppData((prevAppData) => {
                     const updatedAccounts = prevAppData.Accounts.map((account) => {
                         const filteredCharacters = account.Characters.filter((character) => {
@@ -234,8 +214,6 @@ const App = () => {
         }
     };
 
-
-    // Update account name
     const handleUpdateAccountName = async (accountID, newName) => {
         try {
             const response = await fetch('/api/update-account-name', {
@@ -247,16 +225,14 @@ const App = () => {
 
             const result = await response.json();
             if (response.ok && result.success) {
-                // Update the account name in state
+                toast.success('Account name updated successfully!');
                 setAppData((prevAppData) => {
                     const updatedAccounts = prevAppData.Accounts.map((account) =>
                         account.ID === accountID ? { ...account, Name: newName } : account
                     );
                     return { ...prevAppData, Accounts: updatedAccounts };
                 });
-                toast.success('Account name updated successfully!');
             } else {
-                // Handle error
                 toast.error(result.error || 'Failed to update account name.');
             }
         } catch (error) {
@@ -268,7 +244,7 @@ const App = () => {
     const handleRemoveAccount = async (accountName) => {
         try {
             const response = await fetch('/api/remove-account', {
-                method: 'POST', // or 'DELETE' if you want to implement DELETE method on backend
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountName }),
                 credentials: 'include',
@@ -277,7 +253,6 @@ const App = () => {
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success('Account removed successfully!');
-
                 setAppData((prevAppData) => {
                     const updatedAccounts = prevAppData.Accounts.filter(
                         (account) => account.Name !== accountName
@@ -293,8 +268,52 @@ const App = () => {
         }
     };
 
+    // NEW FUNCTION: handleAddCharacter (moved from Header)
+    const handleAddCharacter = async (account) => {
+        try {
+            const response = await fetch('/api/add-character', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({account}),
+                credentials: 'include',
+            });
+            if (response.ok) {
+                const data = await response.json();
 
-    // Skill Plan Modal Handlers
+                // If data includes a redirectURL, we must redirect.
+                // After redirect, the backend callback should update the app state.
+                // If we want immediate local update, we must have character details in `data`
+                // For now, assume we get some character details in `data.newCharacter`:
+                if (data.redirectURL) {
+                    window.location.href = data.redirectURL;
+                } else if (data.newCharacter && data.accountName) {
+                    // Update the local state immediately without waiting for refresh
+                    setAppData((prevAppData) => {
+                        const updatedAccounts = prevAppData.Accounts.map((acc) => {
+                            if (acc.Name === data.accountName) {
+                                return {
+                                    ...acc,
+                                    Characters: [...acc.Characters, data.newCharacter],
+                                };
+                            }
+                            return acc;
+                        });
+                        return { ...prevAppData, Accounts: updatedAccounts };
+                    });
+                    toast.success('Character added successfully!');
+                } else {
+                    toast.error("No redirect URL or character details received from server.");
+                }
+            } else {
+                const errorText = await response.text();
+                toast.error(`Failed to initiate login: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error initiating add character:', error);
+            toast.error('An error occurred while adding character.');
+        }
+    };
+
     const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
     const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
 
@@ -310,7 +329,7 @@ const App = () => {
             if (response.ok) {
                 toast.success('Skill Plan Saved!');
                 closeSkillPlanModal();
-                fetchData(); // Refresh data
+                fetchData();
             } else {
                 const errorText = await response.text();
                 toast.error(`Error saving skill plan: ${errorText}`);
@@ -334,118 +353,113 @@ const App = () => {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-teal-200 space-y-4">
-                {/* Static loading image */}
                 <img
                     src="/images/hello.png"
                     alt="Loading"
                     className="w-32 h-auto object-contain"
                 />
-
-                {/* Pulsing text */}
                 <p className="animate-pulse text-lg">Loading...</p>
             </div>
         );
     }
 
-
-
     const identities = appData?.Accounts?.flatMap((account) => account.Characters) || [];
     const existingAccounts = appData?.Accounts.flatMap((account) => account.Name) || [];
-    console.log(appData)
+    console.log(appData);
 
     return (
         <ErrorBoundary>
             <ThemeProvider theme={theme}>
-            <Router>
-                <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
-                    <Header
-                        loggedIn={isAuthenticated}
-                        handleLogout={handleLogout}
-                        openSkillPlanModal={openSkillPlanModal}
-                        existingAccounts={existingAccounts}
-                        onSilentRefresh={silentRefreshData}
-                    />
-                    <main className="flex-grow container mx-auto px-4 py-8">
-                        {!isAuthenticated ? (
-                            <Landing/>
-                        ) : isLoading || !appData ? (
-                            <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
-                                <p>Loading...</p>
-                            </div>
-                        ) : (
-                            <Routes>
-                                <Route
-                                    path="/"
-                                    element={
-                                        <Dashboard
-                                            accounts={appData?.Accounts || []}
-                                            onToggleAccountStatus={handleToggleAccountStatus}
-                                            onUpdateCharacter={handleUpdateCharacter}
-                                            onUpdateAccountName={handleUpdateAccountName}
-                                            onRemoveCharacter={handleRemoveCharacter}
-                                            onRemoveAccount={handleRemoveAccount}
-                                            roles={appData?.Roles || []}
-                                        />
-                                    }
-                                />
-                                <Route
-                                    path="/skill-plans"
-                                    element={
-                                        <SkillPlans
-                                            identities={identities}
-                                            skillPlans={appData?.SkillPlans || {}}
-                                            setAppData={setAppData}
-                                        />
-                                    }
-                                />
-                                <Route
-                                    path="/character-sort"
-                                    element={
-                                        <CharacterSort
-                                            accounts={appData?.Accounts || []}
-                                            roles={appData?.Roles || []}
-                                        />
-                                    }
-                                />
-                                <Route
-                                    path="/sync"
-                                    element={
-                                        <Sync
-                                            settingsData={appData?.SubDirs || []}
-                                            associations={appData?.associations || []}
-                                            currentSettingsDir={appData?.SettingsDir || ''}
-                                            isDefaultDir={appData?.IsDefaultDir ?? false}
-                                            userSelections={appData?.UserSelections || {}}
-                                        />
-                                    }
-                                />
-                                <Route
-                                    path="/mapping"
-                                    element={
-                                        <Mapping
-                                            associations={appData?.associations || []}
-                                            subDirs={appData?.SubDirs || []}
-                                            onRefreshData={silentRefreshData}
-                                        />
-                                    }
-                                />
-                            </Routes>
-                        )}
-                    </main>
-                    <Footer/>
-                    {isSkillPlanModalOpen && (
-                        <AddSkillPlanModal
-                            onClose={closeSkillPlanModal}
-                            onSave={handleSaveSkillPlan}
+                <Router>
+                    <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
+                        <Header
+                            loggedIn={isAuthenticated}
+                            handleLogout={handleLogout}
+                            openSkillPlanModal={openSkillPlanModal}
+                            existingAccounts={existingAccounts}
+                            onSilentRefresh={silentRefreshData}
+                            onAddCharacter={handleAddCharacter} {/* PASS THE FUNCTION DOWN */}
                         />
-                    )}
-                    <ToastContainer/>
-                </div>
-            </Router>
+                        <main className="flex-grow container mx-auto px-4 py-8">
+                            {!isAuthenticated ? (
+                                <Landing/>
+                            ) : isLoading || !appData ? (
+                                <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
+                                    <p>Loading...</p>
+                                </div>
+                            ) : (
+                                <Routes>
+                                    <Route
+                                        path="/"
+                                        element={
+                                            <Dashboard
+                                                accounts={appData?.Accounts || []}
+                                                onToggleAccountStatus={handleToggleAccountStatus}
+                                                onUpdateCharacter={handleUpdateCharacter}
+                                                onUpdateAccountName={handleUpdateAccountName}
+                                                onRemoveCharacter={handleRemoveCharacter}
+                                                onRemoveAccount={handleRemoveAccount}
+                                                roles={appData?.Roles || []}
+                                            />
+                                        }
+                                    />
+                                    <Route
+                                        path="/skill-plans"
+                                        element={
+                                            <SkillPlans
+                                                identities={identities}
+                                                skillPlans={appData?.SkillPlans || {}}
+                                                setAppData={setAppData}
+                                            />
+                                        }
+                                    />
+                                    <Route
+                                        path="/character-sort"
+                                        element={
+                                            <CharacterSort
+                                                accounts={appData?.Accounts || []}
+                                                roles={appData?.Roles || []}
+                                            />
+                                        }
+                                    />
+                                    <Route
+                                        path="/sync"
+                                        element={
+                                            <Sync
+                                                settingsData={appData?.SubDirs || []}
+                                                associations={appData?.associations || []}
+                                                currentSettingsDir={appData?.SettingsDir || ''}
+                                                isDefaultDir={appData?.IsDefaultDir ?? false}
+                                                userSelections={appData?.UserSelections || {}}
+                                            />
+                                        }
+                                    />
+                                    <Route
+                                        path="/mapping"
+                                        element={
+                                            <Mapping
+                                                associations={appData?.associations || []}
+                                                subDirs={appData?.SubDirs || []}
+                                                onRefreshData={silentRefreshData}
+                                            />
+                                        }
+                                    />
+                                </Routes>
+                            )}
+                        </main>
+                        <Footer/>
+                        {isSkillPlanModalOpen && (
+                            <AddSkillPlanModal
+                                onClose={closeSkillPlanModal}
+                                onSave={handleSaveSkillPlan}
+                            />
+                        )}
+                        <ToastContainer/>
+                    </div>
+                </Router>
             </ThemeProvider>
         </ErrorBoundary>
     );
 };
 
 export default App;
-

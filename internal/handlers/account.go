@@ -1,26 +1,27 @@
+// handlers/account_handler.go
 package handlers
 
 import (
 	"fmt"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 
-	flyHttp "github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/sirupsen/logrus"
+
+	flyHttp "github.com/guarzo/canifly/internal/http"
 )
 
 type AccountHandler struct {
-	sessionService *flyHttp.SessionService
-	dataStore      *persist.DataStore
+	sessionService flyHttp.SessionService
+	accountService interfaces.AccountService
 	logger         *logrus.Logger
 }
 
-func NewAccountHandler(s *flyHttp.SessionService, l *logrus.Logger, data *persist.DataStore) *AccountHandler {
+func NewAccountHandler(session *flyHttp.SessionService, logger *logrus.Logger, accountSrv interfaces.AccountService) *AccountHandler {
 	return &AccountHandler{
-		sessionService: s,
-		logger:         l,
-		dataStore:      data,
+		sessionService: *session,
+		logger:         logger,
+		accountService: accountSrv,
 	}
 }
 
@@ -39,29 +40,9 @@ func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.dataStore.FetchAccounts()
+		err := h.accountService.UpdateAccountName(request.AccountID, request.AccountName)
 		if err != nil {
-			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		var accountToUpdate *model.Account
-		for i, account := range accounts {
-			if account.ID == request.AccountID {
-				accountToUpdate = &accounts[i]
-				break
-			}
-		}
-
-		if accountToUpdate == nil {
-			respondError(w, "Account not found", http.StatusNotFound)
-			return
-		}
-
-		accountToUpdate.Name = request.AccountName
-
-		if err = h.dataStore.SaveAccounts(accounts); err != nil {
-			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
+			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -83,32 +64,13 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.dataStore.FetchAccounts()
+		err := h.accountService.ToggleAccountStatus(request.AccountID)
 		if err != nil {
-			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		var accountFound bool
-		for i := range accounts {
-			if accounts[i].ID == request.AccountID {
-				if accounts[i].Status == "Alpha" {
-					accounts[i].Status = "Omega"
-				} else {
-					accounts[i].Status = "Alpha"
-				}
-				accountFound = true
-				break
+			if err.Error() == "account not found" {
+				respondError(w, "Account not found", http.StatusNotFound)
+			} else {
+				respondError(w, fmt.Sprintf("Failed to toggle account status: %v", err), http.StatusInternalServerError)
 			}
-		}
-
-		if !accountFound {
-			respondError(w, "Account not found", http.StatusNotFound)
-			return
-		}
-
-		if err = h.dataStore.SaveAccounts(accounts); err != nil {
-			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -130,36 +92,16 @@ func (h *AccountHandler) RemoveAccount() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.dataStore.FetchAccounts()
+		err := h.accountService.RemoveAccountByName(request.AccountName)
 		if err != nil {
-			respondError(w, fmt.Sprintf("Error fetching accounts: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		index, found := findAccountIndex(accounts, request.AccountName)
-		if !found {
-			respondError(w, fmt.Sprintf("%s not found in accounts", request.AccountName), http.StatusNotFound)
-			return
-		}
-
-		// Remove the account
-		accounts = append(accounts[:index], accounts[index+1:]...)
-
-		if err := h.dataStore.SaveAccounts(accounts); err != nil {
-			respondError(w, fmt.Sprintf("Failed to save accounts: %v", err), http.StatusInternalServerError)
+			if err.Error() == fmt.Sprintf("account %s not found", request.AccountName) {
+				respondError(w, "Account not found", http.StatusNotFound)
+			} else {
+				respondError(w, fmt.Sprintf("Failed to remove account: %v", err), http.StatusInternalServerError)
+			}
 			return
 		}
 
 		respondJSON(w, map[string]bool{"success": true})
 	}
-}
-
-// helper function to find account by name
-func findAccountIndex(accounts []model.Account, accountName string) (int, bool) {
-	for i, account := range accounts {
-		if account.Name == accountName {
-			return i, true
-		}
-	}
-	return 0, false
 }
