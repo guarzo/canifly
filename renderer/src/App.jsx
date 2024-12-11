@@ -47,11 +47,10 @@ const App = () => {
             appDataExists: !!appData
         });
 
-        // Temporarily remove the loggedOut check to see if the flow recovers on its own.
-        // if (loggedOut) {
-        //     console.log("fetchAppEndpoint: loggedOut is true, returning early");
-        //     return returnSuccess ? false : undefined;
-        // }
+        if (loggedOut) {
+            console.log("fetchAppEndpoint: loggedOut is true, returning early");
+            return returnSuccess ? false : undefined;
+        }
 
         if (setLoading) {
             console.log("Setting isLoading = true");

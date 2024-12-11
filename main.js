@@ -51,6 +51,9 @@ function createWindow() {
 
     mainWindow.setMenuBarVisibility(false);
 
+    console.log("User data path:", app.getPath('userData'));
+
+
     if (isDev) {
         mainWindow.loadURL('http://localhost:5173');
         mainWindow.webContents.openDevTools();
