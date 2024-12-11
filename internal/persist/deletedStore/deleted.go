@@ -30,7 +30,7 @@ func (ds *DeletedStore) SaveDeletedCharacters(chars []string) error {
 		return fmt.Errorf("failed to save deleted characters")
 	}
 
-	if err := persist.SaveJsonToFile(filename, chars); err != nil {
+	if err := persist.OldSaveJson(filename, chars); err != nil {
 		ds.logger.WithError(err).Errorf("Failed to save deleted characters to %s", filename)
 		return err
 	}
@@ -45,7 +45,7 @@ func (ds *DeletedStore) FetchDeletedCharacters() ([]string, error) {
 	}
 
 	var chars []string
-	if err := persist.ReadJsonFromFile(filename, &chars); err != nil {
+	if err := persist.OldReadJson(filename, &chars); err != nil {
 		if os.IsNotExist(err) {
 			return []string{}, fmt.Errorf("deleted character file does not exist: %s", filename)
 		}

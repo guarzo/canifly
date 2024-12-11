@@ -46,7 +46,7 @@ func (s *SettingsStore) SaveAppStateSnapshot(appState model.AppState) error {
 
 	s.logger.Infof("app state saved at %s", snapshotPath)
 
-	return persist.SaveJsonToFile(snapshotPath, appState)
+	return persist.OldSaveJson(snapshotPath, appState)
 }
 
 // loadAppStateFromFile attempts to load AppState from disk.
@@ -60,7 +60,7 @@ func (s *SettingsStore) loadAppStateFromFile() error {
 	}
 
 	var appState model.AppState
-	if err = persist.ReadJsonFromFile(path, &appState); err != nil {
+	if err = persist.OldReadJson(path, &appState); err != nil {
 		return fmt.Errorf("failed to load AppState: %w", err)
 	}
 

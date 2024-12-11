@@ -1,55 +1,55 @@
-// persist/systems.go
 package systemstore
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"strconv"
-)
-
-const (
-	sysPath     = "static/systems.csv"
-	systemCount = 8487
 )
 
 var _ interfaces.SystemRepository = (*SystemStore)(nil)
 
+// SystemStore implements interfaces.SystemRepository
 type SystemStore struct {
 	logger      interfaces.Logger
-	sysIdToName map[string]string
-	sysNameToId map[string]string
+	sysIdToName map[int64]string
+	sysNameToId map[string]int64
 }
 
+// NewSystemStore creates a new SystemStore.
+// We still read from embedded files directly here since it's static data.
 func NewSystemStore(logger interfaces.Logger) *SystemStore {
-	sk := &SystemStore{
+	return &SystemStore{
 		logger:      logger,
-		sysIdToName: make(map[string]string),
-		sysNameToId: make(map[string]string),
+		sysIdToName: make(map[int64]string),
+		sysNameToId: make(map[string]int64),
 	}
-
-	return sk
 }
 
-// LoadSystems reads system data from the embedded CSV file and populates SettingsStore fielsys.
 func (sys *SystemStore) LoadSystems() error {
-	file, err := embed.StaticFiles.Open(sysPath)
+	file, err := embed.StaticFiles.Open("static/systems.csv")
 	if err != nil {
-		sys.logger.WithError(err).Errorf("Failed to read systems file: %s", sysPath)
-		return fmt.Errorf("failed to read embedded systems file: %w", err)
+		return fmt.Errorf("failed to read systems file: %w", err)
 	}
 	defer file.Close()
 
 	records, err := persist.ReadCsvRecords(file)
 	if err != nil {
-		sys.logger.WithError(err).Errorf("Error reading systems CSV")
 		return fmt.Errorf("error reading systems CSV: %w", err)
 	}
 
-	sys.sysIdToName = make(map[string]string, systemCount)
-	sys.sysNameToId = make(map[string]string, systemCount)
+	// Parse records into the maps
+	if err := sys.parseSystemRecords(records); err != nil {
+		return fmt.Errorf("failed to parse system records: %w", err)
+	}
 
+	sys.logger.Debugf("Loaded %d systems", len(sys.sysIdToName))
+	return nil
+}
+
+func (sys *SystemStore) parseSystemRecords(records [][]string) error {
 	lineNumber := 0
 	for _, record := range records {
 		lineNumber++
@@ -58,22 +58,26 @@ func (sys *SystemStore) LoadSystems() error {
 			continue
 		}
 
-		sysID := record[0]
+		sysIDStr := record[0]
 		sysName := record[1]
+
+		sysID, err := strconv.ParseInt(sysIDStr, 10, 64)
+		if err != nil {
+			sys.logger.Warnf("Invalid system ID at line %d: %v", lineNumber, err)
+			continue
+		}
 
 		sys.sysIdToName[sysID] = sysName
 		sys.sysNameToId[sysName] = sysID
 	}
-
-	sys.logger.Debugf("Loaded %d systems", len(sys.sysIdToName))
 	return nil
 }
 
-// GetSystemName returns the system name for a given ID from SettingsStore.
+// GetSystemName returns the system name for a given ID.
 func (sys *SystemStore) GetSystemName(systemID int64) string {
-	name, ok := sys.sysIdToName[strconv.FormatInt(systemID, 10)]
+	name, ok := sys.sysIdToName[systemID]
 	if !ok {
-		sys.logger.Warnf("System ID %d not found", systemID)
+		// Not found is not necessarily an error, just return ""
 		return ""
 	}
 	return name

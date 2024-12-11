@@ -59,7 +59,7 @@ func (c *CacheStore) saveToFile(filename string) error {
 		}
 	}
 
-	if err := persist.SaveJsonToFile(filename, serializable); err != nil {
+	if err := persist.OldSaveJson(filename, serializable); err != nil {
 		c.logger.WithError(err).Errorf("Failed to save cache to %s", filename)
 		return fmt.Errorf("failed to write JSON file: %v", err)
 	}
@@ -70,8 +70,8 @@ func (c *CacheStore) saveToFile(filename string) error {
 
 func (c *CacheStore) loadFromFile(filename string) error {
 	var serializable map[string]cacheItem
-	// Internally this calls ReadJsonFromFile (via ReadJsonFromFile)
-	if err := persist.ReadJsonFromFile(filename, &serializable); err != nil {
+	// Internally this calls OldReadJson (via OldReadJson)
+	if err := persist.OldReadJson(filename, &serializable); err != nil {
 		if os.IsNotExist(err) {
 			c.logger.Infof("CacheStore file does not exist: %s", filename)
 			return nil

@@ -80,16 +80,6 @@ function AppRoutes({
                     }
                 />
                 <Route
-                    path="/character-sort"
-                    element={
-                        <CharacterSort
-                            accounts={appData.Accounts}
-                            roles={appData.Roles}
-                            onUpdateCharacter={handleUpdateCharacter}
-                        />
-                    }
-                />
-                <Route
                     path="/sync"
                     element={
                         <Sync

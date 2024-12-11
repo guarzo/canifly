@@ -15,9 +15,9 @@ type SkillService interface {
 
 type SkillRepository interface {
 	GetSkillPlans() map[string]model.SkillPlan
+	GetSkillPlanFile(name string) ([]byte, error)
 	GetSkillTypes() map[string]model.SkillType
 	SaveSkillPlan(planName string, skills map[string]model.Skill) error
 	DeleteSkillPlan(planName string) error
-	GetWriteablePlansPath() (string, error)
 	GetSkillTypeByID(id string) (model.SkillType, bool)
 }

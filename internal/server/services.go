@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
-
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/persist/accountStore"
 	"github.com/guarzo/canifly/internal/persist/cacheStore"
 	"github.com/guarzo/canifly/internal/persist/deletedStore"
@@ -45,7 +45,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		return nil, fmt.Errorf("failed to load templates %v", err)
 	}
 
-	skillService, err := initSkillService(logger)
+	skillService, err := initSkillService(logger, cfg.BasePath)
 	if err != nil {
 		return nil, err
 	}
@@ -105,9 +105,9 @@ func initSettingsStore(logger interfaces.Logger) interfaces.SettingsRepository {
 	return settingsStore.NewConfigStore(logger)
 }
 
-func initSkillService(logger interfaces.Logger) (interfaces.SkillService, error) {
-	skillStore := skillstore.NewSkillStore(logger)
-	if err := skillStore.ProcessSkillPlans(); err != nil {
+func initSkillService(logger interfaces.Logger, basePath string) (interfaces.SkillService, error) {
+	skillStore := skillstore.NewSkillStore(logger, persist.OSFileSystem{}, basePath)
+	if err := skillStore.LoadSkillPlans(); err != nil {
 
 		return nil, fmt.Errorf("failed to load skill plans %v", err)
 	}

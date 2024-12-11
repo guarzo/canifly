@@ -2,9 +2,6 @@ package skill
 
 import (
 	"bufio"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -28,16 +25,7 @@ var romanToInt = map[string]int{
 }
 
 func (s *skillService) GetSkillPlanFile(planName string) ([]byte, error) {
-	planName += ".txt"
-	s.logger.Infof("Attempting to serve skill plan file: %s", planName)
-
-	skillPlanDir, err := s.skillRepo.GetWriteablePlansPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve skill plan directory: %v", err)
-	}
-
-	filePath := filepath.Join(skillPlanDir, planName)
-	return os.ReadFile(filePath)
+	return s.skillRepo.GetSkillPlanFile(planName)
 }
 
 func (s *skillService) DeleteSkillPlan(name string) error {

@@ -40,7 +40,7 @@ func (as *AccountStore) FetchAccounts() ([]model.Account, error) {
 		return accounts, nil
 	}
 
-	if err := persist.ReadJsonFromFile(filePath, &accounts); err != nil {
+	if err := persist.OldReadJson(filePath, &accounts); err != nil {
 		as.logger.WithError(err).Error("Error loading accounts")
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (as *AccountStore) SaveAccounts(accounts []model.Account) error {
 		return err
 	}
 
-	if err := persist.SaveJsonToFile(filePath, accounts); err != nil {
+	if err := persist.OldSaveJson(filePath, accounts); err != nil {
 		as.logger.WithError(err).Error("Error saving accounts data")
 		return fmt.Errorf("error saving accounts: %w", err)
 	}

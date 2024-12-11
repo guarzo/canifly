@@ -13,8 +13,8 @@ import (
 const ConfigDir = "config"
 const AccountDir = "accounts"
 
-// ReadJsonFromFile loads JSON data from a file into the given target.
-func ReadJsonFromFile(filePath string, target interface{}) error {
+// OldReadJson loads JSON data from a file into the given target.
+func OldReadJson(filePath string, target interface{}) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", filePath, err)
@@ -25,8 +25,8 @@ func ReadJsonFromFile(filePath string, target interface{}) error {
 	return nil
 }
 
-// SaveJsonToFile marshals the source into JSON and writes it to file.
-func SaveJsonToFile(filePath string, source interface{}) error {
+// OldSaveJson marshals the source into JSON and writes it to file.
+func OldSaveJson(filePath string, source interface{}) error {
 	dir := filepath.Dir(filePath)
 	if err := EnsureDirExists(dir); err != nil {
 		return fmt.Errorf("failed to create directories for %s: %w", filePath, err)
@@ -76,7 +76,7 @@ func GetWriteableSubPath(subPaths ...string) (string, error) {
 	return finalPath, nil
 }
 
-func ReadCsvRecords(r io.Reader) ([][]string, error) {
+func OldReadCSV(r io.Reader) ([][]string, error) {
 	reader := csv.NewReader(r)
 	var records [][]string
 	for {

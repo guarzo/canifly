@@ -186,7 +186,7 @@ func (s *SettingsStore) SaveUserSelections(selections model.UserSelections) erro
 	if err != nil {
 		return err
 	}
-	return persist.SaveJsonToFile(selectionsPath, selections)
+	return persist.OldSaveJson(selectionsPath, selections)
 }
 
 func (s *SettingsStore) FetchUserSelections() (model.UserSelections, error) {
@@ -201,7 +201,7 @@ func (s *SettingsStore) FetchUserSelections() (model.UserSelections, error) {
 	}
 
 	var selections model.UserSelections
-	if err = persist.ReadJsonFromFile(selectionsPath, &selections); err != nil {
+	if err = persist.OldReadJson(selectionsPath, &selections); err != nil {
 		s.logger.Infof("failed to load selections %v", err)
 		return nil, err
 	}

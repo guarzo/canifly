@@ -17,6 +17,7 @@ type Config struct {
 	ClientSecret string
 	CallbackURL  string
 	PathSuffix   string
+	BasePath     string
 }
 
 func LoadConfig(logger interfaces.Logger) (Config, error) {
@@ -53,6 +54,11 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 	}
 
 	cfg.PathSuffix = os.Getenv("PATH_SUFFIX")
+	writeableDir, err := os.UserConfigDir()
+	if err != nil {
+		return cfg, fmt.Errorf("unable to get user config dir: %v", err)
+	}
+	cfg.BasePath = writeableDir
 
 	return cfg, nil
 }

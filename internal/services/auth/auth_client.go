@@ -1,4 +1,4 @@
-// auth/auth_cliient.go
+// auth/auth_client.go
 package auth
 
 import (

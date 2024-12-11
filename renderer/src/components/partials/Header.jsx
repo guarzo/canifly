@@ -23,7 +23,6 @@ import {
     Close,
     Dashboard as DashboardIcon,
     ListAlt as SkillPlansIcon,
-    People as RoleIcon,
     Sync as SyncIcon,
     AccountTree as MappingIcon,
     Cached as RefreshIcon
@@ -58,7 +57,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     const navigationLinks = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
-        { text: 'Character Sort', icon: <RoleIcon />, path: '/character-sort' },
         { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
     ];

@@ -20,7 +20,7 @@ func (s *SettingsStore) SaveConfigData(configData *model.ConfigData) error {
 
 	s.logger.Infof("Saving config data: %v", configData)
 	// Use saveJSONToFile directly
-	if err := persist.SaveJsonToFile(filePath, configData); err != nil {
+	if err := persist.OldSaveJson(filePath, configData); err != nil {
 		s.logger.WithError(err).Error("Error saving config data")
 		return err
 	}
@@ -43,7 +43,7 @@ func (s *SettingsStore) FetchConfigData() (*model.ConfigData, error) {
 	}
 
 	// Use readJSONFromFile directly
-	if err := persist.ReadJsonFromFile(filePath, &configData); err != nil {
+	if err := persist.OldReadJson(filePath, &configData); err != nil {
 		s.logger.WithError(err).Error("Error loading config data")
 		return nil, err
 	}
