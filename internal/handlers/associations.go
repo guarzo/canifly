@@ -8,17 +8,17 @@ import (
 )
 
 type AssociationHandler struct {
-	logger         interfaces.Logger
-	accountService interfaces.AccountService
+	logger       interfaces.Logger
+	assocService interfaces.AssociationService
 }
 
 func NewAssociationHandler(
 	l interfaces.Logger,
-	a interfaces.AccountService,
+	a interfaces.AssociationService,
 ) *AssociationHandler {
 	return &AssociationHandler{
-		logger:         l,
-		accountService: a,
+		logger:       l,
+		assocService: a,
 	}
 }
 
@@ -35,7 +35,7 @@ func (h *AssociationHandler) AssociateCharacter(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.accountService.AssociateCharacter(req.UserId, req.CharId); err != nil {
+	if err := h.assocService.AssociateCharacter(req.UserId, req.CharId); err != nil {
 		respondJSON(w, map[string]interface{}{"success": false, "message": err.Error()})
 		return
 	}
@@ -59,7 +59,7 @@ func (h *AssociationHandler) UnassociateCharacter(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := h.accountService.UnassociateCharacter(req.UserId, req.CharId); err != nil {
+	if err := h.assocService.UnassociateCharacter(req.UserId, req.CharId); err != nil {
 		respondJSON(w, map[string]interface{}{"success": false, "message": err.Error()})
 		return
 	}

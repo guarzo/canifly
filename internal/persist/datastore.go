@@ -8,9 +8,6 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// Ensure DataStore implements AccountRepository
-var _ interfaces.AccountRepository = (*DataStore)(nil)
-
 type DataStore struct {
 	logger        interfaces.Logger
 	baseDir       string

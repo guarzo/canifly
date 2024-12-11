@@ -24,7 +24,7 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService)
 	settingsHandler := flyHandlers.NewSettingsHandler(logger, appServices.SettingsService)
-	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AccountService)
+	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AssocService)
 
 	// Public routes
 	r.HandleFunc("/callback/", authHandler.CallBack())

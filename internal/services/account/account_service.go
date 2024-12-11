@@ -118,14 +118,6 @@ func (a *accountService) FindAccountByName(accountName string, accounts []model.
 	return nil
 }
 
-func (a *accountService) AssociateCharacter(userId, charId string) error {
-	return a.assocService.AssociateCharacter(userId, charId)
-}
-
-func (a *accountService) UnassociateCharacter(userId, charId string) error {
-	return a.assocService.UnassociateCharacter(userId, charId)
-}
-
 func (a *accountService) UpdateAccountName(accountID int64, accountName string) error {
 	accounts, err := a.accountRepo.FetchAccounts()
 	if err != nil {

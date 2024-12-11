@@ -9,3 +9,11 @@ type StateService interface {
 	UpdateAndSaveAppState(data model.AppState) error
 	ClearAppState()
 }
+
+type StateRepository interface {
+	SetAppState(as model.AppState)
+	GetAppState() model.AppState
+	SetAppStateLogin(in bool) error
+	ClearAppState()
+	SaveAppStateSnapshot(as model.AppState) error
+}

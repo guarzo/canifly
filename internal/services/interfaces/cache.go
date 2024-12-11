@@ -9,3 +9,10 @@ type CacheService interface {
 	LoadCache() error
 	SaveCache() error
 }
+
+type CacheRepository interface {
+	GetFromCache(key string) ([]byte, bool)
+	SetToCache(key string, value []byte, expiration time.Duration)
+	LoadApiCache() error
+	SaveApiCache() error
+}

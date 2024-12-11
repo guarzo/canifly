@@ -21,7 +21,6 @@ const deletedFileName = "deleted.json"
 const selectionsFileName = "selections.json"
 
 // readJSONFromFile loads JSON data from a file into the given target.
-// Public method: Signature unchanged.
 func readJSONFromFile(filePath string, target interface{}) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -34,7 +33,6 @@ func readJSONFromFile(filePath string, target interface{}) error {
 }
 
 // saveJSONToFile marshals the source into JSON and writes it to file.
-// Public method: Signature unchanged.
 func saveJSONToFile(filePath string, source interface{}) error {
 	dir := filepath.Dir(filePath)
 	if err := ensureDirExists(dir); err != nil {

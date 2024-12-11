@@ -7,3 +7,8 @@ type AssociationService interface {
 	AssociateCharacter(userId, charId string) error
 	UnassociateCharacter(userId, charId string) error
 }
+
+type AssocRepository interface {
+	ConfigRepository
+	AccountRepository
+}

@@ -8,8 +8,6 @@ import (
 
 type AccountService interface {
 	FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error
-	AssociateCharacter(userId, charId string) error
-	UnassociateCharacter(userId, charId string) error
 	UpdateAccountName(accountID int64, accountName string) error
 	ToggleAccountStatus(accountID int64) error
 	RemoveAccountByName(accountName string) error
@@ -17,4 +15,10 @@ type AccountService interface {
 	DeleteAllAccounts() error
 	FetchAccounts() ([]model.Account, error)
 	SaveAccounts(accounts []model.Account) error
+}
+
+type AccountRepository interface {
+	FetchAccounts() ([]model.Account, error)
+	SaveAccounts([]model.Account) error
+	DeleteAccounts() error
 }

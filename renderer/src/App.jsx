@@ -18,6 +18,7 @@ import helloImg from './assets/images/hello.png';
 import { isDev, backEndURL } from './components/config';
 import { fetchAppEndpoint } from './utils/api'
 import { useLoginCallback } from './hooks/useLoginCallback';
+import { apiRequest } from './utils/apiRequest';
 
 const App = () => {
     const [appData, setAppData] = useState(null);
@@ -87,106 +88,82 @@ const App = () => {
         });
     };
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         console.log("handleLogout called");
-        console.trace(); // Trace what caused handleLogout
-        try {
-            const response = await fetch(`${backEndURL}/api/logout`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-            if (response.ok) {
+        console.trace();
+        await apiRequest(`${backEndURL}/api/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        }, {
+            successMessage: 'Logged out successfully!',
+            errorMessage: 'Failed to log out.',
+            onSuccess: () => {
                 setIsAuthenticated(false);
                 setAppData(null);
-                console.log("About to set loggedOut=true in handleLogout");
-                console.trace(); // Shows what triggered this state change
                 setLoggedOut(true);
-                toast.success('Logged out successfully!');
-                console.log("Logout succeeded");
-            } else {
-                const errorData = await response.json();
-                toast.error(errorData.error || 'Failed to log out.');
-                console.log("Logout failed:", errorData);
             }
-        } catch (error) {
-            console.error('Error logging out:', error);
-            toast.error('An error occurred during logout.');
-        }
-    };
+        });
+    }, [backEndURL]);
 
-    const handleToggleAccountStatus = async (accountID) => {
-        console.log("handleToggleAccountStatus called with accountID:", accountID);
-        try {
-            const response = await fetch(`${backEndURL}/api/toggle-account-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountID }),
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                toast.success('Account status toggled successfully!');
-                setAppData((prevAppData) => {
-                    const updatedAccounts = prevAppData.Accounts.map((account) => {
-                        if (account.ID === accountID) {
-                            const newStatus = account.Status === 'Alpha' ? 'Omega' : 'Alpha';
-                            return { ...account, Status: newStatus };
-                        }
-                        return account;
-                    });
-                    return { ...prevAppData, Accounts: updatedAccounts };
+    // Refactor handleToggleAccountStatus using apiRequest
+    const handleToggleAccountStatus = useCallback(async (accountID) => {
+        console.log("handleToggleAccountStatus called:", accountID);
+        await apiRequest(`${backEndURL}/api/toggle-account-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accountID }),
+            credentials: 'include'
+        }, {
+            successMessage: 'Account status toggled successfully!',
+            errorMessage: 'Failed to toggle account status.',
+            onSuccess: () => {
+                setAppData((prev) => {
+                    if (!prev) return prev;
+                    const updatedAccounts = prev.Accounts.map((account) =>
+                        account.ID === accountID
+                            ? { ...account, Status: account.Status === 'Alpha' ? 'Omega' : 'Alpha' }
+                            : account
+                    );
+                    return { ...prev, Accounts: updatedAccounts };
                 });
-            } else {
-                throw new Error('Failed to toggle account status.');
             }
-        } catch (error) {
-            console.error('Error toggling account status:', error);
-            toast.error('Failed to toggle account status.');
-        }
-    };
+        });
+    }, [backEndURL]);
 
-    const handleUpdateCharacter = async (characterID, updates) => {
+    // Refactor handleUpdateCharacter using apiRequest
+    const handleUpdateCharacter = useCallback(async (characterID, updates) => {
         console.log("handleUpdateCharacter called with characterID:", characterID, "updates:", updates);
-        try {
-            const response = await fetch(`${backEndURL}/api/update-character`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ characterID, updates }),
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                toast.success('Character updated successfully!');
-                setAppData((prevAppData) => {
-                    const updatedRoles = prevAppData?.Roles ? [...prevAppData.Roles] : [];
+        await apiRequest(`${backEndURL}/api/update-character`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ characterID, updates }),
+            credentials: 'include'
+        }, {
+            successMessage: 'Character updated successfully!',
+            errorMessage: 'Failed to update character.',
+            onSuccess: () => {
+                setAppData((prev) => {
+                    if (!prev) return prev;
+                    const updatedRoles = prev.Roles ? [...prev.Roles] : [];
                     if (updates.Role && !updatedRoles.includes(updates.Role)) {
                         updatedRoles.push(updates.Role);
                     }
 
-                    const updatedAccounts = prevAppData.Accounts.map((account) => {
-                        const updatedCharacters = account.Characters.map((character) => {
-                            if (character.Character.CharacterID === characterID) {
-                                return { ...character, ...updates };
-                            }
-                            return character;
-                        });
+                    const updatedAccounts = prev.Accounts.map((account) => {
+                        const updatedCharacters = account.Characters.map((character) =>
+                            character.Character.CharacterID === characterID
+                                ? { ...character, ...updates }
+                                : character
+                        );
                         return { ...account, Characters: updatedCharacters };
                     });
 
-                    return {
-                        ...prevAppData,
-                        Accounts: updatedAccounts,
-                        Roles: updatedRoles,
-                    };
+                    return { ...prev, Accounts: updatedAccounts, Roles: updatedRoles };
                 });
-            } else {
-                throw new Error('Failed to update character.');
             }
-        } catch (error) {
-            console.error('Error updating character:', error);
-            toast.error('Failed to update character.');
-        }
-    };
+        });
+    }, [backEndURL]);
+
 
     const handleRemoveCharacter = async (characterID) => {
         console.log("handleRemoveCharacter called with characterID:", characterID);
