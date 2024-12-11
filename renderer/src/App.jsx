@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Dashboard from './components/Dashboard';
@@ -16,7 +16,6 @@ import Sync from './components/Sync';
 import Mapping from './components/Mapping';
 import helloImg from './assets/images/hello.png';
 
-
 const App = () => {
     const [appData, setAppData] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,119 +27,175 @@ const App = () => {
     const isDev = import.meta.env.DEV;
     const backEndURL = isDev ? '' : 'http://localhost:8713';
 
-    const fetchAppData = async () => {
+    // Log whenever isAuthenticated changes
+    useEffect(() => {
+        console.log("isAuthenticated changed:", isAuthenticated);
+    }, [isAuthenticated]);
+
+    /**
+     * A generic fetch function to handle various endpoints and update state.
+     * @param {string} endpoint - endpoint to fetch (e.g. "/api/app-data")
+     * @param {object} options - { setLoading: boolean, setRefreshing: boolean, returnSuccess: boolean }
+     * @returns {boolean|undefined} If returnSuccess is true, returns boolean indicating success/failure, else undefined.
+     */
+    async function fetchAppEndpoint(endpoint, { setLoading = false, setRefreshing = false, returnSuccess = false } = {}) {
+        console.log(`fetchAppEndpoint called with endpoint=${endpoint}, setLoading=${setLoading}, setRefreshing=${setRefreshing}, returnSuccess=${returnSuccess}`);
+        console.log("State before fetch:", {
+            isAuthenticated,
+            isLoading,
+            loggedOut,
+            appDataExists: !!appData
+        });
+
+        // Temporarily remove the loggedOut check to see if the flow recovers on its own.
+        // if (loggedOut) {
+        //     console.log("fetchAppEndpoint: loggedOut is true, returning early");
+        //     return returnSuccess ? false : undefined;
+        // }
+
+        if (setLoading) {
+            console.log("Setting isLoading = true");
+            setIsLoading(true);
+        }
+        if (setRefreshing) {
+            console.log("Setting isRefreshing = true");
+            setIsRefreshing(true);
+        }
+
         try {
-            const response = await fetch(`${backEndURL}/api/app-data`, {
-                credentials: 'include',
-            });
+            const response = await fetch(`${backEndURL}${endpoint}`, { credentials: 'include' });
+
             if (response.status === 401) {
+                console.log("fetchAppEndpoint: got 401 Unauthorized, setting isAuthenticated=false, clearing appData");
                 setIsAuthenticated(false);
                 setAppData(null);
                 toast.warning('Please log in to access your data.');
-            } else if (response.ok) {
-                const data = await response.json();
-                setAppData(data);
-                setIsAuthenticated(true);
-            } else {
-                const errorData = await response.json();
-                toast.error(errorData.error || 'An unexpected error occurred.');
+                return returnSuccess ? false : undefined;
             }
-        } catch (error) {
-            if (isAuthenticated) {
-                console.error('Error fetching app data:', error);
-                toast.error('Failed to load data. Please try again later.');
-            }
-        }
-    };
-
-    const logInCallBack =  (state) => {
-        setLoggedOut(false);
-        let attempts = 0;
-        const maxAttempts = 6; // Try for roughly 30 seconds if interval is 5 sec
-        const interval = setInterval(async () => {
-            if (isAuthenticated) {
-                // User is authenticated, clear interval
-                console.log("logged in callback stopped - user logged in")
-                clearInterval(interval);
-            } else {
-                console.log(`attempt ${attempts} trying to detect login`)
-                attempts++;
-                if (attempts > maxAttempts) {
-                    // Give up after maxAttempts
-                    clearInterval(interval);
-                    console.warn('Failed to detect login after multiple attempts.');
-                    return;
-                }
-
-                const finalizeResp = await fetch(`${backEndURL}/api/finalize-login?state=${state}`, {
-                    credentials: 'include'
-                });
-                if (finalizeResp.ok) {
-                    // Session cookie should now be set
-                    // Try silent refresh or fetch main data
-                    await silentRefreshData();
-                    if (isAuthenticated) {
-                        console.log("Login finalized!")
-                        clearInterval(interval);
-                    }
-                } else {
-                    console.log("Not ready yet, retrying...");
-                }
-            }
-        }, 5000); // every 5 seconds
-    };
-
-
-    const fetchAppDataNoCache = async () => {
-        try {
-            const response = await fetch(`${backEndURL}/api/app-data-no-cache`, {
-                credentials: 'include',
-            });
-            if (loggedOut) return
 
             if (response.ok) {
                 const data = await response.json();
+                console.log("fetchAppEndpoint: response OK, setting appData and isAuthenticated=true");
                 setAppData(data);
                 setIsAuthenticated(true);
+                return returnSuccess ? true : undefined;
             } else {
                 const errorData = await response.json();
-                console.log(errorData.error);
+                console.log("fetchAppEndpoint: response not OK, error:", errorData.error);
+                toast.error(errorData.error || 'An unexpected error occurred.');
+                return returnSuccess ? false : undefined;
             }
         } catch (error) {
+            console.error('Error fetching data:', error);
             if (isAuthenticated) {
-                console.error('Error fetching no cache app data:', error);
+                toast.error('Failed to load data. Please try again later.');
             }
-        }
-    };
-
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            await fetchAppData();
-        } catch (error) {
-            if (isAuthenticated) {
-                console.error('Error fetching data:', error);
-            }
+            return returnSuccess ? false : undefined;
         } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const silentRefreshData = async () => {
-        if (loggedOut) return;
-        setIsRefreshing(true);
-        try {
-            await fetchAppDataNoCache();
-        } catch (error) {
-            if (isAuthenticated) {
-                console.error('Error fetching data:', error);
+            if (setLoading) {
+                console.log("Setting isLoading = false in finally");
+                setIsLoading(false);
             }
-        } finally {
-            setIsRefreshing(false);
+            if (setRefreshing) {
+                console.log("Setting isRefreshing = false in finally");
+                setIsRefreshing(false);
+            }
         }
+    }
+
+    // Initial fetch of app data
+    async function fetchData() {
+        console.log("fetchData called");
+        await fetchAppEndpoint('/api/app-data', { setLoading: true });
+    }
+
+    // Used after login finalize to confirm we have data and session
+    async function loginRefresh() {
+        console.log("loginRefresh called");
+        return fetchAppEndpoint('/api/app-data-no-cache', { setLoading: true, returnSuccess: true });
+    }
+
+    // Silent refresh data (used periodically after authenticated)
+    async function silentRefreshData() {
+        console.log("silentRefreshData called");
+        if (!isAuthenticated || loggedOut) {
+            console.log(`silentRefreshData not running because isAuthenticated=${isAuthenticated}, loggedOut=${loggedOut}`);
+            return;
+        }
+        await fetchAppEndpoint('/api/app-data-no-cache', { setRefreshing: true });
+    }
+
+    useEffect(() => {
+        console.log("loggedOut changed to:", loggedOut);
+        console.trace(); // Shows the stack trace of what caused this effect
+    }, [loggedOut]);
+
+
+    // Callback after initiating login
+    const logInCallBack = (state) => {
+        console.log("logInCallBack called with state:", state);
+        setLoggedOut(false);
+        let attempts = 0;
+        const maxAttempts = 6;
+        let finalized = false; // to ensure we only finalize once
+
+        const interval = setInterval(async () => {
+            console.log(`Interval tick: attempts=${attempts}, isAuthenticated=${isAuthenticated}, finalized=${finalized}, loggedOut=${loggedOut}`);
+
+            if (isAuthenticated) {
+                console.log("logged in callback stopped - user logged in, clearing interval");
+                clearInterval(interval);
+                return;
+            }
+
+            console.log(`attempt ${attempts} trying to detect login`);
+            attempts++;
+            if (attempts > maxAttempts) {
+                console.warn('Failed to detect login after multiple attempts, clearing interval.');
+                clearInterval(interval);
+                return;
+            }
+
+            if (!finalized) {
+                console.log("Calling finalize-login endpoint...");
+                const finalizeResp = await fetch(`${backEndURL}/api/finalize-login?state=${state}`, {
+                    credentials: 'include'
+                });
+
+                if (finalizeResp.ok) {
+                    finalized = true;
+                    console.log("Finalization succeeded, now trying to fetch data via loginRefresh...");
+                    const success = await loginRefresh();
+                    console.log("loginRefresh returned:", success);
+                    if (success) {
+                        console.log("Login finalized and data fetched! Setting isAuthenticated=true and clearing interval");
+                        setIsAuthenticated(true);
+                        clearInterval(interval);
+                    } else {
+                        console.log("Session set but data fetch failed, will retry data fetch on next interval...");
+                    }
+                } else {
+                    console.log("Not ready yet, retrying finalize-login...");
+                }
+            } else {
+                console.log("Already finalized, just trying loginRefresh again...");
+                const success = await loginRefresh();
+                console.log("loginRefresh returned:", success);
+                if (success) {
+                    console.log("Data fetched after finalization! Setting isAuthenticated=true and clearing interval");
+                    setIsAuthenticated(true);
+                    clearInterval(interval);
+                } else {
+                    console.log("Still no data after finalization, retrying data fetch on next interval...");
+                }
+            }
+        }, 5000);
+        console.log("logInCallBack: interval created");
     };
 
     const handleLogout = async () => {
+        console.log("handleLogout called");
+        console.trace(); // Trace what caused handleLogout
         try {
             const response = await fetch(`${backEndURL}/api/logout`, {
                 method: 'POST',
@@ -149,11 +204,15 @@ const App = () => {
             if (response.ok) {
                 setIsAuthenticated(false);
                 setAppData(null);
+                console.log("About to set loggedOut=true in handleLogout");
+                console.trace(); // Shows what triggered this state change
                 setLoggedOut(true);
                 toast.success('Logged out successfully!');
+                console.log("Logout succeeded");
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || 'Failed to log out.');
+                console.log("Logout failed:", errorData);
             }
         } catch (error) {
             console.error('Error logging out:', error);
@@ -162,6 +221,7 @@ const App = () => {
     };
 
     const handleToggleAccountStatus = async (accountID) => {
+        console.log("handleToggleAccountStatus called with accountID:", accountID);
         try {
             const response = await fetch(`${backEndURL}/api/toggle-account-status`, {
                 method: 'POST',
@@ -192,6 +252,7 @@ const App = () => {
     };
 
     const handleUpdateCharacter = async (characterID, updates) => {
+        console.log("handleUpdateCharacter called with characterID:", characterID, "updates:", updates);
         try {
             const response = await fetch(`${backEndURL}/api/update-character`, {
                 method: 'POST',
@@ -203,9 +264,7 @@ const App = () => {
             if (response.ok) {
                 toast.success('Character updated successfully!');
                 setAppData((prevAppData) => {
-                    const updatedRoles = prevAppData?.Roles
-                        ? [...prevAppData.Roles]
-                        : [];
+                    const updatedRoles = prevAppData?.Roles ? [...prevAppData.Roles] : [];
                     if (updates.Role && !updatedRoles.includes(updates.Role)) {
                         updatedRoles.push(updates.Role);
                     }
@@ -236,6 +295,7 @@ const App = () => {
     };
 
     const handleRemoveCharacter = async (characterID) => {
+        console.log("handleRemoveCharacter called with characterID:", characterID);
         try {
             const response = await fetch(`${backEndURL}/api/remove-character`, {
                 method: 'POST',
@@ -266,6 +326,7 @@ const App = () => {
     };
 
     const handleUpdateAccountName = async (accountID, newName) => {
+        console.log("handleUpdateAccountName called with accountID:", accountID, "newName:", newName);
         try {
             const response = await fetch(`${backEndURL}/api/update-account-name`, {
                 method: 'POST',
@@ -293,6 +354,7 @@ const App = () => {
     };
 
     const handleRemoveAccount = async (accountName) => {
+        console.log("handleRemoveAccount called with accountName:", accountName);
         try {
             const response = await fetch(`${backEndURL}/api/remove-account`, {
                 method: 'POST',
@@ -320,26 +382,27 @@ const App = () => {
     };
 
     const handleAddCharacter = async (account) => {
+        console.log("handleAddCharacter called with account:", account);
         try {
             const response = await fetch(`${backEndURL}/api/add-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({account}),
+                body: JSON.stringify({ account }),
                 credentials: 'include',
             });
             if (response.ok) {
                 const data = await response.json();
                 if (data.redirectURL) {
                     if (isDev) {
-                        // In development, just redirect within Electron's internal browser
+                        console.log("Dev mode: redirecting internally to:", data.redirectURL);
                         window.location.href = data.redirectURL;
                     } else {
-                        // In production, open system browser
+                        console.log("Production mode: opening external browser to:", data.redirectURL);
                         window.electronAPI.openExternal(data.redirectURL);
-                        toast.info("Please authenticate in your browser")
+                        toast.info("Please authenticate in your browser");
                     }
                 } else {
-                    toast.error("No redirect URL or character details received from server.");
+                    toast.error("No redirect URL received from server.");
                 }
             } else {
                 const errorText = await response.text();
@@ -351,10 +414,17 @@ const App = () => {
         }
     };
 
-    const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
-    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
+    const openSkillPlanModal = () => {
+        console.log("openSkillPlanModal called");
+        setIsSkillPlanModalOpen(true);
+    };
+    const closeSkillPlanModal = () => {
+        console.log("closeSkillPlanModal called");
+        setIsSkillPlanModalOpen(false);
+    };
 
     const handleSaveSkillPlan = async (planName, planContents) => {
+        console.log("handleSaveSkillPlan called with planName:", planName);
         try {
             const response = await fetch(`${backEndURL}/api/save-skill-plan`, {
                 method: 'POST',
@@ -378,16 +448,28 @@ const App = () => {
     };
 
     useEffect(() => {
+        console.log("App mounted, calling fetchData");
         fetchData();
     }, []);
 
     useEffect(() => {
+        console.log(`useEffect [isLoading, isAuthenticated]: isLoading=${isLoading}, isAuthenticated=${isAuthenticated}`);
         if (!isLoading && isAuthenticated) {
+            console.log("Condition met to call silentRefreshData");
             silentRefreshData();
         }
     }, [isLoading, isAuthenticated]);
 
+    console.log("Render check before return:", {
+        isAuthenticated,
+        loggedOut,
+        isLoading,
+        appDataExists: !!appData,
+        appData
+    });
+
     if (isLoading) {
+        console.log("Rendering loading screen because isLoading =", isLoading);
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-teal-200 space-y-4">
                 <img
@@ -401,8 +483,15 @@ const App = () => {
     }
 
     const identities = appData?.Accounts?.flatMap((account) => account.Characters) || [];
-    const existingAccounts = appData?.Accounts.flatMap((account) => account.Name) || [];
-    console.log(appData);
+    const existingAccounts = appData?.Accounts?.flatMap((account) => account.Name) || [];
+
+    if (!isAuthenticated || loggedOut) {
+        console.log("Rendering Landing (not authenticated or loggedOut)");
+    } else if (!appData) {
+        console.log("Rendering secondary loading screen (no appData)");
+    } else {
+        console.log("Rendering main Routes (authenticated and have appData)");
+    }
 
     return (
         <ErrorBoundary>
@@ -416,7 +505,7 @@ const App = () => {
                             existingAccounts={existingAccounts}
                             onSilentRefresh={silentRefreshData}
                             onAddCharacter={handleAddCharacter}
-                            isRefreshing={isRefreshing} // New prop
+                            isRefreshing={isRefreshing}
                         />
                         <main className="flex-grow container mx-auto px-4 py-8 pb-16">
                             {!isAuthenticated || loggedOut ? (
@@ -424,7 +513,7 @@ const App = () => {
                                     backEndURL={backEndURL}
                                     logInCallBack={logInCallBack}
                                 />
-                            ) : isLoading || !appData ? (
+                            ) : !appData ? (
                                 <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
                                     <p>Loading...</p>
                                 </div>
@@ -490,17 +579,18 @@ const App = () => {
                                             />
                                         }
                                     />
+                                    <Route path="*" element={<div>Route Not Found</div>} />
                                 </Routes>
                             )}
                         </main>
-                        <Footer/>
+                        <Footer />
                         {isSkillPlanModalOpen && (
                             <AddSkillPlanModal
                                 onClose={closeSkillPlanModal}
                                 onSave={handleSaveSkillPlan}
                             />
                         )}
-                        <ToastContainer/>
+                        <ToastContainer />
                     </div>
                 </Router>
             </ThemeProvider>

@@ -1,7 +1,8 @@
 package interfaces
 
 type LoginService interface {
-	ResolveAccountByState(state string) (string, bool)
-	GenerateAnStoreState(value string) (string, error)
+	ResolveAccountAndStatusByState(state string) (string, bool, bool)
+	GenerateAndStoreInitialState(value string) (string, error)
+	UpdateStateStatusAfterCallBack(state string) error
 	ClearState(state string)
 }

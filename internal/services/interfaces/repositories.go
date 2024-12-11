@@ -19,8 +19,8 @@ type ConfigRepository interface {
 }
 
 type LoginRepository interface {
-	Set(state, value string)
-	Get(state string) (string, bool)
+	Set(state string, authStatus *model.AuthStatus)
+	Get(state string) (*model.AuthStatus, bool)
 	Delete(state string)
 }
 

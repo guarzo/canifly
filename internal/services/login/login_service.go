@@ -1,6 +1,8 @@
 package login
 
 import (
+	"errors"
+	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/guarzo/canifly/internal/utils"
 )
@@ -17,17 +19,34 @@ func NewLoginService(logger interfaces.Logger, loginRepo interfaces.LoginReposit
 	}
 }
 
-func (l *loginService) GenerateAnStoreState(value string) (string, error) {
+func (l *loginService) GenerateAndStoreInitialState(value string) (string, error) {
 	state, err := utils.GenerateRandomString(16)
 	if err != nil {
 		return "", err
 	}
-	l.loginRepo.Set(state, value)
+	l.loginRepo.Set(state, &model.AuthStatus{
+		AccountName:      value,
+		CallBackComplete: false,
+	})
 	return state, nil
 }
 
-func (l *loginService) ResolveAccountByState(state string) (string, bool) {
-	return l.loginRepo.Get(state)
+func (l *loginService) ResolveAccountAndStatusByState(state string) (string, bool, bool) {
+	authStatus, ok := l.loginRepo.Get(state)
+	if !ok {
+		return "", false, false
+	}
+	return authStatus.AccountName, authStatus.CallBackComplete, true
+}
+
+func (l *loginService) UpdateStateStatusAfterCallBack(state string) error {
+	authStatus, ok := l.loginRepo.Get(state)
+	if !ok {
+		return errors.New("unable to retrieve authStatus for provided state")
+	}
+	authStatus.CallBackComplete = true
+	l.loginRepo.Set(state, authStatus)
+	return nil
 }
 
 func (l *loginService) ClearState(state string) {

@@ -7,4 +7,5 @@ type StateService interface {
 	GetAppState() model.AppState
 	SetAppStateLogin(isLoggedIn bool) error
 	UpdateAndSaveAppState(data model.AppState) error
+	ClearAppState()
 }

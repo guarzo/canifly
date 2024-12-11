@@ -49,6 +49,8 @@ func (ds *DataStore) SaveAppStateSnapshot(appState model.AppState) error {
 
 	snapshotPath := filepath.Join(configDir, "appstate_snapshot.json")
 
+	ds.logger.Infof("app state saved at %s", snapshotPath)
+
 	data, err := json.MarshalIndent(appState, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal appState: %w", err)

@@ -1,25 +1,28 @@
 package persist
 
-import "sync"
+import (
+	"github.com/guarzo/canifly/internal/model"
+	"sync"
+)
 
 type LoginStateStore struct {
 	mu    sync.Mutex
-	store map[string]string
+	store map[string]*model.AuthStatus
 }
 
 func NewLoginStateStore() *LoginStateStore {
 	return &LoginStateStore{
-		store: make(map[string]string),
+		store: make(map[string]*model.AuthStatus),
 	}
 }
 
-func (l *LoginStateStore) Set(state, value string) {
+func (l *LoginStateStore) Set(state string, authStatus *model.AuthStatus) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.store[state] = value
+	l.store[state] = authStatus
 }
 
-func (l *LoginStateStore) Get(state string) (string, bool) {
+func (l *LoginStateStore) Get(state string) (*model.AuthStatus, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	val, ok := l.store[state]

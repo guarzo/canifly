@@ -61,7 +61,7 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		state, err := h.loginService.GenerateAnStoreState(request.Account)
+		state, err := h.loginService.GenerateAndStoreInitialState(request.Account)
 		if err != nil {
 			respondError(w, "Unable to generate state", http.StatusInternalServerError)
 			return
@@ -91,7 +91,7 @@ func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
 			return
 		}
 
-		state, err := h.loginService.GenerateAnStoreState(request.Account)
+		state, err := h.loginService.GenerateAndStoreInitialState(request.Account)
 		if err != nil {
 			respondError(w, "Unable to generate state", http.StatusInternalServerError)
 			return
@@ -110,7 +110,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
 
-		accountName, ok := h.loginService.ResolveAccountByState(state)
+		accountName, _, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
 			h.logger.Error("unable to retrieve value from state")
 			handleErrorWithRedirect(w, r, "/")
@@ -157,6 +157,12 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
 		}
 
+		err = h.loginService.UpdateStateStatusAfterCallBack(state)
+		if err != nil {
+			h.logger.Errorf("%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
 
 	}
@@ -165,9 +171,15 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.URL.Query().Get("state")
-		_, ok := h.loginService.ResolveAccountByState(state)
+		_, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
-			http.Error(w, `{"error":"invalid state or login not completed"}`, http.StatusUnauthorized)
+			h.logger.Error("unable to retrieve value from state")
+			http.Error(w, `{"error":"invalid state"}`, http.StatusUnauthorized)
+			return
+		}
+		if !status {
+			h.logger.Error("call back not yet completed")
+			http.Error(w, `{"error":"call back not yet completed"}`, http.StatusUnauthorized)
 			return
 		}
 
@@ -178,7 +190,7 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 			return
 		}
 
-		h.loginService.ClearState(state)
+		//h.loginService.ClearState(state)
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"success":true}`))
@@ -198,6 +210,7 @@ func (h *AuthHandler) Logout() http.HandlerFunc {
 			respondError(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}
+		h.stateService.ClearAppState()
 
 		respondJSON(w, map[string]bool{"success": true})
 	}

@@ -38,3 +38,7 @@ func (s *stateService) UpdateAndSaveAppState(data model.AppState) error {
 	}
 	return nil
 }
+
+func (s *stateService) ClearAppState() {
+	s.stateRepo.ClearAppState()
+}

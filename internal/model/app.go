@@ -19,6 +19,11 @@ type UserSelection struct {
 	UserId string `json:"userId"`
 }
 
+type AuthStatus struct {
+	AccountName      string `json:"accountName"`
+	CallBackComplete bool   `json:"callBackComplete"`
+}
+
 type UserSelections map[string]UserSelection
 
 type SubDirData struct {

@@ -111,6 +111,7 @@ func (ds *DataStore) GetWriteablePlansPath() (string, error) {
 
 	pathSuffix := os.Getenv("PATH_SUFFIX")
 	planPath := filepath.Join(configDir, "canifly", "plans")
+	ds.logger.Infof("path is %s", planPath)
 	if pathSuffix != "" {
 		planPath = filepath.Join(planPath, pathSuffix)
 	}
