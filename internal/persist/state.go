@@ -2,11 +2,7 @@
 package persist
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/guarzo/canifly/internal/model"
 )
 
@@ -42,25 +38,14 @@ func (ds *DataStore) ClearAppState() {
 
 // SaveAppStateSnapshot saves AppState to a JSON file.
 func (ds *DataStore) SaveAppStateSnapshot(appState model.AppState) error {
-	configDir, err := ds.GetWriteablePath()
+	snapshotPath, err := ds.getAppStateFilePath()
 	if err != nil {
-		return fmt.Errorf("failed to get config path: %w", err)
+		return err
 	}
-
-	snapshotPath := filepath.Join(configDir, "appstate_snapshot.json")
 
 	ds.logger.Infof("app state saved at %s", snapshotPath)
 
-	data, err := json.MarshalIndent(appState, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal appState: %w", err)
-	}
-
-	if err := os.WriteFile(snapshotPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write snapshot: %w", err)
-	}
-
-	return nil
+	return saveJSONToFile(snapshotPath, appState)
 }
 
 // loadAppStateFromFile attempts to load AppState from disk.
@@ -69,19 +54,13 @@ func (ds *DataStore) loadAppStateFromFile() error {
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		// File does not exist, not an error, just no previous state
+	if _, err := fileExists(path); err != nil {
 		return nil
 	}
 
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read app state file: %w", err)
-	}
-
 	var appState model.AppState
-	if err = json.Unmarshal(data, &appState); err != nil {
-		return fmt.Errorf("failed to unmarshal app state: %w", err)
+	if err = readJSONFromFile(path, &appState); err != nil {
+		return fmt.Errorf("failed to load AppState: %w", err)
 	}
 
 	ds.appStateStoreLock(true)
@@ -93,11 +72,7 @@ func (ds *DataStore) loadAppStateFromFile() error {
 }
 
 func (ds *DataStore) getAppStateFilePath() (string, error) {
-	configDir, err := ds.GetWriteablePath()
-	if err != nil {
-		return "", fmt.Errorf("failed to get config path: %w", err)
-	}
-	return filepath.Join(configDir, "appstate_snapshot.json"), nil
+	return getConfigFileName("appstate_snapshot.json")
 }
 
 // Mutex methods for locking/unlocking the appState.

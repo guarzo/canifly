@@ -1,9 +1,8 @@
+// persist/systems.go
 package persist
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"strconv"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -23,23 +22,18 @@ func (ds *DataStore) LoadSystems() error {
 	}
 	defer file.Close()
 
-	reader := csv.NewReader(file)
+	records, err := readCSVRecords(file)
+	if err != nil {
+		ds.logger.WithError(err).Errorf("Error reading systems CSV")
+		return fmt.Errorf("error reading systems CSV: %w", err)
+	}
+
 	ds.SysIdToName = make(map[string]string, systemCount)
 	ds.SysNameToID = make(map[string]string, systemCount)
 
 	lineNumber := 0
-	for {
-		record, err := reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				ds.logger.WithError(err).Errorf("Error reading systems CSV at line %d", lineNumber)
-				return fmt.Errorf("error reading systems CSV: %w", err)
-			}
-		}
+	for _, record := range records {
 		lineNumber++
-
 		if len(record) < 2 {
 			ds.logger.Warnf("Skipping line %d: not enough columns", lineNumber)
 			continue
@@ -60,7 +54,6 @@ func (ds *DataStore) LoadSystems() error {
 func (ds *DataStore) GetSystemName(systemID int64) string {
 	name, ok := ds.SysIdToName[strconv.FormatInt(systemID, 10)]
 	if !ok {
-		// System ID not found, could log or return an empty string
 		ds.logger.Warnf("System ID %d not found", systemID)
 		return ""
 	}

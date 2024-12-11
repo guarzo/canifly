@@ -4,7 +4,6 @@ package persist
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -184,11 +183,7 @@ func (ds *DataStore) SaveUserSelections(selections model.UserSelections) error {
 	if err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(selections, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(selectionsPath, data, 0644)
+	return saveJSONToFile(selectionsPath, selections)
 }
 
 func (ds *DataStore) FetchUserSelections() (model.UserSelections, error) {
@@ -197,29 +192,21 @@ func (ds *DataStore) FetchUserSelections() (model.UserSelections, error) {
 		ds.logger.Infof("no selection file path %v", err)
 		return nil, err
 	}
-	data, err := os.ReadFile(selectionsPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return make(model.UserSelections), nil
-		}
-		ds.logger.Warnf("failed in reading file, %v", err)
-		return nil, err
+
+	if exists, _ := fileExists(selectionsPath); !exists {
+		return make(model.UserSelections), nil
 	}
 
 	var selections model.UserSelections
-	if err = json.Unmarshal(data, &selections); err != nil {
-		ds.logger.Infof("failed to unmarshal selections %v", err)
+	if err = readJSONFromFile(selectionsPath, &selections); err != nil {
+		ds.logger.Infof("failed to load selections %v", err)
 		return nil, err
 	}
 	return selections, nil
 }
 
 func (ds *DataStore) getUserSelectionsFilePath() (string, error) {
-	identityPath, err := ds.GetWriteablePath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(identityPath, "userSelections.json"), nil
+	return getConfigFileName(selectionsFileName)
 }
 
 func (ds *DataStore) SyncSubdirectory(subDir, userId, charId, settingsDir string) (int, int, error) {

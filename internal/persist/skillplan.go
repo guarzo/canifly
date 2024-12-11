@@ -4,7 +4,6 @@ package persist
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 )
 
 func (ds *DataStore) ProcessSkillPlans() error {
-	writablePath, err := ds.GetWriteablePlansPath()
+	writablePath, err := getWriteablePlansPath()
 	if err != nil {
 		return fmt.Errorf("failed to get writable plans path: %w", err)
 	}
@@ -29,9 +28,15 @@ func (ds *DataStore) ProcessSkillPlans() error {
 	if err != nil {
 		return fmt.Errorf("failed to load skill plans: %w", err)
 	}
+	ds.mut.Lock()
 	ds.skillPlans = skillPlans
+	ds.mut.Unlock()
 	ds.logger.Debugf("Loaded %d skill plans", len(ds.skillPlans))
 	return nil
+}
+
+func (ds *DataStore) GetWriteablePlansPath() (string, error) {
+	return getWriteablePlansPath()
 }
 
 func (ds *DataStore) GetSkillPlans() map[string]model.SkillPlan {
@@ -45,12 +50,7 @@ func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 		return fmt.Errorf("cannot save an empty skill plan for planName: %s", planName)
 	}
 
-	writablePath, err := ds.GetWriteablePlansPath()
-	if err != nil {
-		return fmt.Errorf("failed to get writable path: %w", err)
-	}
-
-	planFilePath := filepath.Join(writablePath, planName+".txt")
+	planFilePath, err := getPlanFileName(planName + ".txt")
 	file, err := os.Create(planFilePath)
 	if err != nil {
 		ds.logger.WithError(err).Errorf("Failed to create plan file %s", planFilePath)
@@ -80,12 +80,10 @@ func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 }
 
 func (ds *DataStore) DeleteSkillPlan(planName string) error {
-	writablePath, err := ds.GetWriteablePlansPath()
+	planFilePath, err := getPlanFileName(planName + ".txt")
 	if err != nil {
-		return fmt.Errorf("failed to get writable path: %w", err)
+		return err
 	}
-
-	planFilePath := filepath.Join(writablePath, planName+".txt")
 	if err := os.Remove(planFilePath); err != nil {
 		if os.IsNotExist(err) {
 			ds.logger.Warnf("Skill plan %s does not exist", planName)
@@ -101,26 +99,6 @@ func (ds *DataStore) DeleteSkillPlan(planName string) error {
 
 	ds.logger.Infof("Deleted skill plan %s", planName)
 	return nil
-}
-
-func (ds *DataStore) GetWriteablePlansPath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve writeable directory: %w", err)
-	}
-
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	planPath := filepath.Join(configDir, "canifly", "plans")
-	ds.logger.Infof("path is %s", planPath)
-	if pathSuffix != "" {
-		planPath = filepath.Join(planPath, pathSuffix)
-	}
-
-	if err := os.MkdirAll(planPath, os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create writable plans directory: %w", err)
-	}
-
-	return planPath, nil
 }
 
 func (ds *DataStore) copyEmbeddedPlansToWritable(writableDir string) error {
@@ -154,18 +132,7 @@ func (ds *DataStore) copyEmbeddedFile(srcPath, destPath string) error {
 	}
 	defer srcFile.Close()
 
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("failed to create destination file %s: %w", destPath, err)
-	}
-	defer destFile.Close()
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		return fmt.Errorf("failed to copy content to %s: %w", destPath, err)
-	}
-
-	ds.logger.Debugf("Copied embedded file %s to %s", srcPath, destPath)
-	return nil
+	return copyReaderToFile(destPath, srcFile)
 }
 
 func (ds *DataStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, error) {
@@ -198,27 +165,18 @@ func (ds *DataStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, err
 }
 
 func (ds *DataStore) readSkillsFromFile(filePath string) (map[string]model.Skill, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
-	}
-	defer file.Close()
-
 	skills := make(map[string]model.Skill)
-	scanner := bufio.NewScanner(file)
 	lineNumber := 0
 
-	for scanner.Scan() {
+	err := processFileLines(filePath, func(line string) error {
 		lineNumber++
-		line := scanner.Text()
-
 		if strings.TrimSpace(line) == "" {
-			continue
+			return nil
 		}
 
 		parts := strings.Fields(line)
 		if len(parts) < 2 {
-			return nil, fmt.Errorf("invalid format in file %s at line %d: %s", filePath, lineNumber, line)
+			return fmt.Errorf("invalid format in file %s at line %d: %s", filePath, lineNumber, line)
 		}
 
 		skillLevelStr := parts[len(parts)-1]
@@ -226,16 +184,16 @@ func (ds *DataStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 
 		skillLevel, err := strconv.Atoi(skillLevelStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid skill level in file %s at line %d: %s", filePath, lineNumber, skillLevelStr)
+			return fmt.Errorf("invalid skill level in file %s at line %d: %s", filePath, lineNumber, skillLevelStr)
 		}
 
 		if currentSkill, exists := skills[skillName]; !exists || skillLevel > currentSkill.Level {
 			skills[skillName] = model.Skill{Name: skillName, Level: skillLevel}
 		}
-	}
-
-	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file %s: %w", filePath, err)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	ds.logger.Debugf("Read %d skills from %s", len(skills), filePath)

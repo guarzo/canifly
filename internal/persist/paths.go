@@ -8,23 +8,6 @@ import (
 	"runtime"
 )
 
-func (ds *DataStore) GetWriteablePath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-
-	identityPath := filepath.Join(configDir, "canifly", "identity")
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	if pathSuffix != "" {
-		identityPath = filepath.Join(identityPath, pathSuffix)
-	}
-	if err := os.MkdirAll(identityPath, os.ModePerm); err != nil {
-		return "", err
-	}
-	return identityPath, nil
-}
-
 func (ds *DataStore) GetHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

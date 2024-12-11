@@ -2,9 +2,7 @@
 package persist
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -43,7 +41,7 @@ func (ds *DataStore) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return st, ok
 }
 
-// Adjust readSkillTypes to return both maps
+// Adjust readSkillTypes to use readCSVRecords
 func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType, map[string]model.SkillType, error) {
 	file, err := embed.StaticFiles.Open(filePath)
 	if err != nil {
@@ -51,14 +49,17 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 	}
 	defer file.Close()
 
-	reader := csv.NewReader(file)
-	skillTypes := make(map[string]model.SkillType)
-	skillIDTypes := make(map[string]model.SkillType)
-
-	headers, err := reader.Read()
+	records, err := readCSVRecords(file)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read header row from file %s: %w", filePath, err)
+		return nil, nil, fmt.Errorf("failed to read CSV records from %s: %w", filePath, err)
 	}
+
+	if len(records) == 0 {
+		return nil, nil, fmt.Errorf("no data in file %s", filePath)
+	}
+
+	headers := records[0]
+	records = records[1:] // Skip header row
 
 	colIndices := map[string]int{"typeID": -1, "typeName": -1, "description": -1}
 	for i, header := range headers {
@@ -76,16 +77,14 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 		return nil, nil, fmt.Errorf("required columns (typeID, typeName) are missing from file headers")
 	}
 
+	skillTypes := make(map[string]model.SkillType)
+	skillIDTypes := make(map[string]model.SkillType)
+
 	lineNumber := 1
-	for {
-		row, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
+	for _, row := range records {
 		lineNumber++
-		if err != nil {
-			// If there's a parsing error on this row, skip it
-			ds.logger.WithError(err).Warnf("Skipping malformed row %d in %s", lineNumber, filePath)
+		if len(row) < 2 {
+			ds.logger.Warnf("Skipping malformed row %d in %s", lineNumber, filePath)
 			continue
 		}
 
@@ -96,7 +95,7 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 
 		typeID := strings.TrimSpace(row[colIndices["typeID"]])
 		desc := ""
-		if colIndices["description"] != -1 {
+		if colIndices["description"] != -1 && colIndices["description"] < len(row) {
 			desc = strings.TrimSpace(row[colIndices["description"]])
 		}
 
@@ -106,10 +105,7 @@ func (ds *DataStore) readSkillTypes(filePath string) (map[string]model.SkillType
 			Description: desc,
 		}
 
-		// Key by typeName
 		skillTypes[typeName] = st
-
-		// Also key by typeID
 		skillIDTypes[typeID] = st
 	}
 

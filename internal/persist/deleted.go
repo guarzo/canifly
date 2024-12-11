@@ -4,25 +4,19 @@ package persist
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
-func (ds *DataStore) getDeletedFileName() string {
-	writePath, err := ds.GetWriteablePath()
-	if err != nil {
-		ds.logger.WithError(err).Error("Error retrieving writable data path for deleted characters")
-		return ""
-	}
-	return filepath.Join(writePath, "deleted_characters.json")
+func (ds *DataStore) getDeletedFileName() (string, error) {
+	return getAccountFileName(deletedFileName)
 }
 
 func (ds *DataStore) SaveDeletedCharacters(chars []string) error {
-	filename := ds.getDeletedFileName()
-	if filename == "" {
+	filename, err := ds.getDeletedFileName()
+	if err != nil {
 		return fmt.Errorf("failed to save deleted characters")
 	}
 
-	if err := writeJSONToFile(filename, chars); err != nil {
+	if err := saveJSONToFile(filename, chars); err != nil {
 		ds.logger.WithError(err).Errorf("Failed to save deleted characters to %s", filename)
 		return err
 	}
@@ -31,8 +25,8 @@ func (ds *DataStore) SaveDeletedCharacters(chars []string) error {
 }
 
 func (ds *DataStore) FetchDeletedCharacters() ([]string, error) {
-	filename := ds.getDeletedFileName()
-	if filename == "" {
+	filename, err := ds.getDeletedFileName()
+	if err != nil {
 		return []string{}, fmt.Errorf("failed to load deleted characters")
 	}
 

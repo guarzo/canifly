@@ -1,4 +1,4 @@
-// persist/system_resolver.go
+// persist/nameresolver.go
 package persist
 
 import (
@@ -31,7 +31,7 @@ func (r *NameResolverImpl) GetSystemName(systemID int64) string {
 func (r *NameResolverImpl) GetSkillName(skillID int32) string {
 	skill, ok := r.ds.GetSkillTypeByID(strconv.FormatInt(int64(skillID), 10))
 	if !ok {
-		r.ds.logger.Warnf("Skill ID %s not found", skillID)
+		r.ds.logger.Warnf("Skill ID %d not found", skillID)
 		return ""
 	}
 	return skill.TypeName
