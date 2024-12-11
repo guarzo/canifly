@@ -12,6 +12,7 @@ import (
 	"github.com/guarzo/canifly/internal/services/dashboard"
 	"github.com/guarzo/canifly/internal/services/esi"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/login"
 	"github.com/guarzo/canifly/internal/services/settings"
 	"github.com/guarzo/canifly/internal/services/skill"
 	"github.com/guarzo/canifly/internal/services/state"
@@ -27,6 +28,7 @@ type AppServices struct {
 	DashBoardService interfaces.DashboardService
 	AssocService     interfaces.AssociationService
 	StateService     interfaces.StateService
+	LoginService     interfaces.LoginService
 }
 
 func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClient *http.APIClient) *AppServices {
@@ -53,6 +55,9 @@ func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClien
 		logger.WithError(err).Fatal("Failed to load templates.")
 	}
 
+	loginStateStore := persist.NewLoginStateStore()
+	loginService := login.NewLoginService(logger, loginStateStore)
+
 	cacheService := cache.NewCacheService(logger, dataStore)
 	esiService := esi.NewESIService(httpClient, authClient, logger, cacheService, dataStore)
 	assocService := association.NewAssociationService(logger, dataStore, esiService)
@@ -77,5 +82,6 @@ func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClien
 		DashBoardService: dashboardService,
 		StateService:     stateService,
 		AssocService:     assocService,
+		LoginService:     loginService,
 	}
 }

@@ -17,6 +17,7 @@ type AuthHandler struct {
 	logger         interfaces.Logger
 	accountService interfaces.AccountService
 	stateService   interfaces.StateService
+	loginService   interfaces.LoginService
 }
 
 func NewAuthHandler(
@@ -25,6 +26,7 @@ func NewAuthHandler(
 	l interfaces.Logger,
 	accountSvc interfaces.AccountService,
 	stateSvc interfaces.StateService,
+	login interfaces.LoginService,
 ) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
@@ -32,6 +34,7 @@ func NewAuthHandler(
 		logger:         l,
 		accountService: accountSvc,
 		stateService:   stateSvc,
+		loginService:   login,
 	}
 }
 
@@ -58,8 +61,14 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		url := auth.GetAuthURL(request.Account)
-		respondJSON(w, map[string]string{"redirectURL": url})
+		state, err := h.loginService.GenerateAnStoreState(request.Account)
+		if err != nil {
+			respondError(w, "Unable to generate state", http.StatusInternalServerError)
+			return
+		}
+
+		url := auth.GetAuthURL(state)
+		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
 	}
 }
 
@@ -77,10 +86,15 @@ func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
 			return
 		}
 
-		state := "Placeholder"
-		if request.Account != "" {
-			h.logger.Infof("setting state to be: %v", request.Account)
-			state = request.Account
+		if request.Account == "" {
+			respondError(w, "Invalid request body - account must be provided", http.StatusBadRequest)
+			return
+		}
+
+		state, err := h.loginService.GenerateAnStoreState(request.Account)
+		if err != nil {
+			respondError(w, "Unable to generate state", http.StatusInternalServerError)
+			return
 		}
 
 		url := auth.GetAuthURL(state)
@@ -94,9 +108,16 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		devMode := os.Getenv("DEV_MODE") == "true"
 
 		code := r.URL.Query().Get("code")
-		state := r.URL.Query().Get("state") // account name provided by the user
+		state := r.URL.Query().Get("state")
 
-		h.logger.Infof("Received state (account name): %v", state)
+		accountName, ok := h.loginService.ResolveAccountByState(state)
+		if !ok {
+			h.logger.Error("unable to retrieve value from state")
+			handleErrorWithRedirect(w, r, "/")
+			return
+		}
+
+		h.logger.Infof("Received accountName (account name): %v", accountName)
 
 		token, err := auth.ExchangeCode(code)
 		if err != nil {
@@ -119,26 +140,48 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
-		session.Values[flyHttp.LoggedIn] = true
-
 		// Use AccountService to handle account creation
-		if err := h.accountService.FindOrCreateAccount(state, user, token); err != nil {
+		if err := h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
 			h.logger.Errorf("%v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err = session.Save(r, w); err != nil {
-			h.logger.Errorf("Error saving session: %v", err)
-		}
-
 		if devMode {
 			// In dev, redirect back to dev server so the internal flow works as before
+			session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+			session.Values[flyHttp.LoggedIn] = true
+			if err = session.Save(r, w); err != nil {
+				h.logger.Errorf("Error saving session: %v", err)
+			}
 			http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
 		}
+
 		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
 
+	}
+}
+
+func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state := r.URL.Query().Get("state")
+		_, ok := h.loginService.ResolveAccountByState(state)
+		if !ok {
+			http.Error(w, `{"error":"invalid state or login not completed"}`, http.StatusUnauthorized)
+			return
+		}
+
+		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+		session.Values[flyHttp.LoggedIn] = true
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, `{"error":"failed to set session"}`, http.StatusInternalServerError)
+			return
+		}
+
+		h.loginService.ClearState(state)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success":true}`))
 	}
 }
 

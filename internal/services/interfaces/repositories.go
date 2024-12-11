@@ -18,6 +18,12 @@ type ConfigRepository interface {
 	SaveConfigData(*model.ConfigData) error
 }
 
+type LoginRepository interface {
+	Set(state, value string)
+	Get(state string) (string, bool)
+	Delete(state string)
+}
+
 type AccountRepository interface {
 	FetchAccounts() ([]model.Account, error)
 	SaveAccounts([]model.Account) error

@@ -15,12 +15,13 @@ func AuthMiddleware(s *SessionService, logger interfaces.Logger) mux.MiddlewareF
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Define public routes that don't require authentication
 			publicRoutes := map[string]bool{
-				"/static":            true,
-				"/landing":           true,
-				"/api/login":         true,
-				"/api/logout":        true,
-				"/callback":          true,
-				"/api/add-character": true,
+				"/static":             true,
+				"/landing":            true,
+				"/api/login":          true,
+				"/api/logout":         true,
+				"/callback":           true,
+				"/api/add-character":  true,
+				"/api/finalize-login": true,
 			}
 
 			// Allow access if the request matches a public route

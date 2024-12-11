@@ -19,7 +19,7 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
 	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.DashBoardService)
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.AccountService, appServices.StateService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.AccountService, appServices.StateService, appServices.LoginService)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountService)
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService)
@@ -29,6 +29,7 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	// Public routes
 	r.HandleFunc("/callback/", authHandler.CallBack())
 	r.HandleFunc("/api/add-character", authHandler.AddCharacterHandler())
+	r.HandleFunc("/api/finalize-login", authHandler.FinalizeLogin())
 
 	// Auth routes
 	r.HandleFunc("/api/app-data", dashboardHandler.GetDashboardData()).Methods("GET")

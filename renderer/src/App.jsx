@@ -53,16 +53,17 @@ const App = () => {
         }
     };
 
-    const logInCallBack = () => {
+    const logInCallBack =  (state) => {
         setLoggedOut(false);
-
         let attempts = 0;
         const maxAttempts = 6; // Try for roughly 30 seconds if interval is 5 sec
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             if (isAuthenticated) {
                 // User is authenticated, clear interval
+                console.log("logged in callback stopped - user logged in")
                 clearInterval(interval);
             } else {
+                console.log(`attempt ${attempts} trying to detect login`)
                 attempts++;
                 if (attempts > maxAttempts) {
                     // Give up after maxAttempts
@@ -70,8 +71,21 @@ const App = () => {
                     console.warn('Failed to detect login after multiple attempts.');
                     return;
                 }
-                // Attempt silent refresh
-                silentRefreshData();
+
+                const finalizeResp = await fetch(`${backEndURL}/api/finalize-login?state=${state}`, {
+                    credentials: 'include'
+                });
+                if (finalizeResp.ok) {
+                    // Session cookie should now be set
+                    // Try silent refresh or fetch main data
+                    await silentRefreshData();
+                    if (isAuthenticated) {
+                        console.log("Login finalized!")
+                        clearInterval(interval);
+                    }
+                } else {
+                    console.log("Not ready yet, retrying...");
+                }
             }
         }, 5000); // every 5 seconds
     };
@@ -113,7 +127,7 @@ const App = () => {
     };
 
     const silentRefreshData = async () => {
-        if (!isAuthenticated) return;
+        if (loggedOut) return;
         setIsRefreshing(true);
         try {
             await fetchAppDataNoCache();
@@ -322,7 +336,7 @@ const App = () => {
                     } else {
                         // In production, open system browser
                         window.electronAPI.openExternal(data.redirectURL);
-                        toast.info("Please complete the login in your browser")
+                        toast.info("Please authenticate in your browser")
                     }
                 } else {
                     toast.error("No redirect URL or character details received from server.");

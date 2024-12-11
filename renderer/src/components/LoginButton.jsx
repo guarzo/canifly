@@ -28,8 +28,8 @@ const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
             });
             if (response.ok) {
                 const data = await response.json();
-                if (data.redirectURL) {
-                    logInCallBack()
+                if (data.redirectURL && data.state) {
+                    logInCallBack(data.state)
                     if (isDev) {
                         // In development, just redirect within Electron's internal browser
                         window.location.href = data.redirectURL;

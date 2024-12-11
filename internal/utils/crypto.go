@@ -4,7 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -99,9 +101,75 @@ func isKeyInitialized() bool {
 }
 
 func GenerateSecret() ([]byte, error) {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
+	newKey := make([]byte, 32)
+	if _, err := rand.Read(newKey); err != nil {
 		return nil, err
 	}
-	return key, nil
+	return newKey, nil
+}
+
+// EncryptString encrypts a plaintext string and returns a base64-encoded ciphertext string.
+func EncryptString(plaintext string) (string, error) {
+	if !isKeyInitialized() {
+		return "", errors.New("encryption key is not initialized")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	ciphertext := make([]byte, len(plaintext))
+	stream.XORKeyStream(ciphertext, []byte(plaintext))
+
+	// Prepend IV to ciphertext
+	finalData := append(iv, ciphertext...)
+	// Return as base64
+	return base64.StdEncoding.EncodeToString(finalData), nil
+}
+
+// DecryptString takes a base64-encoded ciphertext and returns the decrypted plaintext.
+func DecryptString(ciphertextB64 string) (string, error) {
+	if !isKeyInitialized() {
+		return "", errors.New("decryption key is not initialized")
+	}
+
+	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextB64)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		return "", errors.New("ciphertext too short")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	plaintext := make([]byte, len(ciphertext))
+	stream.XORKeyStream(plaintext, ciphertext)
+
+	return string(plaintext), nil
+}
+
+func GenerateRandomString(lengthBytes int) (string, error) {
+	b := make([]byte, lengthBytes)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
+	// Encode as hex string
+	return hex.EncodeToString(b), nil
 }
