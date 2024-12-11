@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -15,6 +15,9 @@ import CharacterSort from './components/CharacterSort.jsx';
 import Sync from './components/Sync';
 import Mapping from './components/Mapping';
 import helloImg from './assets/images/hello.png';
+import { isDev, backEndURL } from './components/config';
+import { fetchAppEndpoint } from './utils/api'
+import { useLoginCallback } from './hooks/useLoginCallback';
 
 const App = () => {
     const [appData, setAppData] = useState(null);
@@ -24,172 +27,64 @@ const App = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [loggedOut, setLoggedOut] = useState(false);
 
-    const isDev = import.meta.env.DEV;
-    const backEndURL = isDev ? '' : 'http://localhost:8713';
-
     // Log whenever isAuthenticated changes
     useEffect(() => {
         console.log("isAuthenticated changed:", isAuthenticated);
     }, [isAuthenticated]);
 
-    /**
-     * A generic fetch function to handle various endpoints and update state.
-     * @param {string} endpoint - endpoint to fetch (e.g. "/api/app-data")
-     * @param {object} options - { setLoading: boolean, setRefreshing: boolean, returnSuccess: boolean }
-     * @returns {boolean|undefined} If returnSuccess is true, returns boolean indicating success/failure, else undefined.
-     */
-    async function fetchAppEndpoint(endpoint, { setLoading = false, setRefreshing = false, returnSuccess = false } = {}) {
-        console.log(`fetchAppEndpoint called with endpoint=${endpoint}, setLoading=${setLoading}, setRefreshing=${setRefreshing}, returnSuccess=${returnSuccess}`);
-        console.log("State before fetch:", {
-            isAuthenticated,
-            isLoading,
-            loggedOut,
-            appDataExists: !!appData
-        });
+    const wrappedFetchAppEndpoint = useCallback(
+        (endpoint, options) => {
+            return fetchAppEndpoint(
+                {
+                    backEndURL,
+                    endpoint,
+                    loggedOut,
+                    isAuthenticated,
+                    setIsLoading,
+                    setIsRefreshing,
+                    setIsAuthenticated,
+                    setAppData
+                },
+                options
+            );
+        },
+        [backEndURL, loggedOut, isAuthenticated]
+    );
 
-        if (loggedOut) {
-            console.log("fetchAppEndpoint: loggedOut is true, returning early");
-            return returnSuccess ? false : undefined;
-        }
-
-        if (setLoading) {
-            console.log("Setting isLoading = true");
-            setIsLoading(true);
-        }
-        if (setRefreshing) {
-            console.log("Setting isRefreshing = true");
-            setIsRefreshing(true);
-        }
-
-        try {
-            const response = await fetch(`${backEndURL}${endpoint}`, { credentials: 'include' });
-
-            if (response.status === 401) {
-                console.log("fetchAppEndpoint: got 401 Unauthorized, setting isAuthenticated=false, clearing appData");
-                setIsAuthenticated(false);
-                setAppData(null);
-                toast.warning('Please log in to access your data.');
-                return returnSuccess ? false : undefined;
-            }
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("fetchAppEndpoint: response OK, setting appData and isAuthenticated=true");
-                setAppData(data);
-                setIsAuthenticated(true);
-                return returnSuccess ? true : undefined;
-            } else {
-                const errorData = await response.json();
-                console.log("fetchAppEndpoint: response not OK, error:", errorData.error);
-                toast.error(errorData.error || 'An unexpected error occurred.');
-                return returnSuccess ? false : undefined;
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            if (isAuthenticated) {
-                toast.error('Failed to load data. Please try again later.');
-            }
-            return returnSuccess ? false : undefined;
-        } finally {
-            if (setLoading) {
-                console.log("Setting isLoading = false in finally");
-                setIsLoading(false);
-            }
-            if (setRefreshing) {
-                console.log("Setting isRefreshing = false in finally");
-                setIsRefreshing(false);
-            }
-        }
-    }
-
-    // Initial fetch of app data
-    async function fetchData() {
+    const fetchData = useCallback(async () => {
         console.log("fetchData called");
-        await fetchAppEndpoint('/api/app-data', { setLoading: true });
-    }
+        await wrappedFetchAppEndpoint('/api/app-data', { setLoading: true });
+    }, [wrappedFetchAppEndpoint]);
 
-    // Used after login finalize to confirm we have data and session
-    async function loginRefresh() {
+    const loginRefresh = useCallback(() => {
         console.log("loginRefresh called");
-        return fetchAppEndpoint('/api/app-data-no-cache', { setLoading: true, returnSuccess: true });
-    }
+        return wrappedFetchAppEndpoint('/api/app-data-no-cache', { setLoading: true, returnSuccess: true });
+    }, [wrappedFetchAppEndpoint]);
 
-    // Silent refresh data (used periodically after authenticated)
-    async function silentRefreshData() {
+    const silentRefreshData = useCallback(async () => {
         console.log("silentRefreshData called");
-        if (!isAuthenticated || loggedOut) {
-            console.log(`silentRefreshData not running because isAuthenticated=${isAuthenticated}, loggedOut=${loggedOut}`);
-            return;
-        }
-        await fetchAppEndpoint('/api/app-data-no-cache', { setRefreshing: true });
-    }
+        if (!isAuthenticated || loggedOut) return;
+        await wrappedFetchAppEndpoint('/api/app-data-no-cache', { setRefreshing: true });
+    }, [wrappedFetchAppEndpoint, isAuthenticated, loggedOut]);
 
     useEffect(() => {
         console.log("loggedOut changed to:", loggedOut);
         console.trace(); // Shows the stack trace of what caused this effect
     }, [loggedOut]);
 
+    // Use our custom hook
+    const loginCallbackFn = useLoginCallback();
 
-    // Callback after initiating login
+    // Instead of defining logInCallBack here, we just use loginCallbackFn
     const logInCallBack = (state) => {
-        console.log("logInCallBack called with state:", state);
-        setLoggedOut(false);
-        let attempts = 0;
-        const maxAttempts = 6;
-        let finalized = false; // to ensure we only finalize once
-
-        const interval = setInterval(async () => {
-            console.log(`Interval tick: attempts=${attempts}, isAuthenticated=${isAuthenticated}, finalized=${finalized}, loggedOut=${loggedOut}`);
-
-            if (isAuthenticated) {
-                console.log("logged in callback stopped - user logged in, clearing interval");
-                clearInterval(interval);
-                return;
-            }
-
-            console.log(`attempt ${attempts} trying to detect login`);
-            attempts++;
-            if (attempts > maxAttempts) {
-                console.warn('Failed to detect login after multiple attempts, clearing interval.');
-                clearInterval(interval);
-                return;
-            }
-
-            if (!finalized) {
-                console.log("Calling finalize-login endpoint...");
-                const finalizeResp = await fetch(`${backEndURL}/api/finalize-login?state=${state}`, {
-                    credentials: 'include'
-                });
-
-                if (finalizeResp.ok) {
-                    finalized = true;
-                    console.log("Finalization succeeded, now trying to fetch data via loginRefresh...");
-                    const success = await loginRefresh();
-                    console.log("loginRefresh returned:", success);
-                    if (success) {
-                        console.log("Login finalized and data fetched! Setting isAuthenticated=true and clearing interval");
-                        setIsAuthenticated(true);
-                        clearInterval(interval);
-                    } else {
-                        console.log("Session set but data fetch failed, will retry data fetch on next interval...");
-                    }
-                } else {
-                    console.log("Not ready yet, retrying finalize-login...");
-                }
-            } else {
-                console.log("Already finalized, just trying loginRefresh again...");
-                const success = await loginRefresh();
-                console.log("loginRefresh returned:", success);
-                if (success) {
-                    console.log("Data fetched after finalization! Setting isAuthenticated=true and clearing interval");
-                    setIsAuthenticated(true);
-                    clearInterval(interval);
-                } else {
-                    console.log("Still no data after finalization, retrying data fetch on next interval...");
-                }
-            }
-        }, 5000);
-        console.log("logInCallBack: interval created");
+        loginCallbackFn(state, {
+            isAuthenticated,
+            loggedOut,
+            loginRefresh,
+            setLoggedOut,
+            setIsAuthenticated,
+            backEndURL
+        });
     };
 
     const handleLogout = async () => {
