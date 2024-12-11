@@ -54,7 +54,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist  
+        run: npm run package:app
 
       - name: Generate Changelog
         id: changelog
@@ -96,7 +96,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: "release/canifly Setup ${{ env.CLEAN_TAG }}.exe"
-          asset_name: "canifly Setup ${{ env.CLEAN_TAG }}.exe"
+          asset_name: "CanIFly-Setup${{ env.CLEAN_TAG }}.exe"
           asset_content_type: application/x-msdownload
       
           

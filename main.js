@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
-const http = require('http')
+const http = require('http');
+const { spawn } = require('child_process'); // Import spawn
 
 const isDev = !app.isPackaged;
 
@@ -8,6 +9,37 @@ let goProcess;
 const maxRetries = 5;
 const retryDelay = 1000;
 let startTime;
+
+function startGoBackend() {
+    if (isDev) {
+        // Start Go backend in dev mode
+        // Make sure 'go' is in PATH and you can run `go run .` from project root
+        goProcess = spawn('go', ['run', '.'], { cwd: process.cwd() });
+    } else {
+        // Start the packaged backend binary
+        // The backend was placed via extraResources as "canifly-backend.exe" (for Windows)
+        // The resources path = process.resourcesPath
+        const backendPath = process.platform === 'win32' ?
+            path.join(process.resourcesPath, 'canifly-backend.exe') :
+            path.join(process.resourcesPath, 'canifly-backend');
+
+        goProcess = spawn(backendPath, [], {
+            cwd: process.resourcesPath
+        });
+    }
+
+    goProcess.stdout.on('data', (data) => {
+        console.log(`Go backend: ${data}`);
+    });
+
+    goProcess.stderr.on('data', (data) => {
+        console.error(`Go backend error: ${data}`);
+    });
+
+    goProcess.on('close', (code) => {
+        console.log(`Go backend exited with code ${code}`);
+    });
+}
 
 function createWindow() {
     console.log("Creating Electron window...");
@@ -23,7 +55,6 @@ function createWindow() {
         frame: false,
     });
 
-    // Disable the menu bar
     mainWindow.setMenuBarVisibility(false);
 
     if (isDev) {
@@ -33,7 +64,6 @@ function createWindow() {
         mainWindow.loadFile(path.join(__dirname, 'renderer', 'dist', 'index.html'));
     }
 
-    // Insert CSS to hide scrollbars once the content is loaded
     mainWindow.webContents.on('did-finish-load', () => {
         const customCSS = `
             html, body {
@@ -56,7 +86,6 @@ function createWindow() {
           `;
         mainWindow.webContents.insertCSS(customCSS);
     });
-
 
     ipcMain.on('close-window', () => {
         mainWindow.close();
@@ -94,6 +123,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     startTime = Date.now();
+    startGoBackend(); // Start the Go backend first
     checkBackendReady(maxRetries);
 
     app.on('activate', function () {
@@ -108,7 +138,10 @@ app.on('window-all-closed', () => {
 function checkBackendReady(retries) {
     if (retries === 0) {
         console.error("Go backend did not start in time. Shutting down.");
-        app.quit(); // Quit the app if backend not ready
+        if (goProcess) {
+            goProcess.kill();
+        }
+        app.quit();
         return;
     }
 
@@ -118,7 +151,7 @@ function checkBackendReady(retries) {
             console.log(`Go backend is ready, launching Electron window after ${totalDelay / 1000} seconds.`);
             createWindow();
         } else {
-            console.log(res.statusCode)
+            console.log(res.statusCode);
             retryCheck(retries);
         }
     }).on('error', () => {

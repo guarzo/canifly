@@ -2,19 +2,22 @@ package server
 
 import (
 	"encoding/base64"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"os"
 	"path/filepath"
 
-	"github.com/guarzo/canifly/internal/embed"
-	"github.com/guarzo/canifly/internal/utils"
 	"github.com/joho/godotenv"
+
+	"github.com/guarzo/canifly/internal/embed"
+	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/utils"
 )
 
 // LoadEnv loads environment variables from various sources
 func LoadEnv(logger interfaces.Logger) {
+	// Try to load a local .env first
 	if err := godotenv.Load(); err != nil {
-		embeddedEnv, err := embed.StaticFiles.Open("static/.env")
+		// If not found, load from embedded EnvFiles
+		embeddedEnv, err := embed.EnvFiles.Open("config/.env")
 		if err != nil {
 			logger.Warn("Failed to load embedded .env file. Using system environment variables.")
 			return

@@ -10,6 +10,9 @@ var StaticFiles embed.FS
 
 var StaticFilesSub fs.FS
 
+//go:embed config/.env
+var EnvFiles embed.FS
+
 func LoadStatic() error {
 	var err error
 
