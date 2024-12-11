@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { Grid, Box } from '@mui/material';
-import AccountCard from './MapAccountCard';
-import CharacterCard from './MapCharacterCard';
-import { useConfirmDialog } from './useConfirmDialog'; // Import the custom hook
+import AccountCard from './MapAccountCard.jsx';
+import CharacterCard from './MapCharacterCard.jsx';
+import { useConfirmDialog } from '../partials/useConfirmDialog.jsx'; // Import the custom hook
 
 function roundToSeconds(mtime) {
     const date = new Date(mtime);

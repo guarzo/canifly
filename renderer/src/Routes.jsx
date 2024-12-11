@@ -3,12 +3,12 @@
 import { Routes, Route } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-import Dashboard from './components/Dashboard';
-import SkillPlans from './components/SkillPlans';
-import Landing from './components/Landing';
-import CharacterSort from './components/CharacterSort';
-import Sync from './components/Sync';
-import Mapping from './components/Mapping';
+import Dashboard from './components/dashboard/Dashboard.jsx';
+import SkillPlans from './components/skillplan/SkillPlans.jsx';
+import Landing from './components/landing/Landing.jsx';
+import CharacterSort from './components/dashboard/CharacterSort.jsx';
+import Sync from './components/sync/Sync.jsx';
+import Mapping from './components/mapping/Mapping.jsx';
 
 /**
  * Extracted route definitions for cleaner App.jsx.

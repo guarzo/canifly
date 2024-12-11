@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
-import CharacterItem from './CharacterItem';
+import CharacterItem from './CharacterItem.jsx';
 
 const AccountCard = ({
                          account,

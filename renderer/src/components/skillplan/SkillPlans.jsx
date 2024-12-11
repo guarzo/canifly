@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import CharacterTable from './CharacterTable';
-import SkillPlanTable from './SkillPlanTable';
+import CharacterTable from './CharacterTable.jsx';
+import SkillPlanTable from './SkillPlanTable.jsx';
 import { toast } from 'react-toastify';
 import { Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
 import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';

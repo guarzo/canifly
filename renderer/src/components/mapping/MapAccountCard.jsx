@@ -3,7 +3,7 @@
 import PropTypes from 'prop-types';
 import { Card, Typography, List, ListItem, ListItemText, IconButton, useTheme, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { formatDate } from './dateFormatter';
+import { formatDate } from '../../utils/dateFormatter.jsx';
 
 const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mtimeToColor }) => {
     const theme = useTheme();

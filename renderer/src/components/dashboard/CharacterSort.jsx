@@ -10,7 +10,7 @@ import {
     ToggleButton,
 } from '@mui/material';
 import { ArrowUpward, ArrowDownward, AccountCircle, Place } from '@mui/icons-material';
-import CharacterItem from './CharacterItem'; // Import the character item component
+import CharacterItem from './CharacterItem.jsx'; // Import the character item component
 
 const CharacterSort = ({ accounts, roles, onUpdateCharacter }) => {
     const [sortOrder, setSortOrder] = useState('asc');

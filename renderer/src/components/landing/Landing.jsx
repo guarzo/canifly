@@ -1,5 +1,5 @@
 import  { useState } from 'react';
-import LoginButton from './LoginButton';
+import LoginButton from './LoginButton.jsx';
 import { Container, Box } from '@mui/material';
 import PropTypes from "prop-types";
 

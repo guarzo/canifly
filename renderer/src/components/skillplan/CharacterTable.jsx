@@ -18,7 +18,7 @@ import {
     AccessTime,
     Error as ErrorIcon,
 } from '@mui/icons-material';
-import { calculateDaysFromToday, formatNumberWithCommas } from './Utils';
+import { calculateDaysFromToday, formatNumberWithCommas } from '../../utils/utils.jsx';
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];

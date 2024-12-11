@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import AccountPromptModal from './AccountPromptModal';
+import AccountPromptModal from '../partials/AccountPromptModal.jsx';
 import PropTypes from 'prop-types';
-import eveSsoImage from '../assets/images/eve-sso.jpg';
+import eveSsoImage from '../../assets/images/eve-sso.jpg';
 
 const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
     const [modalOpen, setModalOpen] = useState(false);

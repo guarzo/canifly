@@ -29,7 +29,7 @@ import {
     Cached as RefreshIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import AccountPromptModal from './AccountPromptModal';
+import AccountPromptModal from './AccountPromptModal.jsx';
 
 const StyledAppBar = styled(AppBar)(() => ({
     backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',

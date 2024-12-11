@@ -20,7 +20,7 @@ import {
     AccessTime,
     Error as ErrorIcon,
 } from '@mui/icons-material';
-import { calculateDaysFromToday } from './Utils';
+import { calculateDaysFromToday } from '../../utils/utils.jsx';
 
 const SkillPlanRow = ({ row }) => {
     const [open, setOpen] = React.useState(false);

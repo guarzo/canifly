@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
-import { useConfirmDialog } from './useConfirmDialog';
+import { useConfirmDialog } from '../partials/useConfirmDialog.jsx';
 import {
     CircularProgress,
     Grid,
     Box,
 } from '@mui/material';
-import SyncActionsBar from './SyncActionsBar';
-import SubDirectoryCard from './SubDirectoryCard';
+import SyncActionsBar from './SyncActionsBar.jsx';
+import SubDirectoryCard from './SubDirectoryCard.jsx';
 
 const Sync = ({
                   settingsData,

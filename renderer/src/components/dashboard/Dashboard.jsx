@@ -1,6 +1,6 @@
 // Dashboard.jsx
 import PropTypes from 'prop-types';
-import AccountCard from './AccountCard';
+import AccountCard from './AccountCard.jsx';
 
 const Dashboard = ({
                        accounts,

@@ -9,16 +9,16 @@ import { backEndURL } from './Config';
 import { fetchAppEndpoint } from './utils/api';
 import { useLoginCallback } from './hooks/useLoginCallback';
 import { log, trace } from './utils/logger';
-import { normalizeAppData } from './utils/dataNormalization';
+import { normalizeAppData } from './utils/dataNormalizer.jsx';
 import { useAppHandlers } from './hooks/useAppHandlers';
 
-import Header from './components/Header';
-import Footer from './components/Footer';
-import AddSkillPlanModal from './components/AddSkillPlanModal';
-import ErrorBoundary from './components/ErrorBoundary';
+import Header from './components/partials/Header.jsx';
+import Footer from './components/partials/Footer.jsx';
+import AddSkillPlanModal from './components/skillplan/AddSkillPlanModal.jsx';
+import ErrorBoundary from './components/partials/ErrorBoundary.jsx';
 import AppRoutes from './Routes';
 
-import theme from './components/theme';
+import theme from './theme.jsx';
 import helloImg from './assets/images/hello.png';
 
 import 'react-toastify/dist/ReactToastify.css';
