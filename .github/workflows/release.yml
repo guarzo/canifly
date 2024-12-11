@@ -45,10 +45,10 @@ jobs:
       # Create the .env file dynamically using secrets
       - name: Create .env file
         run: |
-          echo "EVE_CLIENT_ID=${{ secrets.EVE_CLIENT_ID }}" >> internal/embed/static/.env
-          echo "EVE_CLIENT_SECRET=${{ secrets.EVE_CLIENT_SECRET }}" >> internal/embed/static/.env
-          echo "EVE_CALLBACK_URL=${{ secrets.EVE_CALLBACK_URL }}" >> internal/embed/static/.env
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> internal/embed/static/.env
+          echo "EVE_CLIENT_ID=${{ secrets.EVE_CLIENT_ID }}" >> internal/embed/config/.env
+          echo "EVE_CLIENT_SECRET=${{ secrets.EVE_CLIENT_SECRET }}" >> internal/embed/config/.env
+          echo "EVE_CALLBACK_URL=${{ secrets.EVE_CALLBACK_URL }}" >> internal/embed/config/.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> internal/embed/config/.env
 
       - name: Build Electron App
         env:
