@@ -1,8 +1,16 @@
+// src/hooks/useAppHandlers.jsx
+
 import { useCallback } from 'react';
-import { toast } from 'react-toastify';
-import { apiRequest } from '../utils/apiRequest';
 import { log } from '../utils/logger';
-import { isDev, backEndURL } from '../Config';
+import { createPostHandler, createAddCharacterHandler } from '../utils/createRequestHandler';
+import {
+    removeCharacterFromAppData,
+    updateCharacterInAppData,
+    toggleAccountStatusInAppData,
+    updateAccountNameInAppData,
+    removeAccountFromAppData
+} from '../utils/appDataTransforms';
+import { apiRequest } from '../utils/apiRequest';
 
 /**
  * Custom hook that encapsulates all the handler functions used in App.
@@ -11,9 +19,6 @@ import { isDev, backEndURL } from '../Config';
  * @param {Function} setIsAuthenticated - Setter for isAuthenticated state.
  * @param {Function} setLoggedOut - Setter for loggedOut state.
  * @param {Function} setIsSkillPlanModalOpen - Setter for isSkillPlanModalOpen state.
- * @param {Function} wrappedFetchAppEndpoint - Ref to fetch endpoints with state updates.
- * @param {boolean} isAuthenticated - Current authentication state.
- * @param {boolean} loggedOut - Current loggedOut state.
  * @returns {Object} Handlers object.
  */
 export function useAppHandlers({
@@ -22,15 +27,12 @@ export function useAppHandlers({
                                    setIsAuthenticated,
                                    setLoggedOut,
                                    setIsSkillPlanModalOpen,
-                                   wrappedFetchAppEndpoint,
-                                   isAuthenticated,
-                                   loggedOut
                                }) {
 
     const handleLogout = useCallback(async () => {
         console.trace("handleLogout called");
         console.trace("handleLogout call stack:");
-        await apiRequest(`${backEndURL}/api/logout`, {
+        await apiRequest(`/api/logout`, {
             method: 'POST',
             credentials: 'include'
         }, {
@@ -48,159 +50,83 @@ export function useAppHandlers({
 
     const handleToggleAccountStatus = useCallback(async (accountID) => {
         log("handleToggleAccountStatus called:", accountID);
-        await apiRequest(`${backEndURL}/api/toggle-account-status`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accountID }),
-            credentials: 'include'
-        }, {
+        const toggleAccountStatus = createPostHandler({
+            endpoint: '/api/toggle-account-status',
+            setAppData,
             successMessage: 'Account status toggled successfully!',
             errorMessage: 'Failed to toggle account status.',
             onSuccess: () => {
-                setAppData((prev) => {
-                    if (!prev) return prev;
-                    const updatedAccounts = prev.Accounts.map((account) =>
-                        account.ID === accountID
-                            ? { ...account, Status: account.Status === 'Alpha' ? 'Omega' : 'Alpha' }
-                            : account
-                    );
-                    return { ...prev, Accounts: updatedAccounts };
-                });
+                setAppData((prev) => toggleAccountStatusInAppData(prev, accountID));
             }
         });
+        await toggleAccountStatus({ accountID });
     }, [setAppData]);
 
     const handleUpdateCharacter = useCallback(async (characterID, updates) => {
         log("handleUpdateCharacter called with characterID:", characterID, "updates:", updates);
-        await apiRequest(`${backEndURL}/api/update-character`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ characterID, updates }),
-            credentials: 'include'
-        }, {
+        const updateCharacterReq = createPostHandler({
+            endpoint: '/api/update-character',
+            setAppData,
             successMessage: 'Character updated successfully!',
             errorMessage: 'Failed to update character.',
             onSuccess: () => {
-                setAppData((prev) => {
-                    if (!prev) return prev;
-                    const updatedRoles = [...prev.Roles];
-                    if (updates.Role && !updatedRoles.includes(updates.Role)) {
-                        updatedRoles.push(updates.Role);
-                    }
-
-                    const updatedAccounts = prev.Accounts.map((account) => {
-                        const updatedCharacters = account.Characters.map((character) =>
-                            character.Character.CharacterID === characterID
-                                ? { ...character, ...updates }
-                                : character
-                        );
-                        return { ...account, Characters: updatedCharacters };
-                    });
-
-                    return { ...prev, Accounts: updatedAccounts, Roles: updatedRoles };
-                });
+                setAppData((prev) => updateCharacterInAppData(prev, characterID, updates));
             }
         });
+        await updateCharacterReq({ characterID, updates });
     }, [setAppData]);
 
     const handleRemoveCharacter = useCallback(async (characterID) => {
         log("handleRemoveCharacter called with characterID:", characterID);
-        await apiRequest(`${backEndURL}/api/remove-character`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ characterID }),
-            credentials: 'include'
-        }, {
+        const removeCharacterReq = createPostHandler({
+            endpoint: '/api/remove-character',
+            setAppData,
             successMessage: 'Character removed successfully!',
             errorMessage: 'Failed to remove character.',
             onSuccess: () => {
-                setAppData((prev) => {
-                    if (!prev) return prev;
-                    const updatedAccounts = prev.Accounts.map((account) => {
-                        const filteredCharacters = account.Characters.filter(
-                            (c) => c.Character.CharacterID !== characterID
-                        );
-                        return { ...account, Characters: filteredCharacters };
-                    });
-                    return { ...prev, Accounts: updatedAccounts };
-                });
+                setAppData((prev) => removeCharacterFromAppData(prev, characterID));
             }
         });
+        await removeCharacterReq({ characterID });
     }, [setAppData]);
 
     const handleUpdateAccountName = useCallback(async (accountID, newName) => {
         log("handleUpdateAccountName:", { accountID, newName });
-        await apiRequest(`${backEndURL}/api/update-account-name`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accountID, accountName: newName }),
-            credentials: 'include'
-        }, {
+        const updateAccountNameReq = createPostHandler({
+            endpoint: '/api/update-account-name',
+            setAppData,
             successMessage: 'Account name updated successfully!',
             errorMessage: 'Failed to update account name.',
             onSuccess: () => {
-                setAppData((prev) => {
-                    if (!prev) return prev;
-                    const updatedAccounts = prev.Accounts.map((account) =>
-                        account.ID === accountID ? { ...account, Name: newName } : account
-                    );
-                    return { ...prev, Accounts: updatedAccounts };
-                });
+                setAppData((prev) => updateAccountNameInAppData(prev, accountID, newName));
             }
         });
+        await updateAccountNameReq({ accountID, accountName: newName });
     }, [setAppData]);
 
     const handleRemoveAccount = useCallback(async (accountName) => {
         log("handleRemoveAccount called with accountName:", accountName);
-        await apiRequest(`${backEndURL}/api/remove-account`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accountName }),
-            credentials: 'include'
-        }, {
+        const removeAccountReq = createPostHandler({
+            endpoint: '/api/remove-account',
+            setAppData,
             successMessage: 'Account removed successfully!',
             errorMessage: 'Failed to remove account.',
             onSuccess: () => {
-                setAppData((prev) => {
-                    if (!prev) return prev;
-                    const updatedAccounts = prev.Accounts.filter(
-                        (account) => account.Name !== accountName
-                    );
-                    return { ...prev, Accounts: updatedAccounts };
-                });
+                setAppData((prev) => removeAccountFromAppData(prev, accountName));
             }
         });
+        await removeAccountReq({ accountName });
     }, [setAppData]);
 
     const handleAddCharacter = useCallback(async (account) => {
-        log("handleAddCharacter called with account:", account);
-        await apiRequest(`${backEndURL}/api/add-character`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account }),
-            credentials: 'include'
-        }, {
-            errorMessage: 'An error occurred while adding character.',
-            onSuccess: (data) => {
-                if (data.redirectURL) {
-                    if (isDev) {
-                        log("Dev mode: redirecting internally to:", data.redirectURL);
-                        window.location.href = data.redirectURL;
-                    } else {
-                        log("Production mode: opening external browser to:", data.redirectURL);
-                        window.electronAPI.openExternal(data.redirectURL);
-                        toast.info("Please authenticate in your browser");
-                    }
-                } else {
-                    toast.error("No redirect URL received from server.");
-                }
-            }
-        });
+        const addCharacter = createAddCharacterHandler();
+        await addCharacter(account);
     }, []);
 
     const handleSaveSkillPlan = useCallback(async (planName, planContents) => {
         log("handleSaveSkillPlan called with planName:", planName);
-        await apiRequest(`${backEndURL}/api/save-skill-plan`, {
+        // This one is slightly different because it refreshes data after success
+        await apiRequest(`/api/save-skill-plan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: planName, contents: planContents }),

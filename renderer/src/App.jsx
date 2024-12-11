@@ -6,10 +6,9 @@ import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
 import { backEndURL } from './Config';
-import { fetchAppEndpoint } from './utils/api';
+import { fetchAndNormalizeAppData } from './utils/appDataTransforms.jsx';
 import { useLoginCallback } from './hooks/useLoginCallback';
 import { log, trace } from './utils/logger';
-import { normalizeAppData } from './utils/dataNormalizer.jsx';
 import { useAppHandlers } from './hooks/useAppHandlers';
 
 import Header from './components/partials/Header.jsx';
@@ -37,7 +36,7 @@ const App = () => {
 
     const wrappedFetchAppEndpoint = useCallback(
         async (endpoint, options) => {
-            const result = await fetchAppEndpoint(
+            return fetchAndNormalizeAppData(
                 {
                     backEndURL,
                     endpoint,
@@ -46,13 +45,12 @@ const App = () => {
                     setIsLoading,
                     setIsRefreshing,
                     setIsAuthenticated,
-                    setAppData: (data) => setAppData(normalizeAppData(data))
+                    setAppData
                 },
                 options
             );
-            return result;
         },
-        [backEndURL, loggedOut, isAuthenticated]
+        [loggedOut, isAuthenticated, setIsLoading, setIsRefreshing, setIsAuthenticated, setAppData]
     );
 
     const fetchData = useCallback(async () => {
@@ -102,13 +100,8 @@ const App = () => {
         loggedOut
     });
 
-    const openSkillPlanModal = () => {
-        setIsSkillPlanModalOpen(true);
-    };
-
-    const closeSkillPlanModal = () => {
-        setIsSkillPlanModalOpen(false);
-    };
+    const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
+    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
 
     useEffect(() => {
         log("App mounted, calling fetchData");
