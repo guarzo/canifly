@@ -1,27 +1,34 @@
 // src/hooks/useLoginCallback.js
-export function useLoginCallback() {
-    /**
-     * Custom hook to handle login callback logic.
-     *
-     * This hook sets an interval to repeatedly attempt login finalization until the user is authenticated
-     * or until it gives up after a certain number of attempts.
-     *
-     * @param {string} state - The state parameter from the OAuth flow (or similar).
-     * @param {boolean} isAuthenticated - Whether the user is currently authenticated.
-     * @param {boolean} loggedOut - Whether the user is currently logged out.
-     * @param {Function} loginRefresh - Function to try fetching user data after finalization.
-     * @param {Function} setLoggedOut - Setter for loggedOut.
-     * @param {Function} setIsAuthenticated - Setter for isAuthenticated.
-     */
-    return function logInCallBack(state, { isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL }) {
+import { useCallback } from 'react';
+
+/**
+ * Custom hook to handle login callback logic.
+ *
+ * @param {boolean} isAuthenticated - Whether the user is currently authenticated.
+ * @param {boolean} loggedOut - Whether the user is currently logged out.
+ * @param {Function} loginRefresh - Function to try fetching user data after finalization.
+ * @param {Function} setLoggedOut - Setter for loggedOut state.
+ * @param {Function} setIsAuthenticated - Setter for isAuthenticated state.
+ * @param {string} backEndURL - Base URL for the backend.
+ * @returns {Function} logInCallBack - A function that, when called with a state string, starts the login finalization polling.
+ */
+export function useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL) {
+    // We define logInCallBack using the values currently in this closure.
+    // When this hook is re-run (due to state changes), a new logInCallBack
+    // will be created with updated references to isAuthenticated, loggedOut, etc.
+    return useCallback((state) => {
         console.log("logInCallBack called with state:", state);
-        setLoggedOut(false);
+        setLoggedOut(false); // Ensure we start in a non-logged-out state
 
         let attempts = 0;
         const maxAttempts = 6;
         let finalized = false;
 
         const interval = setInterval(async () => {
+            // Here we rely on the values captured in the closure.
+            // These values reflect the state at the time this hook last ran.
+            // If isAuthenticated or loggedOut change, useLoginCallback is re-run,
+            // recreating logInCallBack with updated values.
             console.log(`Interval tick: attempts=${attempts}, isAuthenticated=${isAuthenticated}, finalized=${finalized}, loggedOut=${loggedOut}`);
 
             if (isAuthenticated) {
@@ -74,5 +81,5 @@ export function useLoginCallback() {
         }, 5000);
 
         console.log("logInCallBack: interval created");
-    };
+    }, [isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL]);
 }

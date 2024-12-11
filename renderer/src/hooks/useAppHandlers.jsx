@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { apiRequest } from '../utils/apiRequest';
-import { log, trace } from '../utils/logger';
+import { log } from '../utils/logger';
 import { isDev, backEndURL } from '../Config';
 
 /**
@@ -28,8 +28,8 @@ export function useAppHandlers({
                                }) {
 
     const handleLogout = useCallback(async () => {
-        log("handleLogout called");
-        trace();
+        console.trace("handleLogout called");
+        console.trace("handleLogout call stack:");
         await apiRequest(`${backEndURL}/api/logout`, {
             method: 'POST',
             credentials: 'include'
@@ -39,6 +39,8 @@ export function useAppHandlers({
             onSuccess: () => {
                 setIsAuthenticated(false);
                 setAppData(null);
+                console.log("handleLogout success");
+                console.trace("handleLogout call stack:");
                 setLoggedOut(true);
             }
         });

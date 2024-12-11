@@ -2,16 +2,17 @@ package cmd
 
 import (
 	"encoding/base64"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
 	"github.com/guarzo/canifly/internal/auth"
-	httpServices "github.com/guarzo/canifly/internal/http"
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/server"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/guarzo/canifly/internal/utils"
 )
 
@@ -26,7 +27,7 @@ func Start() {
 	secret := server.GetSecretKey(logger)
 	initializeComponents(secret, logger)
 
-	httpClient := httpServices.NewAPIClient("https://esi.evetech.net", "", logger)
+	httpClient := flyHttp.NewAPIClient("https://esi.evetech.net", "", logger)
 	authClient := auth.NewAuthClient(logger)
 
 	r := server.SetupRouter(secret, logger, server.GetServices(logger, authClient, httpClient))

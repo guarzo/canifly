@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,6 +8,7 @@ import (
 	"github.com/guarzo/canifly/internal/embed"
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
 	flyHttp "github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 // SetupRouter configures and returns the app’s router

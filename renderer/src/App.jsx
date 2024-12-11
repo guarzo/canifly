@@ -76,17 +76,10 @@ const App = () => {
         trace();
     }, [loggedOut]);
 
-    const loginCallbackFn = useLoginCallback();
+    const loginCallbackFn = useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL);
 
     const logInCallBack = (state) => {
-        loginCallbackFn(state, {
-            isAuthenticated,
-            loggedOut,
-            loginRefresh,
-            setLoggedOut,
-            setIsAuthenticated,
-            backEndURL
-        });
+        loginCallbackFn(state);
     };
 
     const {
