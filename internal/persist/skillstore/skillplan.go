@@ -1,51 +1,63 @@
-// persist/skillplan.go
-package persist
+package skillstore
 
 import (
 	"bufio"
 	"fmt"
+	"github.com/guarzo/canifly/internal/embed"
+	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/persist"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/guarzo/canifly/internal/embed"
-	"github.com/guarzo/canifly/internal/model"
 )
 
-func (ds *DataStore) ProcessSkillPlans() error {
+func (sk *SkillStore) GetWriteablePlansPath() (string, error) {
+	return getWriteablePlansPath()
+}
+
+func getWriteablePlansPath() (string, error) {
+	return persist.GetWriteableSubPath(plansDir)
+}
+
+func getPlanFileName(fileName string) (string, error) {
+	configPath, err := getWriteablePlansPath()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(configPath, fileName), nil
+}
+
+func (sk *SkillStore) ProcessSkillPlans() error {
 	writablePath, err := getWriteablePlansPath()
 	if err != nil {
 		return fmt.Errorf("failed to get writable plans path: %w", err)
 	}
 
-	if err := ds.copyEmbeddedPlansToWritable(writablePath); err != nil {
+	if err := sk.copyEmbeddedPlansToWritable(writablePath); err != nil {
 		return fmt.Errorf("failed to copy embedded plans: %w", err)
 	}
 
-	ds.logger.Debugf("Loading skill plans from %s", writablePath)
-	skillPlans, err := ds.loadSkillPlans(writablePath)
+	sk.logger.Debugf("Loading skill plans from %s", writablePath)
+	skillPlans, err := sk.loadSkillPlans(writablePath)
 	if err != nil {
 		return fmt.Errorf("failed to load skill plans: %w", err)
 	}
-	ds.mut.Lock()
-	ds.skillPlans = skillPlans
-	ds.mut.Unlock()
-	ds.logger.Debugf("Loaded %d skill plans", len(ds.skillPlans))
+	sk.mut.Lock()
+	sk.skillPlans = skillPlans
+	sk.mut.Unlock()
+	sk.logger.Debugf("Loaded %d skill plans", len(sk.skillPlans))
 	return nil
 }
 
-func (ds *DataStore) GetWriteablePlansPath() (string, error) {
-	return getWriteablePlansPath()
+func (sk *SkillStore) GetSkillPlans() map[string]model.SkillPlan {
+	sk.mut.RLock()
+	defer sk.mut.RUnlock()
+	return sk.skillPlans
 }
 
-func (ds *DataStore) GetSkillPlans() map[string]model.SkillPlan {
-	ds.mut.RLock()
-	defer ds.mut.RUnlock()
-	return ds.skillPlans
-}
-
-func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skill) error {
+func (sk *SkillStore) SaveSkillPlan(planName string, skills map[string]model.Skill) error {
 	if len(skills) == 0 {
 		return fmt.Errorf("cannot save an empty skill plan for planName: %s", planName)
 	}
@@ -53,7 +65,7 @@ func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 	planFilePath, err := getPlanFileName(planName + ".txt")
 	file, err := os.Create(planFilePath)
 	if err != nil {
-		ds.logger.WithError(err).Errorf("Failed to create plan file %s", planFilePath)
+		sk.logger.WithError(err).Errorf("Failed to create plan file %s", planFilePath)
 		return err
 	}
 	defer file.Close()
@@ -62,46 +74,46 @@ func (ds *DataStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 	for skillName, skill := range skills {
 		line := fmt.Sprintf("%s %d\n", skillName, skill.Level)
 		if _, err := writer.WriteString(line); err != nil {
-			ds.logger.WithError(err).Errorf("Failed to write skill to file %s", planFilePath)
+			sk.logger.WithError(err).Errorf("Failed to write skill to file %s", planFilePath)
 			return err
 		}
 	}
 	if err := writer.Flush(); err != nil {
-		ds.logger.WithError(err).Errorf("Failed to flush writer for %s", planFilePath)
+		sk.logger.WithError(err).Errorf("Failed to flush writer for %s", planFilePath)
 		return err
 	}
 
 	planKey := strings.TrimSuffix(planName, ".txt")
-	ds.mut.Lock()
-	ds.skillPlans[planKey] = model.SkillPlan{Name: planKey, Skills: skills}
-	ds.mut.Unlock()
-	ds.logger.Infof("Saved skill plan %s with %d skills", planKey, len(skills))
+	sk.mut.Lock()
+	sk.skillPlans[planKey] = model.SkillPlan{Name: planKey, Skills: skills}
+	sk.mut.Unlock()
+	sk.logger.Infof("Saved skill plan %s with %d skills", planKey, len(skills))
 	return nil
 }
 
-func (ds *DataStore) DeleteSkillPlan(planName string) error {
+func (sk *SkillStore) DeleteSkillPlan(planName string) error {
 	planFilePath, err := getPlanFileName(planName + ".txt")
 	if err != nil {
 		return err
 	}
 	if err := os.Remove(planFilePath); err != nil {
 		if os.IsNotExist(err) {
-			ds.logger.Warnf("Skill plan %s does not exist", planName)
+			sk.logger.Warnf("Skill plan %s does not exist", planName)
 			return fmt.Errorf("skill plan does not exist: %w", err)
 		}
-		ds.logger.WithError(err).Errorf("Failed to delete skill plan file %s", planFilePath)
+		sk.logger.WithError(err).Errorf("Failed to delete skill plan file %s", planFilePath)
 		return err
 	}
 
-	ds.mut.Lock()
-	delete(ds.skillPlans, planName)
-	ds.mut.Unlock()
+	sk.mut.Lock()
+	delete(sk.skillPlans, planName)
+	sk.mut.Unlock()
 
-	ds.logger.Infof("Deleted skill plan %s", planName)
+	sk.logger.Infof("Deleted skill plan %s", planName)
 	return nil
 }
 
-func (ds *DataStore) copyEmbeddedPlansToWritable(writableDir string) error {
+func (sk *SkillStore) copyEmbeddedPlansToWritable(writableDir string) error {
 	entries, err := embed.StaticFiles.ReadDir("static/plans")
 	if err != nil {
 		return fmt.Errorf("failed to read embedded plans: %w", err)
@@ -112,12 +124,12 @@ func (ds *DataStore) copyEmbeddedPlansToWritable(writableDir string) error {
 			fileName := entry.Name()
 			destPath := filepath.Join(writableDir, fileName)
 
-			if err := ds.copyEmbeddedFile("static/plans/"+fileName, destPath); err != nil {
+			if err := sk.copyEmbeddedFile("static/plans/"+fileName, destPath); err != nil {
 				return fmt.Errorf("failed to copy embedded plan %s: %w", fileName, err)
 			}
 
 			if _, statErr := os.Stat(destPath); statErr != nil {
-				ds.logger.WithError(statErr).Errorf("File %s was copied but does not exist at %s", fileName, destPath)
+				sk.logger.WithError(statErr).Errorf("File %s was copied but does not exist at %s", fileName, destPath)
 				return fmt.Errorf("file %s does not exist after copying", fileName)
 			}
 		}
@@ -125,7 +137,7 @@ func (ds *DataStore) copyEmbeddedPlansToWritable(writableDir string) error {
 	return nil
 }
 
-func (ds *DataStore) copyEmbeddedFile(srcPath, destPath string) error {
+func (sk *SkillStore) copyEmbeddedFile(srcPath, destPath string) error {
 	srcFile, err := embed.StaticFiles.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("failed to open embedded file %s: %w", srcPath, err)
@@ -135,21 +147,21 @@ func (ds *DataStore) copyEmbeddedFile(srcPath, destPath string) error {
 	return copyReaderToFile(destPath, srcFile)
 }
 
-func (ds *DataStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, error) {
+func (sk *SkillStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, error) {
 	skillPlans := make(map[string]model.SkillPlan)
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			ds.logger.WithError(err).Errorf("Error walking through %s", path)
+			sk.logger.WithError(err).Errorf("Error walking through %s", path)
 			return err
 		}
 
 		if !info.IsDir() && strings.HasSuffix(path, ".txt") {
 			planName := strings.TrimSuffix(filepath.Base(path), ".txt")
 
-			skills, err := ds.readSkillsFromFile(path)
+			skills, err := sk.readSkillsFromFile(path)
 			if err != nil {
-				ds.logger.WithError(err).Errorf("Failed to read skills from %s", path)
+				sk.logger.WithError(err).Errorf("Failed to read skills from %s", path)
 				return err
 			}
 			skillPlans[planName] = model.SkillPlan{Name: planName, Skills: skills}
@@ -164,7 +176,7 @@ func (ds *DataStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, err
 	return skillPlans, nil
 }
 
-func (ds *DataStore) readSkillsFromFile(filePath string) (map[string]model.Skill, error) {
+func (sk *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill, error) {
 	skills := make(map[string]model.Skill)
 	lineNumber := 0
 
@@ -196,6 +208,6 @@ func (ds *DataStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 		return nil, err
 	}
 
-	ds.logger.Debugf("Read %d skills from %s", len(skills), filePath)
+	sk.logger.Debugf("Read %d skills from %s", len(skills), filePath)
 	return skills, nil
 }

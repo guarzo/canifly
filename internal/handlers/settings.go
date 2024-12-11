@@ -138,3 +138,15 @@ func (h *SettingsHandler) ChooseSettingsDir(w http.ResponseWriter, r *http.Reque
 
 	respondJSON(w, map[string]interface{}{"success": true, "settingsDir": req.Directory})
 }
+
+func (h *SettingsHandler) ResetToDefaultDir(w http.ResponseWriter, r *http.Request) {
+
+	h.logger.Infof("in reset to default dir handler")
+
+	if err := h.settingsService.EnsureSettingsDir(); err != nil {
+		respondJSON(w, map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	respondJSON(w, map[string]interface{}{"success": true})
+}

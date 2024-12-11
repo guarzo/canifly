@@ -1,9 +1,12 @@
-package persist
+package loginstatestore
 
 import (
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"sync"
 )
+
+var _ interfaces.LoginRepository = (*LoginStateStore)(nil)
 
 type LoginStateStore struct {
 	mu    sync.Mutex

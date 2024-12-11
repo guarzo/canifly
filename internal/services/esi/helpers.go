@@ -4,6 +4,7 @@ package esi
 import (
 	"errors"
 	"fmt"
+	"github.com/guarzo/canifly/internal/persist/cacheStore"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/guarzo/canifly/internal/auth"
 	flyErrors "github.com/guarzo/canifly/internal/errors"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -135,6 +135,6 @@ func getResultsWithCache(address string, token *oauth2.Token, cacheService inter
 		return nil, err
 	}
 
-	cacheService.Set(address, bodyBytes, persist.DefaultExpiration)
+	cacheService.Set(address, bodyBytes, cacheStore.DefaultExpiration)
 	return bodyBytes, nil
 }

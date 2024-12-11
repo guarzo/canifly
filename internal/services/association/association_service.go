@@ -10,21 +10,23 @@ import (
 )
 
 type associationService struct {
-	logger    interfaces.Logger
-	assocRepo interfaces.AssocRepository
-	esi       interfaces.ESIService
+	logger      interfaces.Logger
+	accountRepo interfaces.AccountRepository
+	configRepo  interfaces.SettingsRepository
+	esi         interfaces.ESIService
 }
 
-func NewAssociationService(logger interfaces.Logger, assoc interfaces.AssocRepository, esi interfaces.ESIService) interfaces.AssociationService {
+func NewAssociationService(logger interfaces.Logger, assoc interfaces.AccountRepository, esi interfaces.ESIService, config interfaces.SettingsRepository) interfaces.AssociationService {
 	return &associationService{
-		logger:    logger,
-		assocRepo: assoc,
-		esi:       esi,
+		logger:      logger,
+		accountRepo: assoc,
+		esi:         esi,
+		configRepo:  config,
 	}
 }
 
 func (assoc *associationService) UpdateAssociationsAfterNewCharacter(account *model.Account, charID int64) error {
-	configData, err := assoc.assocRepo.FetchConfigData()
+	configData, err := assoc.configRepo.FetchConfigData()
 	if err != nil {
 		return err
 	}
@@ -33,14 +35,14 @@ func (assoc *associationService) UpdateAssociationsAfterNewCharacter(account *mo
 		return err
 	}
 
-	if err := assoc.assocRepo.SaveConfigData(configData); err != nil {
+	if err := assoc.configRepo.SaveConfigData(configData); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (assoc *associationService) AssociateCharacter(userId, charId string) error {
-	configData, err := assoc.assocRepo.FetchConfigData()
+	configData, err := assoc.configRepo.FetchConfigData()
 	if err != nil {
 		return fmt.Errorf("failed to fetch config data: %w", err)
 	}
@@ -53,7 +55,7 @@ func (assoc *associationService) AssociateCharacter(userId, charId string) error
 		assoc.logger.Infof(err.Error())
 	}
 
-	if err = assoc.assocRepo.SaveConfigData(configData); err != nil {
+	if err = assoc.configRepo.SaveConfigData(configData); err != nil {
 		return fmt.Errorf("failed to save updated associations: %w", err)
 	}
 
@@ -61,7 +63,7 @@ func (assoc *associationService) AssociateCharacter(userId, charId string) error
 }
 
 func (assoc *associationService) UnassociateCharacter(userId, charId string) error {
-	configData, err := assoc.assocRepo.FetchConfigData()
+	configData, err := assoc.configRepo.FetchConfigData()
 	if err != nil {
 		return fmt.Errorf("failed to fetch config data: %w", err)
 	}
@@ -99,7 +101,7 @@ func (assoc *associationService) UnassociateCharacter(userId, charId string) err
 		}
 
 		// Now reset any account that might be linked to userId
-		accounts, err := assoc.assocRepo.FetchAccounts()
+		accounts, err := assoc.accountRepo.FetchAccounts()
 		if err != nil {
 			return fmt.Errorf("failed to load accounts: %w", err)
 		}
@@ -117,13 +119,13 @@ func (assoc *associationService) UnassociateCharacter(userId, charId string) err
 		}
 
 		// Save updated accounts
-		if err = assoc.assocRepo.SaveAccounts(accounts); err != nil {
+		if err = assoc.accountRepo.SaveAccounts(accounts); err != nil {
 			return fmt.Errorf("failed to save accounts after resetting user %s: %w", userId, err)
 		}
 	}
 
 	// Save the updated config data
-	if err := assoc.assocRepo.SaveConfigData(configData); err != nil {
+	if err := assoc.configRepo.SaveConfigData(configData); err != nil {
 		return fmt.Errorf("failed to save updated associations: %w", err)
 	}
 
@@ -261,7 +263,7 @@ func (assoc *associationService) syncAccountWithUserFileAndAssociations(
 }
 
 func (assoc *associationService) updateAccountAfterNewAssociation(userId string, charId string, configData *model.ConfigData) error {
-	accounts, err := assoc.assocRepo.FetchAccounts()
+	accounts, err := assoc.accountRepo.FetchAccounts()
 	if err != nil {
 		return fmt.Errorf("failed to load accounts: %w", err)
 	}
@@ -285,7 +287,7 @@ func (assoc *associationService) updateAccountAfterNewAssociation(userId string,
 		return err
 	}
 
-	if err = assoc.assocRepo.SaveAccounts(accounts); err != nil {
+	if err = assoc.accountRepo.SaveAccounts(accounts); err != nil {
 		return err
 	}
 

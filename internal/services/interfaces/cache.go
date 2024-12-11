@@ -11,8 +11,8 @@ type CacheService interface {
 }
 
 type CacheRepository interface {
-	GetFromCache(key string) ([]byte, bool)
-	SetToCache(key string, value []byte, expiration time.Duration)
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte, expiration time.Duration)
 	LoadApiCache() error
 	SaveApiCache() error
 }

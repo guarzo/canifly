@@ -2,7 +2,6 @@
 package persist
 
 import (
-	"bufio"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -11,17 +10,11 @@ import (
 	"path/filepath"
 )
 
-const accountDir = "accounts"
-const configDir = "config"
-const plansDir = "plans"
-const accountFileName = "accounts.json"
-const cacheFileName = "cache.json"
-const configFileName = "config.json"
-const deletedFileName = "deleted.json"
-const selectionsFileName = "selections.json"
+const ConfigDir = "config"
+const AccountDir = "accounts"
 
-// readJSONFromFile loads JSON data from a file into the given target.
-func readJSONFromFile(filePath string, target interface{}) error {
+// ReadJsonFromFile loads JSON data from a file into the given target.
+func ReadJsonFromFile(filePath string, target interface{}) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", filePath, err)
@@ -32,10 +25,10 @@ func readJSONFromFile(filePath string, target interface{}) error {
 	return nil
 }
 
-// saveJSONToFile marshals the source into JSON and writes it to file.
-func saveJSONToFile(filePath string, source interface{}) error {
+// SaveJsonToFile marshals the source into JSON and writes it to file.
+func SaveJsonToFile(filePath string, source interface{}) error {
 	dir := filepath.Dir(filePath)
-	if err := ensureDirExists(dir); err != nil {
+	if err := EnsureDirExists(dir); err != nil {
 		return fmt.Errorf("failed to create directories for %s: %w", filePath, err)
 	}
 
@@ -50,50 +43,40 @@ func saveJSONToFile(filePath string, source interface{}) error {
 	return nil
 }
 
-func ensureDirExists(dir string) error {
+func EnsureDirExists(dir string) error {
 	return os.MkdirAll(dir, os.ModePerm)
 }
 
-func copyReaderToFile(destPath string, src io.Reader) error {
-	dir := filepath.Dir(destPath)
-	if err := ensureDirExists(dir); err != nil {
-		return fmt.Errorf("failed to create directory for %s: %w", destPath, err)
+// FileExists is a small helper to check if a file exists.
+func FileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, err
 	}
-
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("failed to create destination file %s: %w", destPath, err)
-	}
-	defer destFile.Close()
-
-	if _, err := io.Copy(destFile, src); err != nil {
-		return fmt.Errorf("failed to copy content to %s: %w", destPath, err)
-	}
-	return nil
+	return err == nil, nil
 }
 
-func processFileLines(filePath string, handler func(line string) error) error {
-	file, err := os.Open(filePath)
+func GetWriteableSubPath(subPaths ...string) (string, error) {
+	writePath, err := os.UserConfigDir()
 	if err != nil {
-		return fmt.Errorf("failed to open file %s: %w", filePath, err)
+		return "", fmt.Errorf("failed to retrieve writeable directory: %w", err)
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
-	lineNumber := 0
-	for scanner.Scan() {
-		lineNumber++
-		if err := handler(scanner.Text()); err != nil {
-			return err
-		}
+	pathSuffix := os.Getenv("PATH_SUFFIX")
+	basePath := filepath.Join(writePath, "canifly")
+	if pathSuffix != "" {
+		basePath = filepath.Join(basePath, pathSuffix)
 	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading file %s: %w", filePath, err)
+
+	finalPath := filepath.Join(basePath, filepath.Join(subPaths...))
+	if err := EnsureDirExists(finalPath); err != nil {
+		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
-	return nil
+
+	return finalPath, nil
 }
 
-func readCSVRecords(r io.Reader) ([][]string, error) {
+func ReadCsvRecords(r io.Reader) ([][]string, error) {
 	reader := csv.NewReader(r)
 	var records [][]string
 	for {
@@ -107,64 +90,4 @@ func readCSVRecords(r io.Reader) ([][]string, error) {
 		records = append(records, record)
 	}
 	return records, nil
-}
-
-// fileExists is a small helper to check if a file exists.
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false, err
-	}
-	return err == nil, nil
-}
-
-func getWritableSubPath(subPaths ...string) (string, error) {
-	writePath, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve writeable directory: %w", err)
-	}
-
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	basePath := filepath.Join(writePath, "canifly")
-	if pathSuffix != "" {
-		basePath = filepath.Join(basePath, pathSuffix)
-	}
-
-	finalPath := filepath.Join(basePath, filepath.Join(subPaths...))
-	if err := ensureDirExists(finalPath); err != nil {
-		return "", fmt.Errorf("failed to create directory: %w", err)
-	}
-
-	return finalPath, nil
-}
-
-func getAccountFileName(fileName string) (string, error) {
-	accountPath, err := getWritableSubPath(accountDir)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(accountPath, fileName), nil
-}
-
-func getConfigFileName(fileName string) (string, error) {
-	configPath, err := getWritableSubPath(configDir)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(configPath, fileName), nil
-}
-
-func getWriteablePlansPath() (string, error) {
-	return getWritableSubPath(plansDir)
-}
-
-func getPlanFileName(fileName string) (string, error) {
-	configPath, err := getWriteablePlansPath()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(configPath, fileName), nil
 }

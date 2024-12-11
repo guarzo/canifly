@@ -20,11 +20,11 @@ func NewCacheService(logger interfaces.Logger, persistCache interfaces.CacheRepo
 }
 
 func (c *cacheService) Get(key string) ([]byte, bool) {
-	return c.persistCache.GetFromCache(key)
+	return c.persistCache.Get(key)
 }
 
 func (c *cacheService) Set(key string, value []byte, expiration time.Duration) {
-	c.persistCache.SetToCache(key, value, expiration)
+	c.persistCache.Set(key, value, expiration)
 }
 
 func (c *cacheService) LoadCache() error {

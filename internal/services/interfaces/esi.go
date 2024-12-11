@@ -26,3 +26,8 @@ type HTTPClient interface {
 	// then unmarshals the result into target.
 	DoRequest(method, endpoint string, body interface{}, target interface{}) error
 }
+
+type DeletedCharactersRepository interface {
+	FetchDeletedCharacters() ([]string, error)
+	SaveDeletedCharacters([]string) error
+}

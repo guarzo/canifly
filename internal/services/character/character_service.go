@@ -7,7 +7,6 @@ import (
 
 	"github.com/guarzo/canifly/internal/auth"
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -16,20 +15,22 @@ type characterService struct {
 	esi             interfaces.ESIService
 	auth            auth.AuthClient
 	logger          interfaces.Logger
-	sysResolver     persist.NameResolver
+	sysRepo         interfaces.SystemRepository
+	skillRepo       interfaces.SkillRepository
 	accountService  interfaces.AccountService
 	settingsService interfaces.SettingsService
 }
 
 func NewCharacterService(esi interfaces.ESIService,
 	auth auth.AuthClient, logger interfaces.Logger,
-	resolver persist.NameResolver,
+	sys interfaces.SystemRepository, sk interfaces.SkillRepository,
 	as interfaces.AccountService, s interfaces.SettingsService) interfaces.CharacterService {
 	return &characterService{
 		esi:             esi,
 		auth:            auth,
 		logger:          logger,
-		sysResolver:     resolver,
+		sysRepo:         sys,
+		skillRepo:       sk,
 		accountService:  as,
 		settingsService: s,
 	}
@@ -79,10 +80,10 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	charIdentity.Character.CharacterSkillsResponse = *skills
 	charIdentity.Character.SkillQueue = *skillQueue
 	charIdentity.Character.Location = characterLocation
-	charIdentity.Character.LocationName = c.sysResolver.GetSystemName(charIdentity.Character.Location)
+	charIdentity.Character.LocationName = c.sysRepo.GetSystemName(charIdentity.Character.Location)
 	charIdentity.MCT = c.isCharacterTraining(*skillQueue)
 	if charIdentity.MCT {
-		charIdentity.Training = c.sysResolver.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
+		charIdentity.Training = c.skillRepo.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
 	}
 
 	// Initialize maps if nil

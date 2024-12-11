@@ -19,4 +19,5 @@ type SkillRepository interface {
 	DeleteSkillPlan(planName string) error
 	GetWriteablePlansPath() (string, error)
 	GetSkillTypeByID(id string) (model.SkillType, bool)
+	GetSkillName(id int32) string
 }

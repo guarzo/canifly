@@ -17,14 +17,10 @@ type SettingsService interface {
 }
 
 type SettingsRepository interface {
-	ConfigRepository
-	UserSelectionsRepository
-	FileSystemRepository
-}
-
-type ConfigRepository interface {
 	FetchConfigData() (*model.ConfigData, error)
 	SaveConfigData(*model.ConfigData) error
+	UserSelectionsRepository
+	FileSystemRepository
 }
 
 type UserSelectionsRepository interface {

@@ -22,7 +22,7 @@ type accountService struct {
 
 func NewAccountService(
 	logger interfaces.Logger,
-	accountRepo interfaces.AssocRepository,
+	accountRepo interfaces.AccountRepository,
 	esi interfaces.ESIService,
 	assoc interfaces.AssociationService,
 ) interfaces.AccountService {

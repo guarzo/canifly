@@ -1,5 +1,5 @@
 // persist/paths.go
-package persist
+package settingsStore
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-func (ds *DataStore) GetHomeDir() (string, error) {
+func (s *SettingsStore) GetHomeDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

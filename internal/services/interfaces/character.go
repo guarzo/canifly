@@ -8,8 +8,3 @@ type CharacterService interface {
 	UpdateCharacterFields(characterID int64, updates map[string]interface{}) error
 	RemoveCharacter(characterID int64) error
 }
-
-type DeletedCharactersRepository interface {
-	FetchDeletedCharacters() ([]string, error)
-	SaveDeletedCharacters([]string) error
-}

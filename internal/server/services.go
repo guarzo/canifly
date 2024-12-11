@@ -4,7 +4,13 @@ import (
 	"github.com/guarzo/canifly/internal/auth"
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/http"
-	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/persist/accountStore"
+	"github.com/guarzo/canifly/internal/persist/cacheStore"
+	"github.com/guarzo/canifly/internal/persist/deletedStore"
+	"github.com/guarzo/canifly/internal/persist/loginstatestore"
+	"github.com/guarzo/canifly/internal/persist/settingsStore"
+	"github.com/guarzo/canifly/internal/persist/skillstore"
+	"github.com/guarzo/canifly/internal/persist/systemstore"
 	"github.com/guarzo/canifly/internal/services/account"
 	"github.com/guarzo/canifly/internal/services/association"
 	"github.com/guarzo/canifly/internal/services/cache"
@@ -23,7 +29,7 @@ type AppServices struct {
 	SettingsService  interfaces.SettingsService
 	AccountService   interfaces.AccountService
 	SkillService     interfaces.SkillService
-	DataStore        *persist.DataStore
+	DataStore        *settingsStore.SettingsStore
 	CharacterService interfaces.CharacterService
 	DashBoardService interfaces.DashboardService
 	AssocService     interfaces.AssociationService
@@ -38,38 +44,45 @@ func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClien
 		logger.WithError(err).Fatal("Failed to get writable path")
 	}
 
-	dataStore := persist.NewDataStore(logger, baseDir)
-	if err = dataStore.LoadSystems(); err != nil {
-		logger.WithError(err).Fatal("Failed to load systems")
-	}
-
-	if err = dataStore.ProcessSkillPlans(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill plans.")
-	}
-
-	if err = dataStore.LoadSkillTypes(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill types.")
-	}
-
+	dataStore := settingsStore.NewConfigStore(logger, baseDir)
 	if err = embed.LoadStatic(); err != nil {
 		logger.WithError(err).Fatal("Failed to load templates.")
 	}
 
-	loginStateStore := persist.NewLoginStateStore()
+	skillStore := skillstore.NewSkillStore(logger)
+	if err = skillStore.ProcessSkillPlans(); err != nil {
+		logger.WithError(err).Fatal("Failed to load skill plans.")
+	}
+	if err = skillStore.LoadSkillTypes(); err != nil {
+		logger.WithError(err).Fatal("Failed to load skill types.")
+	}
+	skillService := skill.NewSkillService(logger, skillStore)
+
+	loginStateStore := loginstatestore.NewLoginStateStore()
 	loginService := login.NewLoginService(logger, loginStateStore)
 
-	cacheService := cache.NewCacheService(logger, dataStore)
-	esiService := esi.NewESIService(httpClient, authClient, logger, cacheService, dataStore)
-	assocService := association.NewAssociationService(logger, dataStore, esiService)
-	accountService := account.NewAccountService(logger, dataStore, esiService, assocService)
-	sysResolver := persist.NewNameResolver(dataStore)
-	skillService := skill.NewSkillService(logger, dataStore)
+	accountStore := accountStore.NewAccountStore(logger)
+
+	cacheStore := cacheStore.NewCacheStore(logger)
+
+	deletedStore := deletedStore.NewDeletedStore(logger)
+	cacheService := cache.NewCacheService(logger, cacheStore)
+	esiService := esi.NewESIService(httpClient, authClient, logger, cacheService, deletedStore)
+
+	assocService := association.NewAssociationService(logger, accountStore, esiService, dataStore)
+	accountService := account.NewAccountService(logger, accountStore, esiService, assocService)
 	settingsService := settings.NewSettingsService(logger, dataStore, esiService)
 	stateService := state.NewStateService(logger, dataStore)
 	if err = settingsService.EnsureSettingsDir(); err != nil {
 		logger.Errorf("Unable to ensure settings dir %v", err)
 	}
-	characterService := character.NewCharacterService(esiService, authClient, logger, sysResolver, accountService, settingsService)
+
+	sysStore := systemstore.NewSystemStore(logger)
+	if err = sysStore.LoadSystems(); err != nil {
+		logger.WithError(err).Fatal("Failed to load systems")
+	}
+
+	characterService := character.NewCharacterService(esiService, authClient, logger, sysStore, skillStore, accountService, settingsService)
 	dashboardService := dashboard.NewDashboardService(logger, skillService, characterService, accountService, settingsService, stateService)
 
 	return &AppServices{

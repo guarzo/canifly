@@ -51,6 +51,7 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
 	r.HandleFunc("/api/choose-settings-dir", settingsHandler.ChooseSettingsDir)
+	r.HandleFunc("/api/reset-to-default-directory", settingsHandler.ResetToDefaultDir)
 	r.HandleFunc("/api/backup-directory", settingsHandler.BackupDirectory)
 	r.HandleFunc("/api/save-user-selections", settingsHandler.SaveUserSelections)
 

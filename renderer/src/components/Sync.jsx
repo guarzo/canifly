@@ -14,7 +14,6 @@ const Sync = ({
                   settingsData,
                   associations,
                   currentSettingsDir,
-                  isDefaultDir,
                   userSelections,
                   lastBackupDir,
                   backEndURL,
@@ -22,6 +21,7 @@ const Sync = ({
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
+    const [isDefaultDir, setIsDefaultDir] = useState(true)
 
 
     useEffect(() => {
@@ -199,6 +199,7 @@ const Sync = ({
 
             const result = await response.json();
             if (response.ok && result.success) {
+                setIsDefaultDir(false)
                 toast.success(`Settings directory chosen: ${chosenDir}`);
             } else {
                 toast.error(`Failed to choose settings directory: ${result.error || 'Unknown error'}`);
@@ -261,6 +262,7 @@ const Sync = ({
             });
             const result = await response.json();
             if (response.ok && result.success) {
+                setIsDefaultDir(true)
                 toast.success('Directory reset to default: Tranquility');
             } else {
                 toast.error(`Failed to reset directory: ${result.message}`);
@@ -313,7 +315,6 @@ Sync.propTypes = {
     associations: PropTypes.array.isRequired,
     currentSettingsDir: PropTypes.string.isRequired,
     lastBackupDir: PropTypes.string.isRequired,
-    isDefaultDir: PropTypes.bool.isRequired,
     userSelections: PropTypes.object.isRequired,
     backEndURL: PropTypes.string.isRequired,
 };
