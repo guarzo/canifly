@@ -11,16 +11,14 @@ var _ interfaces.SettingsRepository = (*SettingsStore)(nil)
 
 type SettingsStore struct {
 	logger        interfaces.Logger
-	baseDir       string
 	appStateStore AppStateStore
 	mut           sync.RWMutex
 }
 
 // NewConfigStore initializes a new SettingsStore and loads AppState from file.
-func NewConfigStore(logger interfaces.Logger, baseDir string) *SettingsStore {
+func NewConfigStore(logger interfaces.Logger) *SettingsStore {
 	s := &SettingsStore{
 		logger:        logger,
-		baseDir:       baseDir,
 		appStateStore: AppStateStore{},
 	}
 

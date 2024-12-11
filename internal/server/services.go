@@ -1,7 +1,8 @@
 package server
 
 import (
-	"github.com/guarzo/canifly/internal/auth"
+	"fmt"
+
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/persist/accountStore"
@@ -13,6 +14,7 @@ import (
 	"github.com/guarzo/canifly/internal/persist/systemstore"
 	"github.com/guarzo/canifly/internal/services/account"
 	"github.com/guarzo/canifly/internal/services/association"
+	"github.com/guarzo/canifly/internal/services/auth"
 	"github.com/guarzo/canifly/internal/services/cache"
 	"github.com/guarzo/canifly/internal/services/character"
 	"github.com/guarzo/canifly/internal/services/dashboard"
@@ -29,7 +31,7 @@ type AppServices struct {
 	SettingsService  interfaces.SettingsService
 	AccountService   interfaces.AccountService
 	SkillService     interfaces.SkillService
-	DataStore        *settingsStore.SettingsStore
+	SettingsStore    interfaces.SettingsRepository
 	CharacterService interfaces.CharacterService
 	DashBoardService interfaces.DashboardService
 	AssocService     interfaces.AssociationService
@@ -37,64 +39,101 @@ type AppServices struct {
 	LoginService     interfaces.LoginService
 }
 
-func GetServices(logger interfaces.Logger, authClient auth.AuthClient, httpClient *http.APIClient) *AppServices {
+func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
+	settingsStr := initSettingsStore(logger)
+	if err := embed.LoadStatic(); err != nil {
+		return nil, fmt.Errorf("failed to load templates %v", err)
+	}
 
-	baseDir, err := GetWritablePath()
+	skillService, err := initSkillService(logger)
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to get writable path")
+		return nil, err
 	}
 
-	dataStore := settingsStore.NewConfigStore(logger, baseDir)
-	if err = embed.LoadStatic(); err != nil {
-		logger.WithError(err).Fatal("Failed to load templates.")
+	loginService := initLoginService(logger)
+
+	authClient := auth.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
+
+	esiService := initESIService(logger, authClient)
+	accountService, assocService := initAccountAndAssoc(logger, esiService, settingsStr)
+	settingsService, err := initSettingsService(logger, settingsStr, esiService)
+	if err != nil {
+		return nil, err
 	}
+	stateService := state.NewStateService(logger, settingsStr)
 
-	skillStore := skillstore.NewSkillStore(logger)
-	if err = skillStore.ProcessSkillPlans(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill plans.")
+	characterService, dashboardService, err := initCharacterAndDashboard(logger, esiService, authClient, skillService, accountService, settingsService, stateService)
+	if err != nil {
+		return nil, err
 	}
-	if err = skillStore.LoadSkillTypes(); err != nil {
-		logger.WithError(err).Fatal("Failed to load skill types.")
-	}
-	skillService := skill.NewSkillService(logger, skillStore)
-
-	loginStateStore := loginstatestore.NewLoginStateStore()
-	loginService := login.NewLoginService(logger, loginStateStore)
-
-	accountStore := accountStore.NewAccountStore(logger)
-
-	cacheStore := cacheStore.NewCacheStore(logger)
-
-	deletedStore := deletedStore.NewDeletedStore(logger)
-	cacheService := cache.NewCacheService(logger, cacheStore)
-	esiService := esi.NewESIService(httpClient, authClient, logger, cacheService, deletedStore)
-
-	assocService := association.NewAssociationService(logger, accountStore, esiService, dataStore)
-	accountService := account.NewAccountService(logger, accountStore, esiService, assocService)
-	settingsService := settings.NewSettingsService(logger, dataStore, esiService)
-	stateService := state.NewStateService(logger, dataStore)
-	if err = settingsService.EnsureSettingsDir(); err != nil {
-		logger.Errorf("Unable to ensure settings dir %v", err)
-	}
-
-	sysStore := systemstore.NewSystemStore(logger)
-	if err = sysStore.LoadSystems(); err != nil {
-		logger.WithError(err).Fatal("Failed to load systems")
-	}
-
-	characterService := character.NewCharacterService(esiService, authClient, logger, sysStore, skillStore, accountService, settingsService)
-	dashboardService := dashboard.NewDashboardService(logger, skillService, characterService, accountService, settingsService, stateService)
 
 	return &AppServices{
 		EsiService:       esiService,
 		SettingsService:  settingsService,
 		AccountService:   accountService,
 		SkillService:     skillService,
-		DataStore:        dataStore,
+		SettingsStore:    settingsStr,
 		CharacterService: characterService,
 		DashBoardService: dashboardService,
-		StateService:     stateService,
 		AssocService:     assocService,
+		StateService:     stateService,
 		LoginService:     loginService,
+	}, nil
+}
+
+func initCharacterAndDashboard(l interfaces.Logger, e interfaces.ESIService, authClient interfaces.AuthClient, sk interfaces.SkillService, as interfaces.AccountService, s interfaces.SettingsService, st interfaces.StateService) (interfaces.CharacterService, interfaces.DashboardService, error) {
+	sysStore := systemstore.NewSystemStore(l)
+	if err := sysStore.LoadSystems(); err != nil {
+		return nil, nil, fmt.Errorf("failed to load systems %v", err)
 	}
+
+	characterService := character.NewCharacterService(e, authClient, l, sysStore, sk, as, s)
+	dashboardService := dashboard.NewDashboardService(l, sk, characterService, as, s, st)
+	return characterService, dashboardService, nil
+
+}
+
+func initAccountAndAssoc(l interfaces.Logger, e interfaces.ESIService, s interfaces.SettingsRepository) (interfaces.AccountService, interfaces.AssociationService) {
+	accountStr := accountStore.NewAccountStore(l)
+
+	assocService := association.NewAssociationService(l, accountStr, e, s)
+	accountService := account.NewAccountService(l, accountStr, e, assocService)
+	return accountService, assocService
+}
+
+func initSettingsStore(logger interfaces.Logger) interfaces.SettingsRepository {
+	return settingsStore.NewConfigStore(logger)
+}
+
+func initSkillService(logger interfaces.Logger) (interfaces.SkillService, error) {
+	skillStore := skillstore.NewSkillStore(logger)
+	if err := skillStore.ProcessSkillPlans(); err != nil {
+
+		return nil, fmt.Errorf("failed to load skill plans %v", err)
+	}
+	if err := skillStore.LoadSkillTypes(); err != nil {
+		return nil, fmt.Errorf("failed to load skill types %v", err)
+	}
+	return skill.NewSkillService(logger, skillStore), nil
+}
+
+func initLoginService(logger interfaces.Logger) interfaces.LoginService {
+	loginStateStore := loginstatestore.NewLoginStateStore()
+	return login.NewLoginService(logger, loginStateStore)
+}
+
+func initESIService(logger interfaces.Logger, authClient interfaces.AuthClient) interfaces.ESIService {
+	httpClient := http.NewAPIClient("https://esi.evetech.net", "", logger)
+	cacheStr := cacheStore.NewCacheStore(logger)
+	deletedStr := deletedStore.NewDeletedStore(logger)
+	cacheService := cache.NewCacheService(logger, cacheStr)
+	return esi.NewESIService(httpClient, authClient, logger, cacheService, deletedStr)
+}
+
+func initSettingsService(l interfaces.Logger, s interfaces.SettingsRepository, e interfaces.ESIService) (interfaces.SettingsService, error) {
+	srv := settings.NewSettingsService(l, s, e)
+	if err := srv.EnsureSettingsDir(); err != nil {
+		return nil, fmt.Errorf("unable to ensure settings dir %v", err)
+	}
+	return srv, nil
 }

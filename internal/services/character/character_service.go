@@ -16,21 +16,21 @@ type characterService struct {
 	auth            auth.AuthClient
 	logger          interfaces.Logger
 	sysRepo         interfaces.SystemRepository
-	skillRepo       interfaces.SkillRepository
+	skillService    interfaces.SkillService
 	accountService  interfaces.AccountService
 	settingsService interfaces.SettingsService
 }
 
 func NewCharacterService(esi interfaces.ESIService,
 	auth auth.AuthClient, logger interfaces.Logger,
-	sys interfaces.SystemRepository, sk interfaces.SkillRepository,
+	sys interfaces.SystemRepository, sk interfaces.SkillService,
 	as interfaces.AccountService, s interfaces.SettingsService) interfaces.CharacterService {
 	return &characterService{
 		esi:             esi,
 		auth:            auth,
 		logger:          logger,
 		sysRepo:         sys,
-		skillRepo:       sk,
+		skillService:    sk,
 		accountService:  as,
 		settingsService: s,
 	}
@@ -83,7 +83,7 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	charIdentity.Character.LocationName = c.sysRepo.GetSystemName(charIdentity.Character.Location)
 	charIdentity.MCT = c.isCharacterTraining(*skillQueue)
 	if charIdentity.MCT {
-		charIdentity.Training = c.skillRepo.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
+		charIdentity.Training = c.skillService.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
 	}
 
 	// Initialize maps if nil

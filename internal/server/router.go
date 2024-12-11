@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/gorilla/handlers"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,8 +12,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// SetupRouter configures and returns the app’s router
-func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServices) *mux.Router {
+// SetupHandlers configures and returns the app’s router
+func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServices) http.Handler {
 	sessionStore := flyHttp.NewSessionService(secret)
 	r := mux.NewRouter()
 
@@ -65,5 +66,14 @@ func SetupRouter(secret string, logger interfaces.Logger, appServices *AppServic
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
-	return r
+	return createCORSHandler(r)
+}
+
+func createCORSHandler(h http.Handler) http.Handler {
+	return handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:5173"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"}),
+		handlers.AllowCredentials(),
+	)(h)
 }

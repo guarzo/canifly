@@ -17,8 +17,9 @@ type ESIService interface {
 
 // AuthClient defines methods related to authentication and token management.
 type AuthClient interface {
-	// RefreshToken takes a refresh token and returns a new, updated oauth2.Token
 	RefreshToken(refreshToken string) (*oauth2.Token, error)
+	GetAuthURL(state string) string
+	ExchangeCode(code string) (*oauth2.Token, error)
 }
 
 type HTTPClient interface {

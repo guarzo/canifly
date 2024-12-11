@@ -22,12 +22,9 @@ import Mapping from './components/mapping/Mapping.jsx';
  * @param {Function} props.handleUpdateAccountName
  * @param {Function} props.handleRemoveCharacter
  * @param {Function} props.handleRemoveAccount
- * @param {Function} props.handleAddCharacter
- * @param {Function} props.handleSaveSkillPlan
  * @param {Function} props.silentRefreshData
  * @param {Function} props.setAppData
  * @param {Array} props.identities
- * @param {Array} props.existingAccounts
  * @param {string} props.backEndURL
  * @param {Function} props.logInCallBack
  */

@@ -257,3 +257,12 @@ func (s *skillService) GetSkillTypes() map[string]model.SkillType {
 func (s *skillService) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return s.skillRepo.GetSkillTypeByID(id)
 }
+
+func (sk *skillService) GetSkillName(skillID int32) string {
+	skill, ok := sk.skillRepo.GetSkillTypeByID(strconv.FormatInt(int64(skillID), 10))
+	if !ok {
+		sk.logger.Warnf("Skill ID %d not found", skillID)
+		return ""
+	}
+	return skill.TypeName
+}

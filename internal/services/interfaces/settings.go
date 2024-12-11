@@ -21,6 +21,7 @@ type SettingsRepository interface {
 	SaveConfigData(*model.ConfigData) error
 	UserSelectionsRepository
 	FileSystemRepository
+	StateRepository
 }
 
 type UserSelectionsRepository interface {

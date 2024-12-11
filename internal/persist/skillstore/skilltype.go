@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -113,15 +112,6 @@ func (sk *SkillStore) readSkillTypes(filePath string) (map[string]model.SkillTyp
 	}
 
 	return skillTypes, skillIDTypes, nil
-}
-
-func (sk *SkillStore) GetSkillName(skillID int32) string {
-	skill, ok := sk.GetSkillTypeByID(strconv.FormatInt(int64(skillID), 10))
-	if !ok {
-		sk.logger.Warnf("Skill ID %d not found", skillID)
-		return ""
-	}
-	return skill.TypeName
 }
 
 func copyReaderToFile(destPath string, src io.Reader) error {

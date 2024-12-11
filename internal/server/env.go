@@ -2,41 +2,63 @@ package server
 
 import (
 	"encoding/base64"
-	"os"
-	"path/filepath"
-
-	"github.com/joho/godotenv"
-
+	"fmt"
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/guarzo/canifly/internal/utils"
+	"github.com/joho/godotenv"
+	"os"
 )
 
-// LoadEnv loads environment variables from various sources
-func LoadEnv(logger interfaces.Logger) {
-	// Try to load a local .env first
+type Config struct {
+	Port         string
+	SecretKey    string
+	ClientID     string
+	ClientSecret string
+	CallbackURL  string
+	PathSuffix   string
+}
+
+func LoadConfig(logger interfaces.Logger) (Config, error) {
+	// Try local .env
 	if err := godotenv.Load(); err != nil {
-		// If not found, load from embedded EnvFiles
+		// Try embedded .env
 		embeddedEnv, err := embed.EnvFiles.Open("config/.env")
 		if err != nil {
 			logger.Warn("Failed to load embedded .env file. Using system environment variables.")
-			return
-		}
-		defer embeddedEnv.Close()
-
-		envMap, err := godotenv.Parse(embeddedEnv)
-		if err != nil {
-			logger.WithError(err).Warn("Failed to parse embedded .env file.")
-			return
-		}
-		for key, value := range envMap {
-			os.Setenv(key, value)
+		} else {
+			defer embeddedEnv.Close()
+			envMap, err := godotenv.Parse(embeddedEnv)
+			if err != nil {
+				logger.WithError(err).Warn("Failed to parse embedded .env file.")
+			} else {
+				for key, value := range envMap {
+					os.Setenv(key, value)
+				}
+			}
 		}
 	}
+
+	cfg := Config{}
+
+	cfg.Port = getPort()
+	cfg.SecretKey = getSecretKey(logger)
+
+	cfg.ClientID = os.Getenv("EVE_CLIENT_ID")
+	cfg.ClientSecret = os.Getenv("EVE_CLIENT_SECRET")
+	cfg.CallbackURL = os.Getenv("EVE_CALLBACK_URL")
+
+	if cfg.ClientID == "" || cfg.ClientSecret == "" || cfg.CallbackURL == "" {
+		return cfg, fmt.Errorf("EVE_CLIENT_ID, EVE_CLIENT_SECRET, and EVE_CALLBACK_URL must be set")
+	}
+
+	cfg.PathSuffix = os.Getenv("PATH_SUFFIX")
+
+	return cfg, nil
 }
 
-// GetSecretKey retrieves or generates the encryption secret key
-func GetSecretKey(logger interfaces.Logger) string {
+// getSecretKey retrieves or generates the encryption secret key
+func getSecretKey(logger interfaces.Logger) string {
 	secret := os.Getenv("SECRET_KEY")
 	if secret == "" {
 		key, err := utils.GenerateSecret()
@@ -49,28 +71,11 @@ func GetSecretKey(logger interfaces.Logger) string {
 	return secret
 }
 
-// GetPort returns the port the server should listen on
-func GetPort() string {
+// getPort returns the port the server should listen on
+func getPort() string {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8713"
 	}
 	return port
-}
-
-// GetWritablePath returns a writable path
-func GetWritablePath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	path := filepath.Join(configDir, "canifly", "identity")
-	pathSuffix := os.Getenv("PATH_SUFFIX")
-	if pathSuffix != "" {
-		path = filepath.Join(configDir, "canifly", pathSuffix)
-	}
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
-		return "", err
-	}
-	return path, nil
 }

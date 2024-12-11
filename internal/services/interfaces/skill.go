@@ -4,6 +4,7 @@ import "github.com/guarzo/canifly/internal/model"
 
 type SkillService interface {
 	GetSkillPlans() map[string]model.SkillPlan
+	GetSkillName(id int32) string
 	GetSkillTypes() map[string]model.SkillType
 	ParseAndSaveSkillPlan(contents, name string) error
 	GetSkillPlanFile(name string) ([]byte, error)
@@ -19,5 +20,4 @@ type SkillRepository interface {
 	DeleteSkillPlan(planName string) error
 	GetWriteablePlansPath() (string, error)
 	GetSkillTypeByID(id string) (model.SkillType, bool)
-	GetSkillName(id int32) string
 }
