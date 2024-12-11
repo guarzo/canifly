@@ -14,6 +14,8 @@ import theme from './components/theme';
 import CharacterSort from './components/CharacterSort.jsx';
 import Sync from './components/Sync';
 import Mapping from './components/Mapping';
+import helloImg from './assets/images/hello.png';
+
 
 const App = () => {
     const [appData, setAppData] = useState(null);
@@ -22,9 +24,12 @@ const App = () => {
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const isDev = import.meta.env.DEV;
+    const backEndURL = isDev ? '' : 'http://localhost:8713';
+
     const fetchAppData = async () => {
         try {
-            const response = await fetch('/api/app-data', {
+            const response = await fetch(`${backEndURL}/api/app-data`, {
                 credentials: 'include',
             });
             if (response.status === 401) {
@@ -49,7 +54,7 @@ const App = () => {
 
     const fetchAppDataNoCache = async () => {
         try {
-            const response = await fetch('/api/app-data-no-cache', {
+            const response = await fetch(`${backEndURL}/api/app-data-no-cache`, {
                 credentials: 'include',
             });
 
@@ -97,7 +102,7 @@ const App = () => {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch('/api/logout', {
+            const response = await fetch(`${backEndURL}/api/logout`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -117,7 +122,7 @@ const App = () => {
 
     const handleToggleAccountStatus = async (accountID) => {
         try {
-            const response = await fetch('/api/toggle-account-status', {
+            const response = await fetch(`${backEndURL}/api/toggle-account-status`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountID }),
@@ -147,7 +152,7 @@ const App = () => {
 
     const handleUpdateCharacter = async (characterID, updates) => {
         try {
-            const response = await fetch('/api/update-character', {
+            const response = await fetch(`${backEndURL}/api/update-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ characterID, updates }),
@@ -191,7 +196,7 @@ const App = () => {
 
     const handleRemoveCharacter = async (characterID) => {
         try {
-            const response = await fetch('/api/remove-character', {
+            const response = await fetch(`${backEndURL}/api/remove-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ characterID }),
@@ -221,7 +226,7 @@ const App = () => {
 
     const handleUpdateAccountName = async (accountID, newName) => {
         try {
-            const response = await fetch('/api/update-account-name', {
+            const response = await fetch(`${backEndURL}/api/update-account-name`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountID, accountName: newName }),
@@ -248,7 +253,7 @@ const App = () => {
 
     const handleRemoveAccount = async (accountName) => {
         try {
-            const response = await fetch('/api/remove-account', {
+            const response = await fetch(`${backEndURL}/api/remove-account`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountName }),
@@ -276,7 +281,7 @@ const App = () => {
     // NEW FUNCTION: handleAddCharacter (moved from Header)
     const handleAddCharacter = async (account) => {
         try {
-            const response = await fetch('/api/add-character', {
+            const response = await fetch(`${backEndURL}/api/add-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({account}),
@@ -324,7 +329,7 @@ const App = () => {
 
     const handleSaveSkillPlan = async (planName, planContents) => {
         try {
-            const response = await fetch('/api/save-skill-plan', {
+            const response = await fetch(`${backEndURL}/api/save-skill-plan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: planName, contents: planContents }),
@@ -359,7 +364,7 @@ const App = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-teal-200 space-y-4">
                 <img
-                    src="/images/hello.png"
+                    src={helloImg}
                     alt="Loading"
                     className="w-32 h-auto object-contain"
                 />
@@ -388,7 +393,9 @@ const App = () => {
                         />
                         <main className="flex-grow container mx-auto px-4 py-8 pb-16">
                             {!isAuthenticated ? (
-                                <Landing/>
+                                <Landing
+                                    backEndURL={backEndURL}
+                                />
                             ) : isLoading || !appData ? (
                                 <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
                                     <p>Loading...</p>
@@ -416,6 +423,7 @@ const App = () => {
                                                 identities={identities}
                                                 skillPlans={appData?.SkillPlans || {}}
                                                 setAppData={setAppData}
+                                                backEndURL={backEndURL}
                                             />
                                         }
                                     />
@@ -439,6 +447,7 @@ const App = () => {
                                                 isDefaultDir={appData?.IsDefaultDir ?? false}
                                                 userSelections={appData?.UserSelections || {}}
                                                 lastBackupDir={appData?.LastBackupDir || ''}
+                                                backEndURL={backEndURL}
                                             />
                                         }
                                     />
@@ -449,6 +458,7 @@ const App = () => {
                                                 associations={appData?.associations || []}
                                                 subDirs={appData?.SubDirs || []}
                                                 onRefreshData={silentRefreshData}
+                                                backEndURL={backEndURL}
                                             />
                                         }
                                     />

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import CharacterTable from './CharacterTable';
 import SkillPlanTable from './SkillPlanTable';
 import { toast } from 'react-toastify';
-import { Typography, IconButton, Tooltip, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
+import { Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
 import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';
 
-const SkillPlans = ({ identities, skillPlans, setAppData }) => {
+const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
 
     useEffect(() => {
@@ -48,7 +48,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData }) => {
         window.deleteSkillPlan = async (planName) => {
             try {
                 const response = await fetch(
-                    `/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`,
+                    `${backEndURL}/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`,
                     {
                         method: 'DELETE',
                         credentials: 'include',
@@ -150,6 +150,7 @@ SkillPlans.propTypes = {
     identities: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
     setAppData: PropTypes.func.isRequired,
+    backEndURL: PropTypes.string.isRequired,
 };
 
 export default SkillPlans;

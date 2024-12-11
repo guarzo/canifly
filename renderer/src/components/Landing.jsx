@@ -1,8 +1,9 @@
 import  { useState } from 'react';
 import LoginButton from './LoginButton';
 import { Container, Box } from '@mui/material';
+import PropTypes from "prop-types";
 
-const Landing = () => {
+const Landing = ({backEndURL}) => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const handleModalOpenChange = (isOpen) => {
@@ -21,10 +22,17 @@ const Landing = () => {
         >
             {/* Only apply animate-pulse if modal is not open */}
             <Box textAlign="center" className={!isLoginModalOpen ? 'animate-pulse' : ''}>
-                <LoginButton onModalOpenChange={handleModalOpenChange} />
+                <LoginButton
+                    onModalOpenChange={handleModalOpenChange}
+                    backEndURL={backEndURL}
+                />
             </Box>
         </Container>
     );
+};
+
+Landing.propTypes = {
+    backEndURL: PropTypes.string.isRequired
 };
 
 export default Landing;

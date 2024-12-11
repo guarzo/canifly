@@ -1,3 +1,6 @@
+import footerImg from '../assets/images/footer-logo.jpg';
+
+
 const Footer = () => {
     return (
         <footer
@@ -6,7 +9,7 @@ const Footer = () => {
         >
             <div className="container mx-auto px-4 flex flex-col items-center justify-center">
                 <img
-                    src="/images/footer-logo.jpg"
+                    src={footerImg}
                     alt="Logo"
                     className="h-8 w-8 mb-2 rounded-full border-2 border-teal-500"
                 />

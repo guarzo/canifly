@@ -13,7 +13,7 @@ function roundToSeconds(mtime) {
     return date.toISOString();
 }
 
-const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) => {
+const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, backEndURL }) => {
     const [accounts, setAccounts] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [associations, setAssociations] = useState(initialAssociations);
@@ -102,7 +102,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         if (!confirmAssoc.isConfirmed) return;
 
         try {
-            const response = await fetch('/api/associate-character', {
+            const response = await fetch(`${backEndURL}/api/associate-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -138,7 +138,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         if (!confirmUnassoc.isConfirmed) return;
 
         try {
-            const response = await fetch('/api/unassociate-character', {
+            const response = await fetch(`${backEndURL}/api/unassociate-character`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
@@ -237,6 +237,7 @@ Mapping.propTypes = {
         })
     ).isRequired,
     onRefreshData: PropTypes.func,
+    backEndURL: PropTypes.string.isRequired,
 };
 
 export default Mapping;

@@ -2,23 +2,24 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import AccountPromptModal from './AccountPromptModal';
 import PropTypes from 'prop-types';
+import eveSsoImage from '../assets/images/eve-sso.jpg';
 
-const LoginButton = ({ onModalOpenChange }) => {
+const LoginButton = ({ onModalOpenChange, backEndURL }) => {
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleOpenModal = () => {
         setModalOpen(true);
-        onModalOpenChange(true); // Inform parent that modal is now open
+        onModalOpenChange(true);
     };
 
     const handleCloseModal = () => {
         setModalOpen(false);
-        onModalOpenChange(false); // Inform parent that modal is closed
+        onModalOpenChange(false);
     };
 
     const handleLoginSubmit = async (account) => {
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch(`${backEndURL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ account }),
@@ -40,7 +41,7 @@ const LoginButton = ({ onModalOpenChange }) => {
             toast.error('An error occurred while initiating login.');
         } finally {
             setModalOpen(false);
-            onModalOpenChange(false); // Modal closed after submit
+            onModalOpenChange(false);
         }
     };
 
@@ -52,7 +53,7 @@ const LoginButton = ({ onModalOpenChange }) => {
                 className="inline-flex items-center py-3 px-6 rounded-md transition duration-300 hover:bg-teal-700 bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600"
             >
                 <img
-                    src="/images/eve-sso.jpg"
+                    src={eveSsoImage}
                     alt="Login with Eve SSO"
                     className="h-16 w-auto object-contain"
                 />
@@ -69,6 +70,7 @@ const LoginButton = ({ onModalOpenChange }) => {
 
 LoginButton.propTypes = {
     onModalOpenChange: PropTypes.func.isRequired,
+    backEndURL: PropTypes.string.isRequired
 };
 
 export default LoginButton;

@@ -17,6 +17,7 @@ const Sync = ({
                   isDefaultDir,
                   userSelections,
                   lastBackupDir,
+                  backEndURL,
               }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
@@ -59,7 +60,7 @@ const Sync = ({
 
     const saveUserSelections = useCallback(async (newSelections) => {
         try {
-            const response = await fetch('/api/save-user-selections', {
+            const response = await fetch(`${backEndURL}/api/save-user-selections`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -120,7 +121,7 @@ const Sync = ({
         try {
             setIsLoading(true);
             toast.info('Syncing...', { autoClose: 1500 });
-            const response = await fetch('/api/sync-subdirectory', {
+            const response = await fetch(`${backEndURL}/api/sync-subdirectory`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -160,7 +161,7 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const response = await fetch('/api/sync-all-subdirectories', {
+            const response = await fetch(`${backEndURL}/api/sync-all-subdirectories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -189,7 +190,7 @@ const Sync = ({
                 return;
             }
 
-            const response = await fetch('/api/choose-settings-dir', {
+            const response = await fetch(`${backEndURL}/api/choose-settings-dir`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -223,7 +224,7 @@ const Sync = ({
 
             toast.info('Starting backup...');
 
-            const response = await fetch('/api/backup-directory', {
+            const response = await fetch(`${backEndURL}/api/backup-directory`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -254,7 +255,7 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const response = await fetch('/api/reset-to-default-directory', {
+            const response = await fetch(`${backEndURL}/api/reset-to-default-directory`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -314,6 +315,7 @@ Sync.propTypes = {
     lastBackupDir: PropTypes.string.isRequired,
     isDefaultDir: PropTypes.bool.isRequired,
     userSelections: PropTypes.object.isRequired,
+    backEndURL: PropTypes.string.isRequired,
 };
 
 export default Sync;
