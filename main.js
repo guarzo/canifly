@@ -11,34 +11,28 @@ const retryDelay = 1000;
 let startTime;
 
 function startGoBackend() {
-    if (isDev) {
-        // Start Go backend in dev mode
-        // Make sure 'go' is in PATH and you can run `go run .` from project root
-        goProcess = spawn('go', ['run', '.'], { cwd: process.cwd() });
-    } else {
-        // Start the packaged backend binary
-        // The backend was placed via extraResources as "canifly-backend.exe" (for Windows)
-        // The resources path = process.resourcesPath
-        const backendPath = process.platform === 'win32' ?
-            path.join(process.resourcesPath, 'canifly-backend.exe') :
-            path.join(process.resourcesPath, 'canifly-backend');
+    if (!isDev) {
+        const backendPath = process.platform === 'win32'
+            ? path.join(process.resourcesPath, 'canifly-backend.exe')
+            : path.join(process.resourcesPath, 'canifly-backend');
 
         goProcess = spawn(backendPath, [], {
             cwd: process.resourcesPath
         });
+
+        goProcess.stdout.on('data', (data) => {
+            console.log(`Go backend: ${data}`);
+        });
+
+        goProcess.stderr.on('data', (data) => {
+            console.error(`Go backend error: ${data}`);
+        });
+
+        goProcess.on('close', (code) => {
+            console.log(`Go backend exited with code ${code}`);
+        });
     }
 
-    goProcess.stdout.on('data', (data) => {
-        console.log(`Go backend: ${data}`);
-    });
-
-    goProcess.stderr.on('data', (data) => {
-        console.error(`Go backend error: ${data}`);
-    });
-
-    goProcess.on('close', (code) => {
-        console.log(`Go backend exited with code ${code}`);
-    });
 }
 
 function createWindow() {
@@ -83,7 +77,7 @@ function createWindow() {
             ::-webkit-scrollbar-thumb:hover {
               background-color: #0d9488;
             }
-          `;
+        `;
         mainWindow.webContents.insertCSS(customCSS);
     });
 
@@ -112,23 +106,27 @@ function createWindow() {
     });
 
     mainWindow.on('closed', function () {
-        if (goProcess) {
-            goProcess.kill();
-            console.log('Go process terminated');
-        }
-        app.quit();
-        process.exit();
+        // Just close the window, do not call process.exit() here.
+        // app.quit() will fire 'before-quit' where we kill goProcess.
     });
 }
 
 app.whenReady().then(async () => {
     startTime = Date.now();
-    startGoBackend(); // Start the Go backend first
+    startGoBackend();
     checkBackendReady(maxRetries);
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+});
+
+app.on('before-quit', () => {
+    // Ensure goProcess is killed here before quit
+    if (goProcess) {
+        console.log("Killing goProcess before quit");
+        goProcess.kill();
+    }
 });
 
 app.on('window-all-closed', () => {

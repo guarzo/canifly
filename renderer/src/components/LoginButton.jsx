@@ -4,8 +4,9 @@ import AccountPromptModal from './AccountPromptModal';
 import PropTypes from 'prop-types';
 import eveSsoImage from '../assets/images/eve-sso.jpg';
 
-const LoginButton = ({ onModalOpenChange, backEndURL }) => {
+const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
     const [modalOpen, setModalOpen] = useState(false);
+    const isDev = import.meta.env.DEV;
 
     const handleOpenModal = () => {
         setModalOpen(true);
@@ -28,7 +29,15 @@ const LoginButton = ({ onModalOpenChange, backEndURL }) => {
             if (response.ok) {
                 const data = await response.json();
                 if (data.redirectURL) {
-                    window.location.href = data.redirectURL;
+                    logInCallBack()
+                    if (isDev) {
+                        // In development, just redirect within Electron's internal browser
+                        window.location.href = data.redirectURL;
+                    } else {
+                        // In production, open system browser
+                        window.electronAPI.openExternal(data.redirectURL);
+                        toast.info("Please complete the login in your browser")
+                    }
                 } else {
                     toast.error("No redirect URL received from server.");
                 }
@@ -70,7 +79,8 @@ const LoginButton = ({ onModalOpenChange, backEndURL }) => {
 
 LoginButton.propTypes = {
     onModalOpenChange: PropTypes.func.isRequired,
-    backEndURL: PropTypes.string.isRequired
+    backEndURL: PropTypes.string.isRequired,
+    logInCallBack: PropTypes.func.isRequired,
 };
 
 export default LoginButton;

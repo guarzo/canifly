@@ -4,6 +4,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/guarzo/canifly/internal/auth"
 	flyHttp "github.com/guarzo/canifly/internal/http"
@@ -90,6 +91,7 @@ func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
 func (h *AuthHandler) CallBack() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.logger.Info("callback request received")
+		devMode := os.Getenv("DEV_MODE") == "true"
 
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state") // account name provided by the user
@@ -131,7 +133,12 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			h.logger.Errorf("Error saving session: %v", err)
 		}
 
-		http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
+		if devMode {
+			// In dev, redirect back to dev server so the internal flow works as before
+			http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
+		}
+		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
+
 	}
 }
 

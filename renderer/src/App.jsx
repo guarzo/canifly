@@ -23,6 +23,7 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [loggedOut, setLoggedOut] = useState(false);
 
     const isDev = import.meta.env.DEV;
     const backEndURL = isDev ? '' : 'http://localhost:8713';
@@ -52,11 +53,36 @@ const App = () => {
         }
     };
 
+    const logInCallBack = () => {
+        setLoggedOut(false);
+
+        let attempts = 0;
+        const maxAttempts = 6; // Try for roughly 30 seconds if interval is 5 sec
+        const interval = setInterval(() => {
+            if (isAuthenticated) {
+                // User is authenticated, clear interval
+                clearInterval(interval);
+            } else {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    // Give up after maxAttempts
+                    clearInterval(interval);
+                    console.warn('Failed to detect login after multiple attempts.');
+                    return;
+                }
+                // Attempt silent refresh
+                silentRefreshData();
+            }
+        }, 5000); // every 5 seconds
+    };
+
+
     const fetchAppDataNoCache = async () => {
         try {
             const response = await fetch(`${backEndURL}/api/app-data-no-cache`, {
                 credentials: 'include',
             });
+            if (loggedOut) return
 
             if (response.ok) {
                 const data = await response.json();
@@ -109,6 +135,7 @@ const App = () => {
             if (response.ok) {
                 setIsAuthenticated(false);
                 setAppData(null);
+                setLoggedOut(true);
                 toast.success('Logged out successfully!');
             } else {
                 const errorData = await response.json();
@@ -278,7 +305,6 @@ const App = () => {
         }
     };
 
-    // NEW FUNCTION: handleAddCharacter (moved from Header)
     const handleAddCharacter = async (account) => {
         try {
             const response = await fetch(`${backEndURL}/api/add-character`, {
@@ -289,28 +315,15 @@ const App = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-
-                // If data includes a redirectURL, we must redirect.
-                // After redirect, the backend callback should update the app state.
-                // If we want immediate local update, we must have character details in `data`
-                // For now, assume we get some character details in `data.newCharacter`:
                 if (data.redirectURL) {
-                    window.location.href = data.redirectURL;
-                } else if (data.newCharacter && data.accountName) {
-                    // Update the local state immediately without waiting for refresh
-                    setAppData((prevAppData) => {
-                        const updatedAccounts = prevAppData.Accounts.map((acc) => {
-                            if (acc.Name === data.accountName) {
-                                return {
-                                    ...acc,
-                                    Characters: [...acc.Characters, data.newCharacter],
-                                };
-                            }
-                            return acc;
-                        });
-                        return { ...prevAppData, Accounts: updatedAccounts };
-                    });
-                    toast.success('Character added successfully!');
+                    if (isDev) {
+                        // In development, just redirect within Electron's internal browser
+                        window.location.href = data.redirectURL;
+                    } else {
+                        // In production, open system browser
+                        window.electronAPI.openExternal(data.redirectURL);
+                        toast.info("Please complete the login in your browser")
+                    }
                 } else {
                     toast.error("No redirect URL or character details received from server.");
                 }
@@ -392,9 +405,10 @@ const App = () => {
                             isRefreshing={isRefreshing} // New prop
                         />
                         <main className="flex-grow container mx-auto px-4 py-8 pb-16">
-                            {!isAuthenticated ? (
+                            {!isAuthenticated || loggedOut ? (
                                 <Landing
                                     backEndURL={backEndURL}
+                                    logInCallBack={logInCallBack}
                                 />
                             ) : isLoading || !appData ? (
                                 <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">

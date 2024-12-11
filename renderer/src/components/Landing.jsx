@@ -3,7 +3,7 @@ import LoginButton from './LoginButton';
 import { Container, Box } from '@mui/material';
 import PropTypes from "prop-types";
 
-const Landing = ({backEndURL}) => {
+const Landing = ({backEndURL, logInCallBack}) => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const handleModalOpenChange = (isOpen) => {
@@ -25,6 +25,7 @@ const Landing = ({backEndURL}) => {
                 <LoginButton
                     onModalOpenChange={handleModalOpenChange}
                     backEndURL={backEndURL}
+                    logInCallBack={logInCallBack}
                 />
             </Box>
         </Container>
@@ -32,7 +33,8 @@ const Landing = ({backEndURL}) => {
 };
 
 Landing.propTypes = {
-    backEndURL: PropTypes.string.isRequired
+    backEndURL: PropTypes.string.isRequired,
+    logInCallBack: PropTypes.func.isRequired,
 };
 
 export default Landing;
