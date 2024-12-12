@@ -70,12 +70,13 @@ const CharacterItem = ({
                         {character.Character.CharacterName}
                     </span>
                     <Tooltip title="Total Skillpoints">
-                    <span className="text-xs text-teal-400">
-                        {formattedSP}
-                    </span>
+                        <span className="text-xs text-teal-400">
+                            {formattedSP}
+                        </span>
                     </Tooltip>
                     <Tooltip title="Open zKillboard">
                         <IconButton
+                            aria-label="Open zKillboard"
                             size="small"
                             onClick={() => {
                                 if (window.electronAPI && window.electronAPI.openExternal) {
@@ -92,7 +93,10 @@ const CharacterItem = ({
                 </div>
 
                 <Tooltip title={mctTooltip}>
-                    <div className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                    <div
+                        data-testid="mct-indicator"
+                        className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400' : 'bg-gray-400'}`}
+                    ></div>
                 </Tooltip>
             </div>
 
@@ -112,7 +116,7 @@ const CharacterItem = ({
                                     sx={{ maxWidth: '100px' }}
                                     inputProps={{ style: { fontSize: '0.75rem' } }}
                                 />
-                                <IconButton onClick={handleAddRole} size="small">
+                                <IconButton aria-label="Confirm new role" onClick={handleAddRole} size="small">
                                     <CheckIcon fontSize="small" />
                                 </IconButton>
                             </div>
@@ -123,6 +127,7 @@ const CharacterItem = ({
                                 displayEmpty
                                 size="small"
                                 className="text-xs"
+                                inputProps={{ 'aria-label': 'Role selection' }}
                                 sx={{ fontSize: '0.75rem', maxWidth: '100px' }}
                             >
                                 <MenuItem value="" disabled>
@@ -146,6 +151,7 @@ const CharacterItem = ({
                 {!hideRemoveIcon && (
                     <Tooltip title="Remove Character">
                         <IconButton
+                            aria-label="Remove Character"
                             size="small"
                             onClick={() => onRemoveCharacter(character.Character.CharacterID)}
                             className="text-red-500"
