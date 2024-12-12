@@ -41,7 +41,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                 })
                 .catch((err) => {
                     console.error('Copy to clipboard failed:', err);
-                    toast.error('Failed to copy skill plan.', { autoClose: 1500 });
+                    toast.error('Failed to copy eve plan.', { autoClose: 1500 });
                 });
         };
 
@@ -57,7 +57,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
 
                 if (response.ok) {
                     toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-                    // Update the state to remove the deleted skill plan
+                    // Update the state to remove the deleted eve plan
                     setAppData((prevAppData) => {
                         const updatedSkillPlans = { ...prevAppData.SkillPlans };
                         delete updatedSkillPlans[planName];
@@ -68,8 +68,8 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                     toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
                 }
             } catch (error) {
-                console.error('Error deleting skill plan:', error);
-                toast.error('An error occurred while deleting the skill plan.', { autoClose: 1500 });
+                console.error('Error deleting eve plan:', error);
+                toast.error('An error occurred while deleting the eve plan.', { autoClose: 1500 });
             }
         };
     }, [skillPlans, setAppData]);
@@ -87,45 +87,55 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                     <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold' }}>
                         Skill Plans
                     </Typography>
-                    <ToggleButtonGroup
-                        value={view}
-                        exclusive
-                        onChange={handleViewChange}
-                        sx={{
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            borderRadius: '9999px',
-                            '.MuiToggleButton-root': {
-                                textTransform: 'none',
-                                color: '#99f6e4',
-                                fontWeight: 'normal',
-                                border: 'none',
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="body2" sx={{ color: '#99f6e4' }}>
+                            View:
+                        </Typography>
+                        <ToggleButtonGroup
+                            value={view}
+                            exclusive
+                            onChange={handleViewChange}
+                            sx={{
+                                backgroundColor: 'rgba(255,255,255,0.05)',
                                 borderRadius: '9999px',
-                                '&.Mui-selected': {
-                                    backgroundColor: '#14b8a6 !important',
-                                    color: '#ffffff !important',
-                                    fontWeight: 'bold',
+                                padding: '2px',
+                                '.MuiToggleButton-root': {
+                                    textTransform: 'none',
+                                    color: '#99f6e4',
+                                    fontWeight: 'normal',
+                                    border: 'none',
+                                    borderRadius: '9999px',
+                                    '&.Mui-selected': {
+                                        backgroundColor: '#14b8a6 !important',
+                                        color: '#ffffff !important',
+                                        fontWeight: 'bold',
+                                    },
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255,255,255,0.1)',
+                                    },
+                                    minWidth: '40px',
+                                    minHeight: '40px',
                                 },
-                                '&:hover': {
-                                    backgroundColor: 'rgba(255,255,255,0.1)',
-                                },
-                                minWidth: '40px',
-                                minHeight: '40px',
-                            },
-                        }}
-                    >
-                        <ToggleButton value="characters" title="View Characters">
-                            <PeopleIcon fontSize="small" />
-                        </ToggleButton>
-                        <ToggleButton value="plans" title="View Skill Plans">
-                            <SkillPlansIcon fontSize="small" />
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                            }}
+                        >
+                            <ToggleButton value="characters" title="View Characters">
+                                <PeopleIcon fontSize="small" />
+                            </ToggleButton>
+                            <ToggleButton value="plans" title="View Skill Plans">
+                                <SkillPlansIcon fontSize="small" />
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
                 </Box>
 
                 <div className="space-y-8">
                     {view === 'characters' && (
                         <div className="bg-gray-800 rounded-md p-4 shadow-md">
-                            <Typography variant="h5" gutterBottom sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}>
+                            <Typography
+                                variant="h5"
+                                gutterBottom
+                                sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}
+                            >
                                 By Character
                             </Typography>
                             <CharacterTable identities={identities} skillPlans={skillPlans} />
@@ -134,7 +144,11 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
 
                     {view === 'plans' && (
                         <div className="bg-gray-800 rounded-md p-4 shadow-md">
-                            <Typography variant="h5" gutterBottom sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}>
+                            <Typography
+                                variant="h5"
+                                gutterBottom
+                                sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}
+                            >
                                 By Skill Plan
                             </Typography>
                             <SkillPlanTable skillPlans={skillPlans} identities={identities} />

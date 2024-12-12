@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
-import { Grid, Box } from '@mui/material';
+import { Grid, Box, Typography } from '@mui/material';
 import AccountCard from './MapAccountCard.jsx';
 import CharacterCard from './MapCharacterCard.jsx';
 import { useConfirmDialog } from '../partials/useConfirmDialog.jsx'; // Import the custom hook
@@ -19,7 +19,6 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
     const [associations, setAssociations] = useState(initialAssociations);
     const [mtimeToColor, setMtimeToColor] = useState({});
 
-    // Use our custom confirm dialog hook
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
 
     // Process data whenever subDirs or associations change
@@ -116,7 +115,6 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
                 const newAssoc = { userId, charId, charName, mtime: char.mtime };
                 setAssociations(prev => [...prev, newAssoc]);
 
-                // Now request parent to refresh data from server
                 if (onRefreshData) {
                     await onRefreshData();
                 }
@@ -147,10 +145,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
             const result = await response.json();
             if (response.ok && result.success) {
                 toast.success(result.message);
-                // Optimistic update
                 setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
-
-                // Request parent to refresh data
                 if (onRefreshData) {
                     await onRefreshData();
                 }
@@ -164,20 +159,38 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
     };
 
     return (
-        <div className="pt-16">
-            <Box sx={{ paddingTop: '64px', padding: 2, minHeight: '100vh' }}>
+        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+            {/* Heading and subtle instructions */}
+            <Box className="max-w-7xl mx-auto mb-6">
+                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md">
+                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                        Mapping
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#99f6e4' }}>
+                        Drag and drop characters onto accounts to associate them. Associated characters appear under their accounts.
+                    </Typography>
+                </Box>
+            </Box>
+
+            <Box className="max-w-7xl mx-auto">
                 <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>
-                        {accounts.map(mapping => (
-                            <AccountCard
-                                key={`${mapping.userId}-${mapping.mtime}`}
-                                mapping={mapping}
-                                associations={associations}
-                                handleUnassociate={handleUnassociate}
-                                handleDrop={handleDrop}
-                                mtimeToColor={mtimeToColor}
-                            />
-                        ))}
+                        {accounts.length === 0 ? (
+                            <Box textAlign="center" className="text-gray-300">
+                                No accounts found.
+                            </Box>
+                        ) : (
+                            accounts.map(mapping => (
+                                <AccountCard
+                                    key={`${mapping.userId}-${mapping.mtime}`}
+                                    mapping={mapping}
+                                    associations={associations}
+                                    handleUnassociate={handleUnassociate}
+                                    handleDrop={handleDrop}
+                                    mtimeToColor={mtimeToColor}
+                                />
+                            ))
+                        )}
                     </Grid>
                     <Grid item xs={12} md={6}>
                         <Grid container spacing={2}>
@@ -192,7 +205,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
                                     </Grid>
                                 ))
                             ) : (
-                                <Box textAlign="center" width="100%">
+                                <Box textAlign="center" width="100%" className="text-gray-300">
                                     No available characters to associate.
                                 </Box>
                             )}
@@ -217,23 +230,9 @@ Mapping.propTypes = {
     ).isRequired,
     subDirs: PropTypes.arrayOf(
         PropTypes.shape({
-            subDir: PropTypes.string.isRequired,
-            availableCharFiles: PropTypes.arrayOf(
-                PropTypes.shape({
-                    file: PropTypes.string.isRequired,
-                    charId: PropTypes.string.isRequired,
-                    name: PropTypes.string.isRequired,
-                    mtime: PropTypes.string.isRequired,
-                })
-            ).isRequired,
-            availableUserFiles: PropTypes.arrayOf(
-                PropTypes.shape({
-                    file: PropTypes.string.isRequired,
-                    userId: PropTypes.string.isRequired,
-                    name: PropTypes.string.isRequired,
-                    mtime: PropTypes.string.isRequired,
-                })
-            ).isRequired,
+            profile: PropTypes.string.isRequired,
+            availableCharFiles: PropTypes.array.isRequired,
+            availableUserFiles: PropTypes.array.isRequired,
         })
     ).isRequired,
     onRefreshData: PropTypes.func,

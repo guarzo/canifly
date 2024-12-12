@@ -34,7 +34,7 @@ func (h *SkillPlanHandler) GetSkillPlanFile() http.HandlerFunc {
 			if os.IsNotExist(err) {
 				http.Error(w, "Skill plan file not found", http.StatusNotFound)
 			} else {
-				http.Error(w, fmt.Sprintf("Failed to read skill plan file: %v", err), http.StatusInternalServerError)
+				http.Error(w, fmt.Sprintf("Failed to read eve plan file: %v", err), http.StatusInternalServerError)
 			}
 			return
 		}
@@ -66,8 +66,8 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 		}
 
 		if err := h.skillService.ParseAndSaveSkillPlan(requestData.Contents, requestData.PlanName); err != nil {
-			h.logger.Errorf("Failed to save skill plan: %v", err)
-			http.Error(w, "Failed to save skill plan", http.StatusInternalServerError)
+			h.logger.Errorf("Failed to save eve plan: %v", err)
+			http.Error(w, "Failed to save eve plan", http.StatusInternalServerError)
 			return
 		}
 
@@ -90,8 +90,8 @@ func (h *SkillPlanHandler) DeleteSkillPlan() http.HandlerFunc {
 		}
 
 		if err := h.skillService.DeleteSkillPlan(planName); err != nil {
-			h.logger.Errorf("Failed to delete skill plan: %v", err)
-			http.Error(w, "Failed to delete skill plan", http.StatusInternalServerError)
+			h.logger.Errorf("Failed to delete eve plan: %v", err)
+			http.Error(w, "Failed to delete eve plan", http.StatusInternalServerError)
 			return
 		}
 

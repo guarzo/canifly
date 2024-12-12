@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/sirupsen/logrus"
 
+	flyLogger "github.com/guarzo/canifly/internal/services/config"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	flyLogger "github.com/guarzo/canifly/internal/services/logger"
 )
 
 func SetupLogger() interfaces.Logger {

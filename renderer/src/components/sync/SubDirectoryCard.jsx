@@ -1,4 +1,3 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import { Card, Typography, Divider, FormControl, InputLabel, Select, MenuItem, Grid, Tooltip } from '@mui/material';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -17,9 +16,9 @@ const SubDirectoryCard = ({
     const sortedUserFiles = [...subDir.availableUserFiles].sort((a, b) => a.name.localeCompare(b.name));
     const sortedCharFiles = [...subDir.availableCharFiles].sort((a, b) => a.name.localeCompare(b.name));
 
-    const displaySubDir = subDir.subDir.replace('settings_', '');
-    const selectedCharId = selections[subDir.subDir]?.charId || '';
-    const selectedUserId = selections[subDir.subDir]?.userId || '';
+    const displaySubDir = subDir.profile.replace('settings_', '');
+    const selectedCharId = selections[subDir.profile]?.charId || '';
+    const selectedUserId = selections[subDir.profile]?.userId || '';
 
     return (
         <Card className="bg-gray-800 text-teal-200 p-4 rounded-md shadow-md flex flex-col justify-between h-full transform transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg">
@@ -35,19 +34,19 @@ const SubDirectoryCard = ({
                 <div className="p-2 rounded-md border border-gray-600 bg-gray-700 mb-2">
                     <FormControl fullWidth margin="normal">
                         <InputLabel
-                            id={`char-select-label-${subDir.subDir}`}
+                            id={`char-select-label-${subDir.profile}`}
                             sx={{ color: '#99f6e4' }}
                         >
                             Select Character
                         </InputLabel>
                         <Select
-                            labelId={`char-select-label-${subDir.subDir}`}
-                            id={`char-select-${subDir.subDir}`}
+                            labelId={`char-select-label-${subDir.profile}`}
+                            id={`char-select-${subDir.profile}`}
                             value={selectedCharId}
                             label="Select Character"
                             onChange={(e) =>
                                 handleSelectionChange(
-                                    subDir.subDir,
+                                    subDir.profile,
                                     'charId',
                                     e.target.value
                                 )
@@ -78,19 +77,19 @@ const SubDirectoryCard = ({
                     </FormControl>
                     <FormControl fullWidth margin="normal">
                         <InputLabel
-                            id={`user-select-label-${subDir.subDir}`}
+                            id={`user-select-label-${subDir.profile}`}
                             sx={{ color: '#99f6e4' }}
                         >
                             Select User
                         </InputLabel>
                         <Select
-                            labelId={`user-select-label-${subDir.subDir}`}
-                            id={`user-select-${subDir.subDir}`}
+                            labelId={`user-select-label-${subDir.profile}`}
+                            id={`user-select-${subDir.profile}`}
                             value={selectedUserId}
                             label="Select User"
                             onChange={(e) =>
                                 handleSelectionChange(
-                                    subDir.subDir,
+                                    subDir.profile,
                                     'userId',
                                     e.target.value
                                 )
@@ -129,7 +128,7 @@ const SubDirectoryCard = ({
                                 <LoadingButton
                                     variant="contained"
                                     color="primary"
-                                    onClick={() => handleSync(subDir.subDir)}
+                                    onClick={() => handleSync(subDir.profile)}
                                     loading={isLoading}
                                     fullWidth
                                     disabled={
@@ -150,7 +149,7 @@ const SubDirectoryCard = ({
                                 <LoadingButton
                                     variant="contained"
                                     color="secondary"
-                                    onClick={() => handleSyncAll(subDir.subDir)}
+                                    onClick={() => handleSyncAll(subDir.profile)}
                                     loading={isLoading}
                                     fullWidth
                                     disabled={
@@ -173,7 +172,7 @@ const SubDirectoryCard = ({
 
 SubDirectoryCard.propTypes = {
     subDir: PropTypes.shape({
-        subDir: PropTypes.string.isRequired,
+        profile: PropTypes.string.isRequired,
         availableCharFiles: PropTypes.array.isRequired,
         availableUserFiles: PropTypes.array.isRequired,
     }).isRequired,

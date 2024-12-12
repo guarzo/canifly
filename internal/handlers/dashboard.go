@@ -27,10 +27,10 @@ func NewDashboardHandler(
 }
 
 func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache bool) {
-	// Get current app state (cached) from the DashboardService (which uses StateService internally)
+	// Get current app state (cached) from the DashboardService (which uses AppStateService internally)
 	appState := h.dashboardService.GetCurrentAppState()
 
-	if !noCache && len(appState.Accounts) > 0 {
+	if !noCache && len(appState.AccountData.Accounts) > 0 {
 		// We have cached data
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(appState)

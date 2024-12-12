@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/gorilla/handlers"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"github.com/guarzo/canifly/internal/embed"
@@ -24,7 +24,8 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountService)
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService)
-	settingsHandler := flyHandlers.NewSettingsHandler(logger, appServices.SettingsService)
+	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigService)
+	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.EveProfileService)
 	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AssocService)
 
 	// Public routes
@@ -40,9 +41,9 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
 
-	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
-	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
-	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
+	r.HandleFunc("/api/get-eve-plan", skillPlanHandler.GetSkillPlanFile())
+	r.HandleFunc("/api/save-eve-plan", skillPlanHandler.SaveSkillPlan())
+	r.HandleFunc("/api/delete-eve-plan", skillPlanHandler.DeleteSkillPlan())
 
 	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
@@ -51,13 +52,13 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter)
 	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
-	r.HandleFunc("/api/choose-settings-dir", settingsHandler.ChooseSettingsDir)
-	r.HandleFunc("/api/reset-to-default-directory", settingsHandler.ResetToDefaultDir)
-	r.HandleFunc("/api/backup-directory", settingsHandler.BackupDirectory)
-	r.HandleFunc("/api/save-user-selections", settingsHandler.SaveUserSelections)
+	r.HandleFunc("/api/choose-settings-dir", configHandler.ChooseSettingsDir)
+	r.HandleFunc("/api/reset-to-default-directory", configHandler.ResetToDefaultDir)
+	r.HandleFunc("/api/save-user-selections", configHandler.SaveUserSelections)
 
-	r.HandleFunc("/api/sync-subdirectory", settingsHandler.SyncSubDirectory)
-	r.HandleFunc("/api/sync-all-subdirectories", settingsHandler.SyncAllSubdirectories)
+	r.HandleFunc("/api/sync-subdirectory", eveDataHandler.SyncSubDirectory)
+	r.HandleFunc("/api/sync-all-subdirectories", eveDataHandler.SyncAllSubdirectories)
+	r.HandleFunc("/api/backup-directory", eveDataHandler.BackupDirectory)
 
 	r.HandleFunc("/api/associate-character", assocHandler.AssociateCharacter)
 	r.HandleFunc("/api/unassociate-character", assocHandler.UnassociateCharacter)

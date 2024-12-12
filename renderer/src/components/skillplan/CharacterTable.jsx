@@ -10,15 +10,14 @@ import {
     Collapse,
     IconButton,
     Box,
+    Tooltip
 } from '@mui/material';
 import {
     KeyboardArrowDown,
-    KeyboardArrowUp,
-    CheckCircle,
-    AccessTime,
-    Error as ErrorIcon,
+    KeyboardArrowUp
 } from '@mui/icons-material';
 import { calculateDaysFromToday, formatNumberWithCommas } from '../../utils/utils.jsx';
+import { CheckCircle, AccessTime, Error as ErrorIcon } from '@mui/icons-material';
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];
@@ -59,29 +58,31 @@ const CharacterRow = ({ row }) => {
     return (
         <React.Fragment>
             <TableRow
-                className="bg-gray-800 hover:bg-gray-700 transition-colors"
+                className="hover:bg-gray-700 transition-colors duration-200"
                 sx={{ borderBottom: row.plans.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
             >
-                <TableCell sx={{ width: '40px' }}>
+                <TableCell sx={{ width: '40px', paddingX: '0.5rem' }}>
                     {row.plans.length > 0 && (
-                        <IconButton
-                            size="small"
-                            onClick={() => setOpen(!open)}
-                            sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
-                        >
-                            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                        </IconButton>
+                        <Tooltip title={open ? "Collapse" : "Expand"} arrow>
+                            <IconButton
+                                size="small"
+                                onClick={() => setOpen(!open)}
+                                sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
+                            >
+                                {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                            </IconButton>
+                        </Tooltip>
                     )}
                 </TableCell>
-                <TableCell className="text-teal-200 font-semibold whitespace-nowrap">
+                <TableCell className="text-teal-200 font-semibold whitespace-nowrap px-2 py-2">
                     {row.CharacterName}
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-teal-100">
+                <TableCell className="whitespace-nowrap text-teal-100 px-2 py-2">
                     {row.TotalSP}
                 </TableCell>
             </TableRow>
             {row.plans.length > 0 && (
-                <TableRow className="bg-gray-800">
+                <TableRow>
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                         <Collapse in={open} timeout="auto" unmountOnExit>
                             <Box margin={1}>
@@ -90,16 +91,16 @@ const CharacterRow = ({ row }) => {
                                         {row.plans.map((plan) => (
                                             <TableRow
                                                 key={plan.id}
-                                                className="hover:bg-gray-600 transition-colors"
+                                                className="hover:bg-gray-600 transition-colors duration-200"
                                             >
-                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600">
+                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600 py-2">
                                                     {plan.statusIcon}
                                                     <span className="ml-2">↳ {plan.planName}</span>
                                                 </TableCell>
-                                                <TableCell className="text-gray-300 border-b border-gray-600">
+                                                <TableCell className="text-gray-300 border-b border-gray-600 py-2">
                                                     {plan.statusText}
                                                 </TableCell>
-                                                <TableCell className="border-b border-gray-600" />
+                                                <TableCell className="border-b border-gray-600 py-2" />
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -121,9 +122,7 @@ const CharacterTable = ({ identities, skillPlans }) => {
     const characterData = useMemo(() => {
         return identities.map((identity) => {
             const characterDetails = identity.Character || {};
-            const TotalSP = formatNumberWithCommas(
-                characterDetails.CharacterSkillsResponse?.total_sp || 0
-            );
+            const TotalSP = formatNumberWithCommas(characterDetails.CharacterSkillsResponse?.total_sp || 0);
 
             const plans = Object.keys(skillPlans).map((planName) => {
                 const status = generatePlanStatus(planName, characterDetails);
@@ -149,10 +148,14 @@ const CharacterTable = ({ identities, skillPlans }) => {
             <TableContainer className="rounded-md border border-gray-700 overflow-hidden">
                 <Table>
                     <TableHead>
-                        <TableRow className="bg-gray-900">
-                            <TableCell sx={{ width: '40px' }} />
-                            <TableCell className="text-teal-200 font-bold">Character Name</TableCell>
-                            <TableCell className="text-teal-200 font-bold">Total Skill Points</TableCell>
+                        <TableRow className="bg-gradient-to-r from-gray-900 to-gray-800">
+                            <TableCell sx={{ width: '40px', paddingX: '0.5rem' }} />
+                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+                                Character Name
+                            </TableCell>
+                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+                                Total Skill Points
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

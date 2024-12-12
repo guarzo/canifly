@@ -10,6 +10,7 @@ import {
     Collapse,
     IconButton,
     Box,
+    Tooltip
 } from '@mui/material';
 import {
     KeyboardArrowDown,
@@ -27,45 +28,46 @@ const SkillPlanRow = ({ row }) => {
 
     return (
         <React.Fragment>
-            <TableRow
-                className="bg-gray-800 hover:bg-gray-700 transition-colors"
-                sx={{ borderBottom: row.children.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
-            >
-                <TableCell sx={{ width: '40px' }}>
+            <TableRow className="hover:bg-gray-700 transition-colors duration-200">
+                <TableCell sx={{ width: '40px', paddingX: '0.5rem' }}>
                     {row.children.length > 0 && (
-                        <IconButton
-                            size="small"
-                            onClick={() => setOpen(!open)}
-                            sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
-                        >
-                            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                        </IconButton>
+                        <Tooltip title={open ? "Collapse" : "Expand"} arrow>
+                            <IconButton
+                                size="small"
+                                onClick={() => setOpen(!open)}
+                                sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
+                            >
+                                {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                            </IconButton>
+                        </Tooltip>
                     )}
                 </TableCell>
-                <TableCell className="text-teal-200 font-semibold whitespace-nowrap">
+                <TableCell className="text-teal-200 font-semibold whitespace-nowrap px-2 py-2">
                     {row.planName}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
-                    <IconButton
-                        size="small"
-                        onClick={() => window.copySkillPlan(row.planName)}
-                        sx={{ color: '#14b8a6', '&:hover': { color: '#ffffff' }, mr: 1 }}
-                        title="Copy Skill Plan"
-                    >
-                        <ContentCopy fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                        size="small"
-                        onClick={() => window.deleteSkillPlan(row.planName)}
-                        sx={{ color: '#ef4444', '&:hover': { color: '#ffffff' } }}
-                        title="Delete Skill Plan"
-                    >
-                        <Delete fontSize="small" />
-                    </IconButton>
+                <TableCell className="whitespace-nowrap px-2 py-2">
+                    <Tooltip title="Copy Skill Plan" arrow>
+                        <IconButton
+                            size="small"
+                            onClick={() => window.copySkillPlan(row.planName)}
+                            sx={{ color: '#14b8a6', '&:hover': { color: '#ffffff' }, mr: 1 }}
+                        >
+                            <ContentCopy fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Skill Plan" arrow>
+                        <IconButton
+                            size="small"
+                            onClick={() => window.deleteSkillPlan(row.planName)}
+                            sx={{ color: '#ef4444', '&:hover': { color: '#ffffff' } }}
+                        >
+                            <Delete fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
                 </TableCell>
             </TableRow>
             {row.children.length > 0 && (
-                <TableRow className="bg-gray-800">
+                <TableRow>
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                         <Collapse in={open} timeout="auto" unmountOnExit>
                             <Box margin={1}>
@@ -74,16 +76,16 @@ const SkillPlanRow = ({ row }) => {
                                         {row.children.map((child) => (
                                             <TableRow
                                                 key={child.id}
-                                                className="hover:bg-gray-600 transition-colors"
+                                                className="hover:bg-gray-600 transition-colors duration-200"
                                             >
-                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600">
+                                                <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600 py-2">
                                                     {child.statusIcon}
                                                     <span className="ml-2">↳ {child.characterName}</span>
                                                 </TableCell>
-                                                <TableCell className="text-gray-300 border-b border-gray-600">
+                                                <TableCell className="text-gray-300 border-b border-gray-600 py-2">
                                                     {child.statusText}
                                                 </TableCell>
-                                                <TableCell className="border-b border-gray-600" />
+                                                <TableCell className="border-b border-gray-600 py-2" />
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -103,7 +105,7 @@ SkillPlanRow.propTypes = {
 
 const SkillPlanTable = ({ skillPlans, identities }) => {
     const skillPlanData = useMemo(() => {
-        const data = Object.values(skillPlans).map((skillPlan) => {
+        return Object.values(skillPlans).map((skillPlan) => {
             const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
             const pendingCharacters = skillPlan.PendingCharacters || [];
             const missingCharacters = skillPlan.MissingCharacters || [];
@@ -144,8 +146,6 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
                 children,
             };
         });
-
-        return data;
     }, [skillPlans, identities]);
 
     return (
@@ -153,10 +153,14 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
             <TableContainer className="rounded-md border border-gray-700 overflow-hidden">
                 <Table>
                     <TableHead>
-                        <TableRow className="bg-gray-900">
-                            <TableCell sx={{ width: '40px' }} />
-                            <TableCell className="text-teal-200 font-bold">Skill Plan</TableCell>
-                            <TableCell className="text-teal-200 font-bold">Actions</TableCell>
+                        <TableRow className="bg-gradient-to-r from-gray-900 to-gray-800">
+                            <TableCell sx={{ width: '40px', paddingX: '0.5rem' }} />
+                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+                                Skill Plan
+                            </TableCell>
+                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+                                Actions
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>

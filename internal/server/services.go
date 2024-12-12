@@ -2,48 +2,33 @@ package server
 
 import (
 	"fmt"
+
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/persist/accountStore"
-	"github.com/guarzo/canifly/internal/persist/cacheStore"
-	"github.com/guarzo/canifly/internal/persist/deletedStore"
-	"github.com/guarzo/canifly/internal/persist/loginstatestore"
-	"github.com/guarzo/canifly/internal/persist/settingsStore"
-	"github.com/guarzo/canifly/internal/persist/skillstore"
-	"github.com/guarzo/canifly/internal/persist/systemstore"
-	"github.com/guarzo/canifly/internal/services/account"
-	"github.com/guarzo/canifly/internal/services/association"
-	"github.com/guarzo/canifly/internal/services/auth"
-	"github.com/guarzo/canifly/internal/services/cache"
-	"github.com/guarzo/canifly/internal/services/character"
-	"github.com/guarzo/canifly/internal/services/dashboard"
-	"github.com/guarzo/canifly/internal/services/esi"
+	"github.com/guarzo/canifly/internal/persist/account"
+	"github.com/guarzo/canifly/internal/persist/config"
+	"github.com/guarzo/canifly/internal/persist/eve"
+	accountSvc "github.com/guarzo/canifly/internal/services/account"
+	configSvc "github.com/guarzo/canifly/internal/services/config"
+	eveSvc "github.com/guarzo/canifly/internal/services/eve"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/guarzo/canifly/internal/services/login"
-	"github.com/guarzo/canifly/internal/services/settings"
-	"github.com/guarzo/canifly/internal/services/skill"
-	"github.com/guarzo/canifly/internal/services/state"
 )
 
 type AppServices struct {
-	EsiService       interfaces.ESIService
-	SettingsService  interfaces.SettingsService
-	AccountService   interfaces.AccountService
-	SkillService     interfaces.SkillService
-	SettingsStore    interfaces.SettingsRepository
-	CharacterService interfaces.CharacterService
-	DashBoardService interfaces.DashboardService
-	AssocService     interfaces.AssociationService
-	StateService     interfaces.StateService
-	LoginService     interfaces.LoginService
+	EsiService        interfaces.ESIService
+	EveProfileService interfaces.EveProfilesService
+	AccountService    interfaces.AccountService
+	SkillService      interfaces.SkillService
+	ConfigService     interfaces.ConfigService
+	CharacterService  interfaces.CharacterService
+	DashBoardService  interfaces.DashboardService
+	AssocService      interfaces.AssociationService
+	StateService      interfaces.AppStateService
+	LoginService      interfaces.LoginService
 }
 
 func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
-	settingsStr := initSettingsStore(logger)
-	if err := embed.LoadStatic(); err != nil {
-		return nil, fmt.Errorf("failed to load templates %v", err)
-	}
 
 	skillService, err := initSkillService(logger, cfg.BasePath)
 	if err != nil {
@@ -52,86 +37,94 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 	loginService := initLoginService(logger)
 
-	authClient := auth.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
-
-	esiService := initESIService(logger, authClient)
-	accountService, assocService := initAccountAndAssoc(logger, esiService, settingsStr)
-	settingsService, err := initSettingsService(logger, settingsStr, esiService)
+	esiService := initESIService(logger, cfg)
+	accountService, assocService := initAccountAndAssoc(logger, esiService, cfg.BasePath)
+	configService, err := initConfigService(logger, cfg.BasePath)
 	if err != nil {
 		return nil, err
 	}
-	stateService := state.NewStateService(logger, settingsStr)
+	appStateStr := config.NewAppStateStore(logger, persist.OSFileSystem{}, cfg.BasePath)
+	stateService := configSvc.NewAppStateService(logger, appStateStr)
 
-	characterService, dashboardService, err := initCharacterAndDashboard(logger, esiService, authClient, skillService, accountService, settingsService, stateService)
+	eveProfileService := initEveProfileService(logger, esiService, configService, accountService)
+
+	characterService, dashboardService, err := initCharacterAndDashboard(logger, esiService, skillService, accountService, configService, stateService, eveProfileService)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AppServices{
-		EsiService:       esiService,
-		SettingsService:  settingsService,
-		AccountService:   accountService,
-		SkillService:     skillService,
-		SettingsStore:    settingsStr,
-		CharacterService: characterService,
-		DashBoardService: dashboardService,
-		AssocService:     assocService,
-		StateService:     stateService,
-		LoginService:     loginService,
+		EsiService:        esiService,
+		EveProfileService: eveProfileService,
+		AccountService:    accountService,
+		SkillService:      skillService,
+		ConfigService:     configService,
+		CharacterService:  characterService,
+		DashBoardService:  dashboardService,
+		AssocService:      assocService,
+		StateService:      stateService,
+		LoginService:      loginService,
 	}, nil
 }
 
-func initCharacterAndDashboard(l interfaces.Logger, e interfaces.ESIService, authClient interfaces.AuthClient, sk interfaces.SkillService, as interfaces.AccountService, s interfaces.SettingsService, st interfaces.StateService) (interfaces.CharacterService, interfaces.DashboardService, error) {
-	sysStore := systemstore.NewSystemStore(l)
+func initEveProfileService(logger interfaces.Logger, esi interfaces.ESIService, con interfaces.ConfigService, ac interfaces.AccountService) interfaces.EveProfilesService {
+	eveRepo := eve.NewEveProfilesStore(logger)
+	return eveSvc.NewEveProfileservice(logger, eveRepo, ac, esi, con)
+}
+
+func initCharacterAndDashboard(l interfaces.Logger, e interfaces.ESIService, sk interfaces.SkillService, as interfaces.AccountService, s interfaces.ConfigService, st interfaces.AppStateService, ev interfaces.EveProfilesService) (interfaces.CharacterService, interfaces.DashboardService, error) {
+	sysStore := eve.NewSystemStore(l)
 	if err := sysStore.LoadSystems(); err != nil {
 		return nil, nil, fmt.Errorf("failed to load systems %v", err)
 	}
 
-	characterService := character.NewCharacterService(e, authClient, l, sysStore, sk, as, s)
-	dashboardService := dashboard.NewDashboardService(l, sk, characterService, as, s, st)
+	characterService := eveSvc.NewCharacterService(e, l, sysStore, sk, as, s)
+	dashboardService := configSvc.NewDashboardService(l, sk, characterService, as, s, st, ev)
 	return characterService, dashboardService, nil
 
 }
 
-func initAccountAndAssoc(l interfaces.Logger, e interfaces.ESIService, s interfaces.SettingsRepository) (interfaces.AccountService, interfaces.AssociationService) {
-	accountStr := accountStore.NewAccountStore(l)
+func initAccountAndAssoc(l interfaces.Logger, e interfaces.ESIService, basePath string) (interfaces.AccountService, interfaces.AssociationService) {
+	accountStr := account.NewAccountDataStore(l, persist.OSFileSystem{}, basePath)
 
-	assocService := association.NewAssociationService(l, accountStr, e, s)
-	accountService := account.NewAccountService(l, accountStr, e, assocService)
+	assocService := accountSvc.NewAssociationService(l, accountStr, e)
+	accountService := accountSvc.NewAccountService(l, accountStr, e, assocService)
 	return accountService, assocService
 }
 
-func initSettingsStore(logger interfaces.Logger) interfaces.SettingsRepository {
-	return settingsStore.NewConfigStore(logger)
-}
-
 func initSkillService(logger interfaces.Logger, basePath string) (interfaces.SkillService, error) {
-	skillStore := skillstore.NewSkillStore(logger, persist.OSFileSystem{}, basePath)
+	skillStore := eve.NewSkillStore(logger, persist.OSFileSystem{}, basePath)
 	if err := skillStore.LoadSkillPlans(); err != nil {
 
-		return nil, fmt.Errorf("failed to load skill plans %v", err)
+		return nil, fmt.Errorf("failed to load eve plans %v", err)
 	}
 	if err := skillStore.LoadSkillTypes(); err != nil {
-		return nil, fmt.Errorf("failed to load skill types %v", err)
+		return nil, fmt.Errorf("failed to load eve types %v", err)
 	}
-	return skill.NewSkillService(logger, skillStore), nil
+	return eveSvc.NewSkillService(logger, skillStore), nil
 }
 
 func initLoginService(logger interfaces.Logger) interfaces.LoginService {
-	loginStateStore := loginstatestore.NewLoginStateStore()
-	return login.NewLoginService(logger, loginStateStore)
+	loginStateStore := account.NewLoginStateStore()
+	return accountSvc.NewLoginService(logger, loginStateStore)
 }
 
-func initESIService(logger interfaces.Logger, authClient interfaces.AuthClient) interfaces.ESIService {
+func initESIService(logger interfaces.Logger, cfg Config) interfaces.ESIService {
 	httpClient := http.NewAPIClient("https://esi.evetech.net", "", logger)
-	cacheStr := cacheStore.NewCacheStore(logger)
-	deletedStr := deletedStore.NewDeletedStore(logger)
-	cacheService := cache.NewCacheService(logger, cacheStr)
-	return esi.NewESIService(httpClient, authClient, logger, cacheService, deletedStr)
+	authClient := accountSvc.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
+	cacheStr := eve.NewCacheStore(logger, persist.OSFileSystem{}, cfg.BasePath)
+	deletedStr := eve.NewDeletedStore(logger, persist.OSFileSystem{}, cfg.BasePath)
+	cacheService := eveSvc.NewCacheService(logger, cacheStr)
+	return eveSvc.NewESIService(httpClient, authClient, logger, cacheService, deletedStr)
 }
 
-func initSettingsService(l interfaces.Logger, s interfaces.SettingsRepository, e interfaces.ESIService) (interfaces.SettingsService, error) {
-	srv := settings.NewSettingsService(l, s, e)
+func initConfigService(l interfaces.Logger, basePath string) (interfaces.ConfigService, error) {
+	configStr := config.NewConfigStore(l, persist.OSFileSystem{}, basePath)
+	if err := embed.LoadStatic(); err != nil {
+		return nil, fmt.Errorf("failed to load static files %v", err)
+	}
+
+	srv := configSvc.NewConfigService(l, configStr)
 	if err := srv.EnsureSettingsDir(); err != nil {
 		return nil, fmt.Errorf("unable to ensure settings dir %v", err)
 	}

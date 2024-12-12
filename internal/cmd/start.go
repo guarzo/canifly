@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/guarzo/canifly/internal/auth"
+	"github.com/guarzo/canifly/internal/crypto"
 	"github.com/guarzo/canifly/internal/server"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/guarzo/canifly/internal/utils"
 )
 
 var version = "0.0.40"
@@ -44,7 +44,7 @@ func initializeComponents(cfg server.Config, logger interfaces.Logger) {
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to decode secret key.")
 	}
-	if err = utils.Initialize(key); err != nil {
+	if err = crypto.Initialize(key); err != nil {
 		logger.WithError(err).Fatal("Failed to initialize encryption.")
 	}
 

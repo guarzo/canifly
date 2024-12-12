@@ -58,7 +58,7 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 			return
 		}
 		if request.AccountID == 0 {
-			respondError(w, "AccountID is required", http.StatusBadRequest)
+			respondError(w, "UserId is required", http.StatusBadRequest)
 			return
 		}
 

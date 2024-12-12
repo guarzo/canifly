@@ -1,7 +1,9 @@
+// services/interfaces/account.go
 package interfaces
 
 import (
 	"golang.org/x/oauth2"
+	"time"
 
 	"github.com/guarzo/canifly/internal/model"
 )
@@ -11,14 +13,97 @@ type AccountService interface {
 	UpdateAccountName(accountID int64, accountName string) error
 	ToggleAccountStatus(accountID int64) error
 	RemoveAccountByName(accountName string) error
-	RefreshAccounts(characterService CharacterService) ([]model.Account, error)
+	RefreshAccountData(characterService CharacterService) (*model.AccountData, error)
 	DeleteAllAccounts() error
 	FetchAccounts() ([]model.Account, error)
 	SaveAccounts(accounts []model.Account) error
+	GetAccountNameByID(id string) (string, bool)
+}
+type AccountDataRepository interface {
+	// FetchAccountData retrieves the entire account domain data (Accounts, UserAccount map, and Associations).
+	FetchAccountData() (model.AccountData, error)
+
+	// SaveAccountData saves the entire account domain data structure.
+	SaveAccountData(data model.AccountData) error
+
+	// DeleteAccountData removes the persisted account data file, if any.
+	DeleteAccountData() error
+
+	// FetchAccounts returns only the Accounts slice from the account data.
+	// This is a convenience method that internally fetches AccountData and returns AccountData.Accounts.
+	FetchAccounts() ([]model.Account, error)
+
+	// SaveAccounts updates the Accounts slice in the account data, leaving UserAccount and Associations unchanged.
+	SaveAccounts(accounts []model.Account) error
+
+	// DeleteAccounts clears out the Accounts slice (but not necessarily UserAccount or Associations).
+	DeleteAccounts() error
 }
 
-type AccountRepository interface {
-	FetchAccounts() ([]model.Account, error)
-	SaveAccounts([]model.Account) error
-	DeleteAccounts() error
+type AssociationService interface {
+	UpdateAssociationsAfterNewCharacter(account *model.Account, charID int64) error
+	AssociateCharacter(userId, charId string) error
+	UnassociateCharacter(userId, charId string) error
+}
+
+type CacheService interface {
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte, expiration time.Duration)
+	LoadCache() error
+	SaveCache() error
+}
+
+type CacheRepository interface {
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte, expiration time.Duration)
+	LoadApiCache() error
+	SaveApiCache() error
+}
+
+type CharacterService interface {
+	ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error)
+	DoesCharacterExist(characterID int64) (bool, *model.CharacterIdentity, error)
+	UpdateCharacterFields(characterID int64, updates map[string]interface{}) error
+	RemoveCharacter(characterID int64) error
+}
+
+type ESIService interface {
+	GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error)
+	GetCharacter(id string) (*model.CharacterResponse, error)
+	GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error)
+	GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error)
+	GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error)
+	ResolveCharacterNames(charIds []string) (map[string]string, error)
+	SaveEsiCache() error
+}
+
+// AuthClient defines methods related to authentication and token management.
+type AuthClient interface {
+	RefreshToken(refreshToken string) (*oauth2.Token, error)
+	GetAuthURL(state string) string
+	ExchangeCode(code string) (*oauth2.Token, error)
+}
+
+type HTTPClient interface {
+	// DoRequest executes an HTTP request with the given method, endpoint, and optional body,
+	// then unmarshals the result into target.
+	DoRequest(method, endpoint string, body interface{}, target interface{}) error
+}
+
+type DeletedCharactersRepository interface {
+	FetchDeletedCharacters() ([]string, error)
+	SaveDeletedCharacters([]string) error
+}
+
+type LoginService interface {
+	ResolveAccountAndStatusByState(state string) (string, bool, bool)
+	GenerateAndStoreInitialState(value string) (string, error)
+	UpdateStateStatusAfterCallBack(state string) error
+	ClearState(state string)
+}
+
+type LoginRepository interface {
+	Set(state string, authStatus *model.AuthStatus)
+	Get(state string) (*model.AuthStatus, bool)
+	Delete(state string)
 }

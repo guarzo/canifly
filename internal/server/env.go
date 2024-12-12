@@ -3,11 +3,12 @@ package server
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/guarzo/canifly/internal/crypto"
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/guarzo/canifly/internal/utils"
 	"github.com/joho/godotenv"
 	"os"
+	"path/filepath"
 )
 
 type Config struct {
@@ -54,11 +55,11 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 	}
 
 	cfg.PathSuffix = os.Getenv("PATH_SUFFIX")
-	writeableDir, err := os.UserConfigDir()
+	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return cfg, fmt.Errorf("unable to get user config dir: %v", err)
 	}
-	cfg.BasePath = writeableDir
+	cfg.BasePath = filepath.Join(configDir, "canifly")
 
 	return cfg, nil
 }
@@ -67,7 +68,7 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 func getSecretKey(logger interfaces.Logger) string {
 	secret := os.Getenv("SECRET_KEY")
 	if secret == "" {
-		key, err := utils.GenerateSecret()
+		key, err := crypto.GenerateSecret()
 		if err != nil {
 			logger.WithError(err).Fatal("Failed to generate secret key")
 		}

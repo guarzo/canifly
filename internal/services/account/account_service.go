@@ -3,6 +3,7 @@ package account
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -15,14 +16,14 @@ const AlphaMaxSp = 5000000
 
 type accountService struct {
 	logger       interfaces.Logger
-	accountRepo  interfaces.AccountRepository
+	accountRepo  interfaces.AccountDataRepository
 	esi          interfaces.ESIService
 	assocService interfaces.AssociationService
 }
 
 func NewAccountService(
 	logger interfaces.Logger,
-	accountRepo interfaces.AccountRepository,
+	accountRepo interfaces.AccountDataRepository,
 	esi interfaces.ESIService,
 	assoc interfaces.AssociationService,
 ) interfaces.AccountService {
@@ -34,11 +35,27 @@ func NewAccountService(
 	}
 }
 
-func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
+func (a *accountService) GetAccountNameByID(id string) (string, bool) {
 	accounts, err := a.accountRepo.FetchAccounts()
+	if err != nil {
+		a.logger.Errorf("unable to retrieve accounts, returning false %v", err)
+		return "", false
+	}
+	for _, account := range accounts {
+		if strconv.FormatInt(account.ID, 10) == id {
+			return account.Name, true
+		}
+	}
+
+	return "", false
+}
+
+func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
+	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {
 		return err
 	}
+	accounts := accountData.Accounts
 
 	account := a.FindAccountByName(state, accounts)
 	if account == nil {
@@ -60,23 +77,23 @@ func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoR
 			newChar := model.CharacterIdentity{
 				Token: *token,
 				Character: model.Character{
-					UserInfoResponse: model.UserInfoResponse{
-						CharacterID:   char.CharacterID,
-						CharacterName: char.CharacterName,
-					},
+					UserInfoResponse: *char,
 				},
 			}
 			account.Characters = append(account.Characters, newChar)
 		}
 	}
 
-	// Update associations after new character via AssociationService
+	// Update the accounts back to accountData
+	accountData.Accounts = accounts
+
+	// Update associations after new character
 	if err := a.assocService.UpdateAssociationsAfterNewCharacter(account, char.CharacterID); err != nil {
 		a.logger.Warnf("error updating associations after updating character %v", err)
 	}
 
-	// Save updated accounts
-	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
+	// Save updated accountData
+	if err := a.accountRepo.SaveAccountData(accountData); err != nil {
 		return err
 	}
 
@@ -84,9 +101,17 @@ func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoR
 }
 
 func (a *accountService) DeleteAllAccounts() error {
-	if err := a.accountRepo.DeleteAccounts(); err != nil {
-		return fmt.Errorf("failed to delete accounts: %w", err)
+	accountData, err := a.accountRepo.FetchAccountData()
+	if err != nil {
+		return fmt.Errorf("failed to fetch account data: %w", err)
 	}
+
+	accountData.Accounts = []model.Account{}
+
+	if err := a.accountRepo.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("failed to save empty accounts: %w", err)
+	}
+
 	return nil
 }
 
@@ -94,10 +119,7 @@ func createNewAccountWithCharacter(name string, token *oauth2.Token, user *model
 	newChar := model.CharacterIdentity{
 		Token: *token,
 		Character: model.Character{
-			UserInfoResponse: model.UserInfoResponse{
-				CharacterID:   user.CharacterID,
-				CharacterName: user.CharacterName,
-			},
+			UserInfoResponse: *user,
 		},
 	}
 
@@ -119,11 +141,12 @@ func (a *accountService) FindAccountByName(accountName string, accounts []model.
 }
 
 func (a *accountService) UpdateAccountName(accountID int64, accountName string) error {
-	accounts, err := a.accountRepo.FetchAccounts()
+	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {
-		return fmt.Errorf("error fetching accounts: %w", err)
+		return fmt.Errorf("error fetching account data: %w", err)
 	}
 
+	accounts := accountData.Accounts
 	var accountToUpdate *model.Account
 	for i := range accounts {
 		if accounts[i].ID == accountID {
@@ -137,20 +160,22 @@ func (a *accountService) UpdateAccountName(accountID int64, accountName string) 
 	}
 
 	accountToUpdate.Name = accountName
+	accountData.Accounts = accounts
 
-	if err = a.accountRepo.SaveAccounts(accounts); err != nil {
-		return fmt.Errorf("failed to save accounts: %w", err)
+	if err = a.accountRepo.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("failed to save account data: %w", err)
 	}
 
 	return nil
 }
 
 func (a *accountService) ToggleAccountStatus(accountID int64) error {
-	accounts, err := a.accountRepo.FetchAccounts()
+	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {
-		return fmt.Errorf("error fetching accounts: %w", err)
+		return fmt.Errorf("error fetching account data: %w", err)
 	}
 
+	accounts := accountData.Accounts
 	var accountFound bool
 	for i := range accounts {
 		if accounts[i].ID == accountID {
@@ -168,19 +193,21 @@ func (a *accountService) ToggleAccountStatus(accountID int64) error {
 		return fmt.Errorf("account not found")
 	}
 
-	if err = a.accountRepo.SaveAccounts(accounts); err != nil {
-		return fmt.Errorf("failed to save accounts: %w", err)
+	accountData.Accounts = accounts
+	if err = a.accountRepo.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("failed to save account data: %w", err)
 	}
 
 	return nil
 }
 
 func (a *accountService) RemoveAccountByName(accountName string) error {
-	accounts, err := a.accountRepo.FetchAccounts()
+	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {
-		return fmt.Errorf("error fetching accounts: %w", err)
+		return fmt.Errorf("error fetching account data: %w", err)
 	}
 
+	accounts := accountData.Accounts
 	index := -1
 	for i, acc := range accounts {
 		if acc.Name == accountName {
@@ -194,21 +221,23 @@ func (a *accountService) RemoveAccountByName(accountName string) error {
 	}
 
 	accounts = append(accounts[:index], accounts[index+1:]...)
+	accountData.Accounts = accounts
 
-	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
-		return fmt.Errorf("failed to save accounts: %w", err)
+	if err := a.accountRepo.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("failed to save account data: %w", err)
 	}
 
 	return nil
 }
 
-func (a *accountService) RefreshAccounts(characterSvc interfaces.CharacterService) ([]model.Account, error) {
-	a.logger.Debug("Refreshing accounts")
-	accounts, err := a.accountRepo.FetchAccounts()
+func (a *accountService) RefreshAccountData(characterSvc interfaces.CharacterService) (*model.AccountData, error) {
+	a.logger.Debug("Refreshing account data")
+	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load accounts: %w", err)
+		return nil, fmt.Errorf("failed to load account data: %w", err)
 	}
 
+	accounts := accountData.Accounts
 	a.logger.Debugf("Fetched %d accounts", len(accounts))
 
 	for i := range accounts {
@@ -225,33 +254,42 @@ func (a *accountService) RefreshAccounts(characterSvc interfaces.CharacterServic
 				continue
 			}
 
-			// best effort --if they're actively training and have more than alpha sp limit
 			if updatedCharIdentity.MCT && updatedCharIdentity.Character.TotalSP > AlphaMaxSp {
 				account.Status = model.Omega
 			}
 
 			account.Characters[j] = *updatedCharIdentity
-
 		}
 
 		a.logger.Debugf("Account %s has %d characters after processing", account.Name, len(account.Characters))
 	}
 
-	if err := a.accountRepo.SaveAccounts(accounts); err != nil {
-		return nil, fmt.Errorf("failed to save accounts: %w", err)
+	accountData.Accounts = accounts
+
+	if err := a.accountRepo.SaveAccountData(accountData); err != nil {
+		return nil, fmt.Errorf("failed to save account data: %w", err)
 	}
 
 	if err := a.esi.SaveEsiCache(); err != nil {
 		a.logger.WithError(err).Infof("save cache failed in refresh accounts")
 	}
 
-	return accounts, nil
+	return &accountData, nil
 }
 
 func (a *accountService) FetchAccounts() ([]model.Account, error) {
-	return a.accountRepo.FetchAccounts()
+	accountData, err := a.accountRepo.FetchAccountData()
+	if err != nil {
+		return nil, err
+	}
+	return accountData.Accounts, nil
 }
 
 func (a *accountService) SaveAccounts(accounts []model.Account) error {
-	return a.accountRepo.SaveAccounts(accounts)
+	accountData, err := a.accountRepo.FetchAccountData()
+	if err != nil {
+		return err
+	}
+	accountData.Accounts = accounts
+	return a.accountRepo.SaveAccountData(accountData)
 }

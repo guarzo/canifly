@@ -128,8 +128,12 @@ const App = () => {
         );
     }
 
-    const identities = appData?.Accounts.flatMap((account) => account.Characters) || [];
-    const existingAccounts = appData?.Accounts.map((account) => account.Name) || [];
+    // With the new model:
+    // Accounts are now at appData.AccountData.Accounts
+    const accounts = appData?.AccountData?.Accounts || [];
+    const identities = accounts.flatMap((account) => account.Characters) || [];
+    const existingAccounts = accounts.map((account) => account.Name) || [];
+    console.log(appData)
 
     return (
         <ErrorBoundary>
@@ -149,7 +153,7 @@ const App = () => {
                             <AppRoutes
                                 isAuthenticated={isAuthenticated}
                                 loggedOut={loggedOut}
-                                appData={appData}
+                                appData={appData} // still passing full appData
                                 handleToggleAccountStatus={handleToggleAccountStatus}
                                 handleUpdateCharacter={handleUpdateCharacter}
                                 handleUpdateAccountName={handleUpdateAccountName}

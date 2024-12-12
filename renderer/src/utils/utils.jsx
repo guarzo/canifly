@@ -1,4 +1,4 @@
-// utils.jsx
+// crypto.jsx
 export const calculateDaysFromToday = (date) => {
     if (!date) return "";
     const targetDate = new Date(date);

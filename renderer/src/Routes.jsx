@@ -6,28 +6,9 @@ import PropTypes from 'prop-types';
 import Dashboard from './components/dashboard/Dashboard.jsx';
 import SkillPlans from './components/skillplan/SkillPlans.jsx';
 import Landing from './components/landing/Landing.jsx';
-import CharacterSort from './components/dashboard/CharacterSort.jsx';
 import Sync from './components/sync/Sync.jsx';
 import Mapping from './components/mapping/Mapping.jsx';
 
-/**
- * Extracted route definitions for cleaner App.jsx.
- *
- * @param {Object} props
- * @param {boolean} props.isAuthenticated
- * @param {boolean} props.loggedOut
- * @param {Object|null} props.appData
- * @param {Function} props.handleToggleAccountStatus
- * @param {Function} props.handleUpdateCharacter
- * @param {Function} props.handleUpdateAccountName
- * @param {Function} props.handleRemoveCharacter
- * @param {Function} props.handleRemoveAccount
- * @param {Function} props.silentRefreshData
- * @param {Function} props.setAppData
- * @param {Array} props.identities
- * @param {string} props.backEndURL
- * @param {Function} props.logInCallBack
- */
 function AppRoutes({
                        isAuthenticated,
                        loggedOut,
@@ -52,19 +33,34 @@ function AppRoutes({
             </div>
         );
     } else {
+        // Adjusting references to new model structure:
+        // Accounts & Associations
+        const accounts = appData.AccountData?.Accounts || [];
+        const associations = appData.AccountData?.Associations || [];
+
+        // ConfigData fields
+        const roles = appData.ConfigData?.Roles || [];
+        const userSelections = appData.ConfigData?.DropDownSelections || {};
+        const currentSettingsDir = appData.ConfigData?.SettingsDir || '';
+        const lastBackupDir = appData.ConfigData?.LastBackupDir || '';
+
+        // EveData fields
+        const skillPlans = appData.EveData?.SkillPlans || {};
+        const eveProfiles = appData.EveData?.EveProfiles || [];
+
         return (
             <Routes>
                 <Route
                     path="/"
                     element={
                         <Dashboard
-                            accounts={appData.Accounts}
+                            accounts={accounts}
                             onToggleAccountStatus={handleToggleAccountStatus}
                             onUpdateCharacter={handleUpdateCharacter}
                             onUpdateAccountName={handleUpdateAccountName}
                             onRemoveCharacter={handleRemoveCharacter}
                             onRemoveAccount={handleRemoveAccount}
-                            roles={appData.Roles}
+                            roles={roles}
                         />
                     }
                 />
@@ -73,7 +69,7 @@ function AppRoutes({
                     element={
                         <SkillPlans
                             identities={identities}
-                            skillPlans={appData.SkillPlans}
+                            skillPlans={skillPlans}
                             setAppData={setAppData}
                             backEndURL={backEndURL}
                         />
@@ -83,11 +79,11 @@ function AppRoutes({
                     path="/sync"
                     element={
                         <Sync
-                            settingsData={appData.SubDirs}
-                            associations={appData.associations}
-                            currentSettingsDir={appData.SettingsDir}
-                            userSelections={appData.UserSelections}
-                            lastBackupDir={appData.LastBackupDir}
+                            settingsData={eveProfiles}
+                            associations={associations}
+                            currentSettingsDir={currentSettingsDir}
+                            userSelections={userSelections}
+                            lastBackupDir={lastBackupDir}
                             backEndURL={backEndURL}
                         />
                     }
@@ -96,8 +92,8 @@ function AppRoutes({
                     path="/mapping"
                     element={
                         <Mapping
-                            associations={appData.associations}
-                            subDirs={appData.SubDirs}
+                            associations={associations}
+                            subDirs={eveProfiles}
                             onRefreshData={silentRefreshData}
                             backEndURL={backEndURL}
                         />
@@ -113,28 +109,20 @@ AppRoutes.propTypes = {
     isAuthenticated: PropTypes.bool.isRequired,
     loggedOut: PropTypes.bool.isRequired,
     appData: PropTypes.shape({
-        Accounts: PropTypes.arrayOf(
-            PropTypes.shape({
-                Name: PropTypes.string,
-                ID: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-                Characters: PropTypes.arrayOf(
-                    PropTypes.shape({
-                        Character: PropTypes.shape({
-                            CharacterID: PropTypes.number.isRequired,
-                            // Add other character props here if known
-                        })
-                    })
-                ),
-                Status: PropTypes.string,
-            })
-        ),
-        Roles: PropTypes.arrayOf(PropTypes.string),
-        SkillPlans: PropTypes.object,
-        SubDirs: PropTypes.array,
-        associations: PropTypes.array,
-        UserSelections: PropTypes.object,
-        SettingsDir: PropTypes.string,
-        LastBackupDir: PropTypes.string
+        AccountData: PropTypes.shape({
+            Accounts: PropTypes.array,
+            Associations: PropTypes.array
+        }),
+        ConfigData: PropTypes.shape({
+            Roles: PropTypes.array,
+            SettingsDir: PropTypes.string,
+            LastBackupDir: PropTypes.string,
+            DropDownSelections: PropTypes.object,
+        }),
+        EveData: PropTypes.shape({
+            SkillPlans: PropTypes.object,
+            EveProfiles: PropTypes.array,
+        })
     }),
     handleToggleAccountStatus: PropTypes.func.isRequired,
     handleUpdateCharacter: PropTypes.func.isRequired,

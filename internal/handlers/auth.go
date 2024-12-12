@@ -16,7 +16,7 @@ type AuthHandler struct {
 	esiService     interfaces.ESIService
 	logger         interfaces.Logger
 	accountService interfaces.AccountService
-	stateService   interfaces.StateService
+	stateService   interfaces.AppStateService
 	loginService   interfaces.LoginService
 }
 
@@ -25,7 +25,7 @@ func NewAuthHandler(
 	e interfaces.ESIService,
 	l interfaces.Logger,
 	accountSvc interfaces.AccountService,
-	stateSvc interfaces.StateService,
+	stateSvc interfaces.AppStateService,
 	login interfaces.LoginService,
 ) *AuthHandler {
 	return &AuthHandler{

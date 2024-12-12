@@ -6,6 +6,7 @@ import {
     CircularProgress,
     Grid,
     Box,
+    Typography
 } from '@mui/material';
 import SyncActionsBar from './SyncActionsBar.jsx';
 import SubDirectoryCard from './SubDirectoryCard.jsx';
@@ -21,42 +22,19 @@ const Sync = ({
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
-    const [isDefaultDir, setIsDefaultDir] = useState(true)
-
+    const [isDefaultDir, setIsDefaultDir] = useState(true);
 
     useEffect(() => {
         if (settingsData && settingsData.length > 0) {
             const initialSelections = { ...userSelections };
             settingsData.forEach(subDir => {
-                if (!initialSelections[subDir.subDir]) {
-                    initialSelections[subDir.subDir] = { charId: '', userId: '' };
+                if (!initialSelections[subDir.profile]) {
+                    initialSelections[subDir.profile] = { charId: '', userId: '' };
                 }
             });
             setSelections(initialSelections);
         }
     }, [settingsData, userSelections]);
-
-    // Helper: Given a subDir name and userId, find the user's name from availableUserFiles
-    const getUserInfo = (subDirName, userId) => {
-        const subDir = settingsData.find(s => s.subDir === subDirName);
-        if (!subDir) return { userName: 'Unknown', userId };
-        const userFile = subDir.availableUserFiles.find(u => u.userId === userId);
-        if (!userFile) return { userName: 'Unknown', userId };
-        return { userName: userFile.name, userId };
-    };
-
-    // Helper: Given a subDir name and charId, find the char's name from availableCharFiles
-    const getCharacterInfo = (subDirName, charId) => {
-        const subDir = settingsData.find(s => s.subDir === subDirName);
-        if (!subDir) return { charName: 'Unknown', charId };
-        const charFile = subDir.availableCharFiles.find(c => c.charId === charId);
-        if (!charFile) {
-            // fallback to associations if not found
-            const assoc = associations.find(a => a.charId === charId);
-            return { charName: assoc ? assoc.charName : 'Unknown', charId };
-        }
-        return { charName: charFile.name, charId };
-    };
 
     const saveUserSelections = useCallback(async (newSelections) => {
         try {
@@ -74,24 +52,23 @@ const Sync = ({
             console.error('Error saving user selections:', error);
             toast.error('An error occurred while saving user selections.');
         }
-    }, []);
+    }, [backEndURL]);
 
-    const handleSelectionChange = (subDir, field, value) => {
+    const handleSelectionChange = (profile, field, value) => {
         setSelections(prev => {
             let updated = {
                 ...prev,
-                [subDir]: {
-                    ...prev[subDir],
+                [profile]: {
+                    ...prev[profile],
                     [field]: value,
                 }
             };
 
-            // If we just changed the charId, auto-select the user if we can find it in associations
+            // Auto-select user if associated with charId
             if (field === 'charId' && value) {
                 const assoc = associations.find(a => a.charId === value);
                 if (assoc) {
-                    // If we found a matching association, update the userId as well
-                    updated[subDir].userId = assoc.userId;
+                    updated[profile].userId = assoc.userId;
                 }
             }
 
@@ -100,20 +77,16 @@ const Sync = ({
         });
     };
 
-    const handleSync = async (subDir) => {
-        const { userId, charId } = selections[subDir];
+    const handleSync = async (profile) => {
+        const { userId, charId } = selections[profile];
         if (!userId || !charId) {
             toast.error('Please select both a user and a character to sync.');
             return;
         }
 
-        const { charName } = getCharacterInfo(subDir, charId);
-        const { userName } = getUserInfo(subDir, userId);
-        const displaySubDir = subDir.replace('settings_', '');
-
         const confirmSync = await showConfirmDialog({
             title: 'Confirm Sync',
-            message: `Use "${charName}" (${charId}) on account "${userName}" (${userId}) to overwrite all files in profile "${displaySubDir}"?`,
+            message: 'Are you sure you want to sync this profile with the chosen character and user?',
         });
 
         if (!confirmSync.isConfirmed) return;
@@ -125,7 +98,7 @@ const Sync = ({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ subDir, userId, charId }),
+                body: JSON.stringify({ profile, userId, charId }),
             });
             const result = await response.json();
             if (response.ok && result.success) {
@@ -141,20 +114,16 @@ const Sync = ({
         }
     };
 
-    const handleSyncAll = async (subDir) => {
-        const { userId, charId } = selections[subDir];
+    const handleSyncAll = async (profile) => {
+        const { userId, charId } = selections[profile];
         if (!userId || !charId) {
-            toast.error('Please select both a user and a character to sync-all.');
+            toast.error('Please select both a user and a character for Sync-All.');
             return;
         }
 
-        const { charName } = getCharacterInfo(subDir, charId);
-        const { userName } = getUserInfo(subDir, userId);
-        const displaySubDir = subDir.replace('settings_', '');
-
         const confirmSyncAll = await showConfirmDialog({
             title: 'Confirm Sync All',
-            message: `Use "${charName}" (${charId}) on account "${userName}" (${userId}) to overwrite files across all profiles (based on "${displaySubDir}")?`,
+            message: 'Are you sure you want to sync all profiles with these selections?',
         });
 
         if (!confirmSyncAll.isConfirmed) return;
@@ -165,11 +134,11 @@ const Sync = ({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ subDir, userId, charId }),
+                body: JSON.stringify({ profile, userId, charId }),
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                toast.success(`Sync-All complete using "${charName}" (${charId}) on account "${userName}" (${userId}): ${result.message}`);
+                toast.success(`Sync-All complete: ${result.message}`);
             } else {
                 toast.error(`Sync-All failed: ${result.message}`);
             }
@@ -187,6 +156,7 @@ const Sync = ({
             const chosenDir = await window.electronAPI.chooseDirectory();
             if (!chosenDir) {
                 toast.info('No directory chosen.');
+                setIsLoading(false);
                 return;
             }
 
@@ -199,7 +169,7 @@ const Sync = ({
 
             const result = await response.json();
             if (response.ok && result.success) {
-                setIsDefaultDir(false)
+                setIsDefaultDir(false);
                 toast.success(`Settings directory chosen: ${chosenDir}`);
             } else {
                 toast.error(`Failed to choose settings directory: ${result.error || 'Unknown error'}`);
@@ -249,7 +219,7 @@ const Sync = ({
     const handleResetToDefault = async () => {
         const confirmReset = await showConfirmDialog({
             title: 'Reset to Default',
-            message: 'Are you sure you want to reset the settings directory to default (Tranquility)?',
+            message: 'Reset the settings directory to default (Tranquility)?',
         });
 
         if (!confirmReset.isConfirmed) return;
@@ -262,21 +232,33 @@ const Sync = ({
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                setIsDefaultDir(true)
+                setIsDefaultDir(true);
                 toast.success('Directory reset to default: Tranquility');
             } else {
                 toast.error(`Failed to reset directory: ${result.message}`);
             }
         } catch (error) {
             console.error('Error resetting directory:', error);
-            toast.error('Failed to reset directory. Please try again.');
+            toast.error('Failed to reset directory.');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10">
+        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+            {/* Top heading with subtle instructions */}
+            <Box className="max-w-7xl mx-auto mb-6">
+                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md">
+                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                        Sync Settings
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#99f6e4' }}>
+                        Select a character and user for each profile, then sync or sync all. You can also choose or reset the settings directory and back up your configuration.
+                    </Typography>
+                </Box>
+            </Box>
+
             <SyncActionsBar
                 handleBackup={handleBackup}
                 handleChooseSettingsDir={handleChooseSettingsDir}
@@ -291,9 +273,9 @@ const Sync = ({
                 </Box>
             )}
 
-            <Grid container spacing={4}>
+            <Grid container spacing={4} className="max-w-7xl mx-auto">
                 {settingsData.map(subDir => (
-                    <Grid item xs={12} sm={6} md={4} key={subDir.subDir}>
+                    <Grid item xs={12} sm={6} md={4} key={subDir.profile}>
                         <SubDirectoryCard
                             subDir={subDir}
                             selections={selections}

@@ -1,8 +1,5 @@
-// src/hooks/useAppHandlers.jsx
-
 import { useCallback } from 'react';
 import { log } from '../utils/logger';
-import { createPostHandler, createAddCharacterHandler } from '../utils/createRequestHandler';
 import {
     removeCharacterFromAppData,
     updateCharacterInAppData,
@@ -10,7 +7,17 @@ import {
     updateAccountNameInAppData,
     removeAccountFromAppData
 } from '../utils/appDataTransforms';
-import { apiRequest } from '../utils/apiRequest';
+
+import {
+    logout,
+    toggleAccountStatus as toggleAccountStatusApi,
+    updateCharacter as updateCharacterApi,
+    removeCharacter as removeCharacterApi,
+    updateAccountName as updateAccountNameApi,
+    removeAccount as removeAccountApi,
+    addCharacter as addCharacterApi,
+    saveSkillPlan as saveSkillPlanApi
+} from '../services/apiServices';
 
 /**
  * Custom hook that encapsulates all the handler functions used in App.
@@ -30,115 +37,67 @@ export function useAppHandlers({
                                }) {
 
     const handleLogout = useCallback(async () => {
-        console.trace("handleLogout called");
-        console.trace("handleLogout call stack:");
-        await apiRequest(`/api/logout`, {
-            method: 'POST',
-            credentials: 'include'
-        }, {
-            successMessage: 'Logged out successfully!',
-            errorMessage: 'Failed to log out.',
-            onSuccess: () => {
-                setIsAuthenticated(false);
-                setAppData(null);
-                console.log("handleLogout success");
-                console.trace("handleLogout call stack:");
-                setLoggedOut(true);
-            }
-        });
+        log("handleLogout called");
+        const result = await logout();
+        if (result && result.success) {
+            setIsAuthenticated(false);
+            setAppData(null);
+            setLoggedOut(true);
+        }
     }, [setIsAuthenticated, setAppData, setLoggedOut]);
 
     const handleToggleAccountStatus = useCallback(async (accountID) => {
         log("handleToggleAccountStatus called:", accountID);
-        const toggleAccountStatus = createPostHandler({
-            endpoint: '/api/toggle-account-status',
-            setAppData,
-            successMessage: 'Account status toggled successfully!',
-            errorMessage: 'Failed to toggle account status.',
-            onSuccess: () => {
-                setAppData((prev) => toggleAccountStatusInAppData(prev, accountID));
-            }
-        });
-        await toggleAccountStatus({ accountID });
+        const result = await toggleAccountStatusApi(accountID);
+        if (result && result.success) {
+            setAppData((prev) => toggleAccountStatusInAppData(prev, accountID));
+        }
     }, [setAppData]);
 
     const handleUpdateCharacter = useCallback(async (characterID, updates) => {
         log("handleUpdateCharacter called with characterID:", characterID, "updates:", updates);
-        const updateCharacterReq = createPostHandler({
-            endpoint: '/api/update-character',
-            setAppData,
-            successMessage: 'Character updated successfully!',
-            errorMessage: 'Failed to update character.',
-            onSuccess: () => {
-                setAppData((prev) => updateCharacterInAppData(prev, characterID, updates));
-            }
-        });
-        await updateCharacterReq({ characterID, updates });
+        const result = await updateCharacterApi(characterID, updates);
+        if (result && result.success) {
+            setAppData((prev) => updateCharacterInAppData(prev, characterID, updates));
+        }
     }, [setAppData]);
 
     const handleRemoveCharacter = useCallback(async (characterID) => {
         log("handleRemoveCharacter called with characterID:", characterID);
-        const removeCharacterReq = createPostHandler({
-            endpoint: '/api/remove-character',
-            setAppData,
-            successMessage: 'Character removed successfully!',
-            errorMessage: 'Failed to remove character.',
-            onSuccess: () => {
-                setAppData((prev) => removeCharacterFromAppData(prev, characterID));
-            }
-        });
-        await removeCharacterReq({ characterID });
+        const result = await removeCharacterApi(characterID);
+        if (result && result.success) {
+            setAppData((prev) => removeCharacterFromAppData(prev, characterID));
+        }
     }, [setAppData]);
 
     const handleUpdateAccountName = useCallback(async (accountID, newName) => {
         log("handleUpdateAccountName:", { accountID, newName });
-        const updateAccountNameReq = createPostHandler({
-            endpoint: '/api/update-account-name',
-            setAppData,
-            successMessage: 'Account name updated successfully!',
-            errorMessage: 'Failed to update account name.',
-            onSuccess: () => {
-                setAppData((prev) => updateAccountNameInAppData(prev, accountID, newName));
-            }
-        });
-        await updateAccountNameReq({ accountID, accountName: newName });
+        const result = await updateAccountNameApi(accountID, newName);
+        if (result && result.success) {
+            setAppData((prev) => updateAccountNameInAppData(prev, accountID, newName));
+        }
     }, [setAppData]);
 
     const handleRemoveAccount = useCallback(async (accountName) => {
         log("handleRemoveAccount called with accountName:", accountName);
-        const removeAccountReq = createPostHandler({
-            endpoint: '/api/remove-account',
-            setAppData,
-            successMessage: 'Account removed successfully!',
-            errorMessage: 'Failed to remove account.',
-            onSuccess: () => {
-                setAppData((prev) => removeAccountFromAppData(prev, accountName));
-            }
-        });
-        await removeAccountReq({ accountName });
+        const result = await removeAccountApi(accountName);
+        if (result && result.success) {
+            setAppData((prev) => removeAccountFromAppData(prev, accountName));
+        }
     }, [setAppData]);
 
     const handleAddCharacter = useCallback(async (account) => {
-        const addCharacter = createAddCharacterHandler();
-        await addCharacter(account);
+        await addCharacterApi(account);
+        // If needed, handle state updates here
     }, []);
 
     const handleSaveSkillPlan = useCallback(async (planName, planContents) => {
         log("handleSaveSkillPlan called with planName:", planName);
-        // This one is slightly different because it refreshes data after success
-        await apiRequest(`/api/save-skill-plan`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: planName, contents: planContents }),
-            credentials: 'include'
-        }, {
-            successMessage: 'Skill Plan Saved!',
-            errorMessage: 'Failed to save skill plan.',
-            onSuccess: () => {
-                setIsSkillPlanModalOpen(false);
-                fetchData();
-            }
-        });
+        const result = await saveSkillPlanApi(planName, planContents);
+        if (result && result.success) {
+            setIsSkillPlanModalOpen(false);
+            fetchData();
+        }
     }, [setIsSkillPlanModalOpen, fetchData]);
 
     return {
