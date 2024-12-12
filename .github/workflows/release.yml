@@ -45,6 +45,7 @@ jobs:
       # Create the .env file dynamically using secrets
       - name: Create .env file
         run: |
+          mkdir -p internal/embed/config
           echo "EVE_CLIENT_ID=${{ secrets.EVE_CLIENT_ID }}" >> internal/embed/config/.env
           echo "EVE_CLIENT_SECRET=${{ secrets.EVE_CLIENT_SECRET }}" >> internal/embed/config/.env
           echo "EVE_CALLBACK_URL=${{ secrets.EVE_CALLBACK_URL }}" >> internal/embed/config/.env
