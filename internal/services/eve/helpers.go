@@ -4,7 +4,6 @@ package eve
 import (
 	"errors"
 	"fmt"
-	"github.com/guarzo/canifly/internal/persist/eve"
 	"io"
 	"math/rand"
 	"net/http"
@@ -12,8 +11,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/guarzo/canifly/internal/auth"
 	flyErrors "github.com/guarzo/canifly/internal/errors"
+	"github.com/guarzo/canifly/internal/persist/eve"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -54,7 +53,7 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 	return nil, err
 }
 
-func makeRequest(url string, token *oauth2.Token, auth auth.AuthClient) ([]byte, error) {
+func makeRequest(url string, token *oauth2.Token, auth interfaces.AuthClient) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
@@ -99,13 +98,13 @@ func makeRequest(url string, token *oauth2.Token, auth auth.AuthClient) ([]byte,
 	return bodyBytes, nil
 }
 
-func createOperation(url string, token *oauth2.Token, auth auth.AuthClient) func() (interface{}, error) {
+func createOperation(url string, token *oauth2.Token, auth interfaces.AuthClient) func() (interface{}, error) {
 	return func() (interface{}, error) {
 		return makeRequest(url, token, auth)
 	}
 }
 
-func getResults(address string, token *oauth2.Token, auth auth.AuthClient) ([]byte, error) {
+func getResults(address string, token *oauth2.Token, auth interfaces.AuthClient) ([]byte, error) {
 	operation := createOperation(address, token, auth)
 
 	// Use retryWithExponentialBackoff to handle retries
@@ -122,7 +121,7 @@ func getResults(address string, token *oauth2.Token, auth auth.AuthClient) ([]by
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger interfaces.Logger, auth auth.AuthClient) ([]byte, error) {
+func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger interfaces.Logger, auth interfaces.AuthClient) ([]byte, error) {
 	if cachedData, found := cacheService.Get(address); found {
 		logger.Debugf("using cacheService data for call to %s", address)
 		return cachedData, nil

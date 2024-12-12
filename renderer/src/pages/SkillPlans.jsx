@@ -1,12 +1,15 @@
+// src/components/skillplan/SkillPlans.jsx
+
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import CharacterTable from './CharacterTable.jsx';
-import SkillPlanTable from './SkillPlanTable.jsx';
+import CharacterTable from '../components/skillplan/CharacterTable.jsx';
+import SkillPlanTable from '../components/skillplan/SkillPlanTable.jsx';
 import { toast } from 'react-toastify';
 import { Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
 import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';
+import { deleteSkillPlan as deleteSkillPlanApi } from '../api/apiService.jsx';
 
-const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
+const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
 
     useEffect(() => {
@@ -41,38 +44,30 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                 })
                 .catch((err) => {
                     console.error('Copy to clipboard failed:', err);
-                    toast.error('Failed to copy eve plan.', { autoClose: 1500 });
+                    toast.error('Failed to copy skill plan.', { autoClose: 1500 });
                 });
         };
 
         window.deleteSkillPlan = async (planName) => {
-            try {
-                const response = await fetch(
-                    `${backEndURL}/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`,
-                    {
-                        method: 'DELETE',
-                        credentials: 'include',
-                    }
-                );
+            const result = await deleteSkillPlanApi(planName, backEndURL);
+            if (result && result.success) {
+                toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
+                // Update the state to remove the deleted skill plan
+                setAppData((prevAppData) => {
+                    const updatedSkillPlans = { ...prevAppData.EveData.SkillPlans };
+                    delete updatedSkillPlans[planName];
 
-                if (response.ok) {
-                    toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-                    // Update the state to remove the deleted eve plan
-                    setAppData((prevAppData) => {
-                        const updatedSkillPlans = { ...prevAppData.SkillPlans };
-                        delete updatedSkillPlans[planName];
-                        return { ...prevAppData, SkillPlans: updatedSkillPlans };
-                    });
-                } else {
-                    const errorMessage = await response.text();
-                    toast.error(`Failed to delete skill plan: ${errorMessage}`, { autoClose: 1500 });
-                }
-            } catch (error) {
-                console.error('Error deleting eve plan:', error);
-                toast.error('An error occurred while deleting the eve plan.', { autoClose: 1500 });
+                    return {
+                        ...prevAppData,
+                        EveData: {
+                            ...prevAppData.EveData,
+                            SkillPlans: updatedSkillPlans
+                        }
+                    };
+                });
             }
         };
-    }, [skillPlans, setAppData]);
+    }, [skillPlans, setAppData, backEndURL]);
 
     const handleViewChange = (event, newValue) => {
         if (newValue) {
@@ -138,7 +133,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                             >
                                 By Character
                             </Typography>
-                            <CharacterTable identities={identities} skillPlans={skillPlans} />
+                            <CharacterTable characters={characters} skillPlans={skillPlans} />
                         </div>
                     )}
 
@@ -151,7 +146,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
                             >
                                 By Skill Plan
                             </Typography>
-                            <SkillPlanTable skillPlans={skillPlans} identities={identities} />
+                            <SkillPlanTable skillPlans={skillPlans} characters={characters} />
                         </div>
                     )}
                 </div>
@@ -161,7 +156,7 @@ const SkillPlans = ({ identities, skillPlans, setAppData, backEndURL }) => {
 };
 
 SkillPlans.propTypes = {
-    identities: PropTypes.array.isRequired,
+    characters: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
     setAppData: PropTypes.func.isRequired,
     backEndURL: PropTypes.string.isRequired,

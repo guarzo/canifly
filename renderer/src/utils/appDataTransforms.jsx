@@ -1,6 +1,3 @@
-import { fetchAppEndpoint } from './api';
-import { normalizeAppData } from './dataNormalizer';
-
 /**
  * Utility functions for transforming appData with the new model structure.
  *
@@ -119,28 +116,4 @@ export function removeAccountFromAppData(prev, accountName) {
             Accounts: updatedAccounts
         }
     };
-}
-
-/**
- * A helper to fetch app data and automatically normalize it before updating state.
- * Reflects the new model structure, but no real changes are needed here unless `normalizeAppData` changed.
- * Just ensure normalizeAppData supports the new structure.
- *
- * @param {Object} params - Parameters for fetchAppEndpoint.
- * @param {Object} options - Options for fetchAppEndpoint.
- * @returns {Promise<boolean|undefined>} - Same return as fetchAppEndpoint.
- */
-export async function fetchAndNormalizeAppData(params, options) {
-    return fetchAppEndpoint(
-        {
-            ...params,
-            // Override setAppData to include normalization step
-            setAppData: (data) => {
-                if (params.setAppData) {
-                    params.setAppData(normalizeAppData(data));
-                }
-            },
-        },
-        options
-    );
 }

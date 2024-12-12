@@ -6,20 +6,18 @@ import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
 import { backEndURL } from './Config';
-import { fetchAndNormalizeAppData } from './utils/appDataTransforms.jsx';
 import { useLoginCallback } from './hooks/useLoginCallback';
 import { log, trace } from './utils/logger';
 import { useAppHandlers } from './hooks/useAppHandlers';
+import { getAppData, getAppDataNoCache } from './api/apiService';
 
-import Header from './components/partials/Header.jsx';
-import Footer from './components/partials/Footer.jsx';
+import Header from './components/common/Header.jsx';
+import Footer from './components/common/Footer.jsx';
 import AddSkillPlanModal from './components/skillplan/AddSkillPlanModal.jsx';
-import ErrorBoundary from './components/partials/ErrorBoundary.jsx';
+import ErrorBoundary from './components/common/ErrorBoundary.jsx';
 import AppRoutes from './Routes';
-
-import theme from './theme.jsx';
+import theme from './Theme.jsx';
 import helloImg from './assets/images/hello.png';
-
 import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
@@ -34,40 +32,41 @@ const App = () => {
         log("isAuthenticated changed:", isAuthenticated);
     }, [isAuthenticated]);
 
-    const wrappedFetchAppEndpoint = useCallback(
-        async (endpoint, options) => {
-            return fetchAndNormalizeAppData(
-                {
-                    backEndURL,
-                    endpoint,
-                    loggedOut,
-                    isAuthenticated,
-                    setIsLoading,
-                    setIsRefreshing,
-                    setIsAuthenticated,
-                    setAppData
-                },
-                options
-            );
-        },
-        [loggedOut, isAuthenticated, setIsLoading, setIsRefreshing, setIsAuthenticated, setAppData]
-    );
-
     const fetchData = useCallback(async () => {
         log("fetchData called");
-        await wrappedFetchAppEndpoint('/api/app-data', { setLoading: true });
-    }, [wrappedFetchAppEndpoint]);
+        setIsLoading(true);
+        const data = await getAppData(backEndURL);
+        if (data) {
+            setIsAuthenticated(data.LoggedIn);
+            setAppData(data);
+        }
+        setIsLoading(false);
+    }, []);
 
-    const loginRefresh = useCallback(() => {
+    const loginRefresh = useCallback(async () => {
         log("loginRefresh called");
-        return wrappedFetchAppEndpoint('/api/app-data-no-cache', { setLoading: true, returnSuccess: true });
-    }, [wrappedFetchAppEndpoint]);
+        setIsLoading(true);
+        const data = await getAppDataNoCache(backEndURL);
+        setIsLoading(false);
+        if (!data) {
+            return false;
+        }
+        setIsAuthenticated(data.LoggedIn);
+        setAppData(data);
+        return true;
+    }, []);
 
     const silentRefreshData = useCallback(async () => {
         log("silentRefreshData called");
         if (!isAuthenticated || loggedOut) return;
-        await wrappedFetchAppEndpoint('/api/app-data-no-cache', { setRefreshing: true });
-    }, [wrappedFetchAppEndpoint, isAuthenticated, loggedOut]);
+        setIsRefreshing(true);
+        const data = await getAppDataNoCache(backEndURL);
+        setIsRefreshing(false);
+        if (data) {
+            setIsAuthenticated(data.LoggedIn);
+            setAppData(data);
+        }
+    }, [isAuthenticated, loggedOut]);
 
     useEffect(() => {
         log("loggedOut changed to:", loggedOut);
@@ -95,7 +94,6 @@ const App = () => {
         setIsAuthenticated,
         setLoggedOut,
         setIsSkillPlanModalOpen,
-        wrappedFetchAppEndpoint,
         isAuthenticated,
         loggedOut
     });
@@ -128,12 +126,11 @@ const App = () => {
         );
     }
 
-    // With the new model:
-    // Accounts are now at appData.AccountData.Accounts
     const accounts = appData?.AccountData?.Accounts || [];
-    const identities = accounts.flatMap((account) => account.Characters) || [];
+    const characters = accounts.flatMap((account) => account.Characters) || [];
     const existingAccounts = accounts.map((account) => account.Name) || [];
-    console.log(appData)
+    log("appdata", appData);
+    log("identities", characters)
 
     return (
         <ErrorBoundary>
@@ -153,7 +150,7 @@ const App = () => {
                             <AppRoutes
                                 isAuthenticated={isAuthenticated}
                                 loggedOut={loggedOut}
-                                appData={appData} // still passing full appData
+                                appData={appData}
                                 handleToggleAccountStatus={handleToggleAccountStatus}
                                 handleUpdateCharacter={handleUpdateCharacter}
                                 handleUpdateAccountName={handleUpdateAccountName}
@@ -161,7 +158,7 @@ const App = () => {
                                 handleRemoveAccount={handleRemoveAccount}
                                 silentRefreshData={silentRefreshData}
                                 setAppData={setAppData}
-                                identities={identities}
+                                characters={characters}
                                 backEndURL={backEndURL}
                                 logInCallBack={logInCallBack}
                             />

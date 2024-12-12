@@ -1,14 +1,16 @@
+// src/components/mapping/Mapping.jsx
+
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { Grid, Box, Typography } from '@mui/material';
-import AccountCard from './MapAccountCard.jsx';
-import CharacterCard from './MapCharacterCard.jsx';
-import { useConfirmDialog } from '../partials/useConfirmDialog.jsx'; // Import the custom hook
+import AccountCard from '../components/mapping/MapAccountCard.jsx';
+import CharacterCard from '../components/mapping/MapCharacterCard.jsx';
+import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
+import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
 
 function roundToSeconds(mtime) {
     const date = new Date(mtime);
-    // Round down to the nearest second
     date.setMilliseconds(0);
     return date.toISOString();
 }
@@ -18,14 +20,11 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [associations, setAssociations] = useState(initialAssociations);
     const [mtimeToColor, setMtimeToColor] = useState({});
-
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
 
-    // Process data whenever subDirs or associations change
     useEffect(() => {
         if (subDirs.length === 0) return;
 
-        // Deduplicate accounts by userId, choosing latest mtime
         const userMap = {};
         subDirs.forEach(mapping => {
             mapping.availableUserFiles.forEach(userFile => {
@@ -39,14 +38,13 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
         const uniqueAccounts = Object.values(userMap)
             .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
 
-        // Deduplicate chars by charId with rounding
         const charMap = {};
         subDirs.forEach(mapping => {
             mapping.availableCharFiles.forEach(charFile => {
                 const roundedMtime = roundToSeconds(charFile.mtime);
                 const { charId } = charFile;
                 if (!charMap[charId] || new Date(roundedMtime) > new Date(charMap[charId].mtime)) {
-                    charMap[charId] = { ...charFile, mtime: roundedMtime, subDir: mapping.subDir };
+                    charMap[charId] = { ...charFile, mtime: roundedMtime, profile: mapping.profile };
                 }
             });
         });
@@ -100,30 +98,16 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
 
         if (!confirmAssoc.isConfirmed) return;
 
-        try {
-            const response = await fetch(`${backEndURL}/api/associate-character`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ userId, charId, userName, charName })
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
-                toast.success(result.message);
-                // Optimistic update
-                setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
-                const newAssoc = { userId, charId, charName, mtime: char.mtime };
-                setAssociations(prev => [...prev, newAssoc]);
+        const result = await associateCharacter(userId, charId, userName, charName, backEndURL);
+        if (result && result.success) {
+            toast.success(result.message);
+            setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
+            const newAssoc = { userId, charId, charName, mtime: char.mtime };
+            setAssociations(prev => [...prev, newAssoc]);
 
-                if (onRefreshData) {
-                    await onRefreshData();
-                }
-            } else {
-                toast.error(`Association failed: ${result.message}`);
+            if (onRefreshData) {
+                await onRefreshData();
             }
-        } catch (error) {
-            console.error('Error associating character:', error);
-            toast.error('Association operation failed.');
         }
     };
 
@@ -135,32 +119,18 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
 
         if (!confirmUnassoc.isConfirmed) return;
 
-        try {
-            const response = await fetch(`${backEndURL}/api/unassociate-character`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({ userId, charId, userName, charName })
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
-                toast.success(result.message);
-                setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
-                if (onRefreshData) {
-                    await onRefreshData();
-                }
-            } else {
-                toast.error(`Unassociation failed: ${result.message}`);
+        const result = await unassociateCharacter(userId, charId, userName, charName, backEndURL);
+        if (result && result.success) {
+            toast.success(result.message);
+            setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
+            if (onRefreshData) {
+                await onRefreshData();
             }
-        } catch (error) {
-            console.error('Error unassociating character:', error);
-            toast.error('Unassociation operation failed.');
         }
     };
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
-            {/* Heading and subtle instructions */}
             <Box className="max-w-7xl mx-auto mb-6">
                 <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md">
                     <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem' }}>

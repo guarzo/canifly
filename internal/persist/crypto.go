@@ -1,4 +1,4 @@
-package crypto
+package persist
 
 import (
 	"crypto/aes"

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/guarzo/canifly/internal/auth"
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -18,6 +17,7 @@ type AuthHandler struct {
 	accountService interfaces.AccountService
 	stateService   interfaces.AppStateService
 	loginService   interfaces.LoginService
+	authClient     interfaces.AuthClient
 }
 
 func NewAuthHandler(
@@ -27,6 +27,7 @@ func NewAuthHandler(
 	accountSvc interfaces.AccountService,
 	stateSvc interfaces.AppStateService,
 	login interfaces.LoginService,
+	auth interfaces.AuthClient,
 ) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
@@ -35,6 +36,7 @@ func NewAuthHandler(
 		accountService: accountSvc,
 		stateService:   stateSvc,
 		loginService:   login,
+		authClient:     auth,
 	}
 }
 
@@ -67,7 +69,7 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
-		url := auth.GetAuthURL(state)
+		url := h.authClient.GetAuthURL(state)
 		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
 	}
 }
@@ -97,7 +99,7 @@ func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
 			return
 		}
 
-		url := auth.GetAuthURL(state)
+		url := h.authClient.GetAuthURL(state)
 		respondJSON(w, map[string]string{"redirectURL": url})
 	}
 }
@@ -119,7 +121,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 
 		h.logger.Infof("Received accountName (account name): %v", accountName)
 
-		token, err := auth.ExchangeCode(code)
+		token, err := h.authClient.ExchangeCode(code)
 		if err != nil {
 			h.logger.Errorf("Failed to exchange token for code: %s, %v", code, err)
 			handleErrorWithRedirect(w, r, "/")

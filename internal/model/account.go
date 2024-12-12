@@ -23,7 +23,7 @@ type Account struct {
 
 type AccountData struct {
 	Accounts     []Account
-	Associations []Association `json:"associations"` // in app assigned connections between user and char files (effectively connecting characters to accounts)
+	Associations []Association // in app assigned connections between user and char files (effectively connecting characters to accounts)
 }
 
 // Association are the user connections between char and user files (userID does correspond to accountId)
@@ -57,7 +57,7 @@ type Character struct {
 // UserInfoResponse represents the user information returned by the EVE SSO
 type UserInfoResponse struct {
 	CharacterID   int64  `json:"CharacterID"`
-	CharacterName string `json:"CharName"`
+	CharacterName string `json:"CharacterName"`
 }
 
 type CharacterResponse struct {

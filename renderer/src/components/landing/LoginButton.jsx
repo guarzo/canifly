@@ -1,8 +1,11 @@
+// src/components/landing/LoginButton.jsx
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import AccountPromptModal from '../partials/AccountPromptModal.jsx';
+import AccountPromptModal from '../common/AccountPromptModal.jsx';
 import PropTypes from 'prop-types';
 import eveSsoImage from '../../assets/images/eve-sso.jpg';
+import { initiateLogin } from '../../api/apiService';
+import { error as cError } from '../../utils/logger';
 
 const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
     const [modalOpen, setModalOpen] = useState(false);
@@ -20,34 +23,25 @@ const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
 
     const handleLoginSubmit = async (account) => {
         try {
-            const response = await fetch(`${backEndURL}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account }),
-                credentials: 'include',
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (data.redirectURL && data.state) {
-                    logInCallBack(data.state)
-                    if (isDev) {
-                        // In development, just redirect within Electron's internal browser
-                        window.location.href = data.redirectURL;
-                    } else {
-                        // In production, open system browser
-                        window.electronAPI.openExternal(data.redirectURL);
-                        toast.info("Please complete the login in your browser")
-                    }
+            const data = await initiateLogin(account, backEndURL);
+            console.log('Login response data:', data);
+            // Data should have {redirectURL, state} on success
+            if (data && data.redirectURL && data.state) {
+                logInCallBack(data.state);
+                if (isDev) {
+                    // In development, just redirect within Electron's internal browser
+                    window.location.href = data.redirectURL;
                 } else {
-                    toast.error("No redirect URL received from server.");
+                    // In production, open system browser
+                    window.electronAPI.openExternal(data.redirectURL);
+                    toast.info("Please complete the login in your browser");
                 }
             } else {
-                const errorText = await response.text();
-                toast.error(`Failed to initiate login: ${errorText}`);
+                toast.error("No redirect URL received from server.");
             }
         } catch (error) {
-            console.error('Error initiating login:', error);
-            toast.error('An error occurred while initiating login.');
+            cError('Error initiating login:', error);
+            // Toast is handled by apiRequest if needed
         } finally {
             setModalOpen(false);
             onModalOpenChange(false);

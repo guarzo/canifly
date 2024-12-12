@@ -3,11 +3,11 @@
 import { Routes, Route } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-import Dashboard from './components/dashboard/Dashboard.jsx';
-import SkillPlans from './components/skillplan/SkillPlans.jsx';
-import Landing from './components/landing/Landing.jsx';
-import Sync from './components/sync/Sync.jsx';
-import Mapping from './components/mapping/Mapping.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import SkillPlans from './pages/SkillPlans.jsx';
+import Landing from './pages/Landing.jsx';
+import Sync from './pages/Sync.jsx';
+import Mapping from './pages/Mapping.jsx';
 
 function AppRoutes({
                        isAuthenticated,
@@ -20,7 +20,7 @@ function AppRoutes({
                        handleRemoveAccount,
                        silentRefreshData,
                        setAppData,
-                       identities,
+                       characters,
                        backEndURL,
                        logInCallBack
                    }) {
@@ -33,20 +33,15 @@ function AppRoutes({
             </div>
         );
     } else {
-        // Adjusting references to new model structure:
-        // Accounts & Associations
+        // Using new model fields:
         const accounts = appData.AccountData?.Accounts || [];
-        const associations = appData.AccountData?.Associations || [];
-
-        // ConfigData fields
         const roles = appData.ConfigData?.Roles || [];
+        const skillPlans = appData.EveData?.SkillPlans || {};
+        const eveProfiles = appData.EveData?.EveProfiles || [];
+        const associations = appData.AccountData?.Associations || [];
         const userSelections = appData.ConfigData?.DropDownSelections || {};
         const currentSettingsDir = appData.ConfigData?.SettingsDir || '';
         const lastBackupDir = appData.ConfigData?.LastBackupDir || '';
-
-        // EveData fields
-        const skillPlans = appData.EveData?.SkillPlans || {};
-        const eveProfiles = appData.EveData?.EveProfiles || [];
 
         return (
             <Routes>
@@ -68,8 +63,8 @@ function AppRoutes({
                     path="/skill-plans"
                     element={
                         <SkillPlans
-                            identities={identities}
-                            skillPlans={skillPlans}
+                            characters={characters}
+                            skillPlans={skillPlans} // Using EveData.SkillPlans
                             setAppData={setAppData}
                             backEndURL={backEndURL}
                         />
@@ -131,7 +126,7 @@ AppRoutes.propTypes = {
     handleRemoveAccount: PropTypes.func.isRequired,
     silentRefreshData: PropTypes.func.isRequired,
     setAppData: PropTypes.func.isRequired,
-    identities: PropTypes.array.isRequired,
+    characters: PropTypes.array.isRequired,
     backEndURL: PropTypes.string.isRequired,
     logInCallBack: PropTypes.func.isRequired
 };

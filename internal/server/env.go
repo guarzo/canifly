@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/guarzo/canifly/internal/crypto"
 	"github.com/guarzo/canifly/internal/embed"
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/joho/godotenv"
 	"os"
@@ -68,7 +68,7 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 func getSecretKey(logger interfaces.Logger) string {
 	secret := os.Getenv("SECRET_KEY")
 	if secret == "" {
-		key, err := crypto.GenerateSecret()
+		key, err := persist.GenerateSecret()
 		if err != nil {
 			logger.WithError(err).Fatal("Failed to generate secret key")
 		}

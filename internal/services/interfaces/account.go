@@ -67,16 +67,6 @@ type CharacterService interface {
 	RemoveCharacter(characterID int64) error
 }
 
-type ESIService interface {
-	GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error)
-	GetCharacter(id string) (*model.CharacterResponse, error)
-	GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error)
-	GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error)
-	GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error)
-	ResolveCharacterNames(charIds []string) (map[string]string, error)
-	SaveEsiCache() error
-}
-
 // AuthClient defines methods related to authentication and token management.
 type AuthClient interface {
 	RefreshToken(refreshToken string) (*oauth2.Token, error)

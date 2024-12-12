@@ -25,8 +25,8 @@ const (
 	contentTypeName = "Content-Type"
 )
 
-// authService is a concrete implementation of AuthClient
-type authService struct {
+// authClient is a concrete implementation of AuthClient
+type authClient struct {
 	logger interfaces.Logger
 	config *oauth2.Config
 	client *http.Client
@@ -34,7 +34,7 @@ type authService struct {
 
 // NewAuthClient initializes and returns an AuthClient implementation.
 func NewAuthClient(logger interfaces.Logger, clientID, clientSecret, callbackURL string) interfaces.AuthClient {
-	return &authService{
+	return &authClient{
 		logger: logger,
 		config: &oauth2.Config{
 			ClientID:     clientID,
@@ -60,12 +60,12 @@ func NewAuthClient(logger interfaces.Logger, clientID, clientSecret, callbackURL
 }
 
 // GetAuthURL returns the URL for OAuth2 authentication
-func (a *authService) GetAuthURL(state string) string {
+func (a *authClient) GetAuthURL(state string) string {
 	return a.config.AuthCodeURL(state)
 }
 
 // ExchangeCode exchanges the authorization code for an access token
-func (a *authService) ExchangeCode(code string) (*oauth2.Token, error) {
+func (a *authClient) ExchangeCode(code string) (*oauth2.Token, error) {
 	token, err := a.config.Exchange(context.Background(), code)
 	if err != nil {
 		a.logger.Errorf("Failed to exchange code: %v", err)
@@ -75,7 +75,7 @@ func (a *authService) ExchangeCode(code string) (*oauth2.Token, error) {
 }
 
 // RefreshToken performs a token refresh using the current oauth2.Config
-func (a *authService) RefreshToken(refreshToken string) (*oauth2.Token, error) {
+func (a *authClient) RefreshToken(refreshToken string) (*oauth2.Token, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)

@@ -17,7 +17,7 @@ import {
     removeAccount as removeAccountApi,
     addCharacter as addCharacterApi,
     saveSkillPlan as saveSkillPlanApi
-} from '../services/apiServices';
+} from '../api/apiService.jsx';
 
 /**
  * Custom hook that encapsulates all the handler functions used in App.

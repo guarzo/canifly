@@ -1,15 +1,26 @@
+// src/components/sync/Sync.jsx
+
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
-import { useConfirmDialog } from '../partials/useConfirmDialog.jsx';
+import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import {
     CircularProgress,
     Grid,
     Box,
     Typography
 } from '@mui/material';
-import SyncActionsBar from './SyncActionsBar.jsx';
-import SubDirectoryCard from './SubDirectoryCard.jsx';
+import SyncActionsBar from '../components/sync/SyncActionsBar.jsx';
+import SubDirectoryCard from '../components/sync/SubDirectoryCard.jsx';
+
+import {
+    saveUserSelections,
+    syncSubdirectory,
+    syncAllSubdirectories,
+    chooseSettingsDir,
+    backupDirectory,
+    resetToDefaultDirectory
+} from '../api/apiService.jsx';
 
 const Sync = ({
                   settingsData,
@@ -36,21 +47,10 @@ const Sync = ({
         }
     }, [settingsData, userSelections]);
 
-    const saveUserSelections = useCallback(async (newSelections) => {
-        try {
-            const response = await fetch(`${backEndURL}/api/save-user-selections`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(newSelections),
-            });
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                toast.error('Failed to save user selections.');
-            }
-        } catch (error) {
-            console.error('Error saving user selections:', error);
-            toast.error('An error occurred while saving user selections.');
+    const saveSelections = useCallback(async (newSelections) => {
+        const result = await saveUserSelections(newSelections, backEndURL);
+        if (!result || !result.success) {
+            // Toast handled by apiRequest if error occurs
         }
     }, [backEndURL]);
 
@@ -72,7 +72,7 @@ const Sync = ({
                 }
             }
 
-            saveUserSelections(updated);
+            saveSelections(updated);
             return updated;
         });
     };
@@ -94,21 +94,15 @@ const Sync = ({
         try {
             setIsLoading(true);
             toast.info('Syncing...', { autoClose: 1500 });
-            const response = await fetch(`${backEndURL}/api/sync-subdirectory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ profile, userId, charId }),
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const result = await syncSubdirectory(profile, userId, charId, backEndURL);
+            if (result && result.success) {
                 toast.success(result.message);
             } else {
-                toast.error(`Sync failed: ${result.message}`);
+                // error handled by apiRequest if any
             }
         } catch (error) {
             console.error('Error syncing:', error);
-            toast.error('Sync operation failed.');
+            // Toast handled by apiRequest or fallback
         } finally {
             setIsLoading(false);
         }
@@ -130,21 +124,14 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const response = await fetch(`${backEndURL}/api/sync-all-subdirectories`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ profile, userId, charId }),
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const result = await syncAllSubdirectories(profile, userId, charId, backEndURL);
+            if (result && result.success) {
                 toast.success(`Sync-All complete: ${result.message}`);
             } else {
-                toast.error(`Sync-All failed: ${result.message}`);
+                // error handled by apiRequest if any
             }
         } catch (error) {
             console.error('Error syncing-all:', error);
-            toast.error('Sync-All operation failed.');
         } finally {
             setIsLoading(false);
         }
@@ -160,23 +147,13 @@ const Sync = ({
                 return;
             }
 
-            const response = await fetch(`${backEndURL}/api/choose-settings-dir`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ directory: chosenDir }),
-            });
-
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const result = await chooseSettingsDir(chosenDir, backEndURL);
+            if (result && result.success) {
                 setIsDefaultDir(false);
                 toast.success(`Settings directory chosen: ${chosenDir}`);
-            } else {
-                toast.error(`Failed to choose settings directory: ${result.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error choosing settings directory:', error);
-            toast.error('Failed to choose settings directory.');
         } finally {
             setIsLoading(false);
         }
@@ -194,23 +171,12 @@ const Sync = ({
             }
 
             toast.info('Starting backup...');
-
-            const response = await fetch(`${backEndURL}/api/backup-directory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ targetDir: currentSettingsDir, backupDir: chosenDir }),
-            });
-
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const result = await backupDirectory(currentSettingsDir, chosenDir, backEndURL);
+            if (result && result.success) {
                 toast.success(result.message);
-            } else {
-                toast.error(`Backup failed: ${result.message}`);
             }
         } catch (error) {
             console.error('Error during backup:', error);
-            toast.error('Backup operation failed.');
         } finally {
             setIsLoading(false);
         }
@@ -226,20 +192,13 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const response = await fetch(`${backEndURL}/api/reset-to-default-directory`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const result = await resetToDefaultDirectory(backEndURL);
+            if (result && result.success) {
                 setIsDefaultDir(true);
                 toast.success('Directory reset to default: Tranquility');
-            } else {
-                toast.error(`Failed to reset directory: ${result.message}`);
             }
         } catch (error) {
             console.error('Error resetting directory:', error);
-            toast.error('Failed to reset directory.');
         } finally {
             setIsLoading(false);
         }
@@ -247,7 +206,6 @@ const Sync = ({
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
-            {/* Top heading with subtle instructions */}
             <Box className="max-w-7xl mx-auto mb-6">
                 <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md">
                     <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem' }}>

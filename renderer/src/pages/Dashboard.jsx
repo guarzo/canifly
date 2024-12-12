@@ -1,8 +1,8 @@
 // Dashboard.jsx
 import PropTypes from 'prop-types';
 import { useState, useMemo } from 'react';
-import AccountCard from './AccountCard.jsx';
-import GroupCard from './GroupCard.jsx';
+import AccountCard from '../components/dashboard/AccountCard.jsx';
+import GroupCard from '../components/dashboard/GroupCard.jsx';
 import {
     Typography,
     Box,

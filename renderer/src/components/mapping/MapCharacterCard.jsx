@@ -2,7 +2,7 @@
 
 import PropTypes from 'prop-types';
 import { Card, Typography, CardContent, useTheme } from '@mui/material';
-import { formatDate } from '../../utils/dateFormatter.jsx';
+import { formatDate } from '../../utils/formatter.jsx';
 
 const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
     const theme = useTheme();

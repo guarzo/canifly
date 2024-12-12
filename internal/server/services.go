@@ -26,6 +26,7 @@ type AppServices struct {
 	AssocService      interfaces.AssociationService
 	StateService      interfaces.AppStateService
 	LoginService      interfaces.LoginService
+	AuthClient        interfaces.AuthClient
 }
 
 func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
@@ -36,8 +37,8 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	}
 
 	loginService := initLoginService(logger)
-
-	esiService := initESIService(logger, cfg)
+	authClient := initAuthClient(logger, cfg)
+	esiService := initESIService(logger, cfg, authClient)
 	accountService, assocService := initAccountAndAssoc(logger, esiService, cfg.BasePath)
 	configService, err := initConfigService(logger, cfg.BasePath)
 	if err != nil {
@@ -64,7 +65,12 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		AssocService:      assocService,
 		StateService:      stateService,
 		LoginService:      loginService,
+		AuthClient:        authClient,
 	}, nil
+}
+
+func initAuthClient(logger interfaces.Logger, cfg Config) interfaces.AuthClient {
+	return accountSvc.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
 }
 
 func initEveProfileService(logger interfaces.Logger, esi interfaces.ESIService, con interfaces.ConfigService, ac interfaces.AccountService) interfaces.EveProfilesService {
@@ -109,9 +115,8 @@ func initLoginService(logger interfaces.Logger) interfaces.LoginService {
 	return accountSvc.NewLoginService(logger, loginStateStore)
 }
 
-func initESIService(logger interfaces.Logger, cfg Config) interfaces.ESIService {
+func initESIService(logger interfaces.Logger, cfg Config, authClient interfaces.AuthClient) interfaces.ESIService {
 	httpClient := http.NewAPIClient("https://esi.evetech.net", "", logger)
-	authClient := accountSvc.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
 	cacheStr := eve.NewCacheStore(logger, persist.OSFileSystem{}, cfg.BasePath)
 	deletedStr := eve.NewDeletedStore(logger, persist.OSFileSystem{}, cfg.BasePath)
 	cacheService := eveSvc.NewCacheService(logger, cacheStr)

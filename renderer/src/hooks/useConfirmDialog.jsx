@@ -1,6 +1,6 @@
 // useConfirmDialog.js
 import { useState } from 'react';
-import CustomConfirmDialog from './CustomConfirmDialog.jsx';
+import CustomConfirmDialog from '../components/common/CustomConfirmDialog.jsx';
 
 export const useConfirmDialog = () => {
     const [confirmDialogOptions, setConfirmDialogOptions] = useState({

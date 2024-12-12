@@ -16,8 +16,8 @@ import {
     KeyboardArrowDown,
     KeyboardArrowUp
 } from '@mui/icons-material';
-import { calculateDaysFromToday, formatNumberWithCommas } from '../../utils/utils.jsx';
 import { CheckCircle, AccessTime, Error as ErrorIcon } from '@mui/icons-material';
+import {calculateDaysFromToday, formatNumberWithCommas} from "../../utils/formatter.jsx";
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];
@@ -118,10 +118,10 @@ CharacterRow.propTypes = {
     row: PropTypes.object.isRequired,
 };
 
-const CharacterTable = ({ identities, skillPlans }) => {
+const CharacterTable = ({ characters, skillPlans }) => {
     const characterData = useMemo(() => {
-        return identities.map((identity) => {
-            const characterDetails = identity.Character || {};
+        return characters.map((character) => {
+            const characterDetails = character.Character || {};
             const TotalSP = formatNumberWithCommas(characterDetails.CharacterSkillsResponse?.total_sp || 0);
 
             const plans = Object.keys(skillPlans).map((planName) => {
@@ -141,7 +141,7 @@ const CharacterTable = ({ identities, skillPlans }) => {
                 plans,
             };
         });
-    }, [identities, skillPlans]);
+    }, [characters, skillPlans]);
 
     return (
         <div className="mb-8 w-full">
@@ -170,7 +170,7 @@ const CharacterTable = ({ identities, skillPlans }) => {
 };
 
 CharacterTable.propTypes = {
-    identities: PropTypes.array.isRequired,
+    characters: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
 };
 

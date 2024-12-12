@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/guarzo/canifly/internal/auth"
-	"github.com/guarzo/canifly/internal/crypto"
 	"github.com/guarzo/canifly/internal/server"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -28,41 +25,26 @@ func Start() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	initializeComponents(cfg, logger)
-
 	services, err := server.GetServices(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to get services: %w", err)
 	}
 
 	r := server.SetupHandlers(cfg.SecretKey, logger, services)
-	return startServer(r, cfg.Port, logger)
+	srv := createServer(r, cfg.Port)
+
+	logger.Infof("Server listening on port %s", cfg.Port)
+	return runServer(srv, logger)
 }
 
-func initializeComponents(cfg server.Config, logger interfaces.Logger) {
-	key, err := base64.StdEncoding.DecodeString(cfg.SecretKey)
-	if err != nil {
-		logger.WithError(err).Fatal("Failed to decode secret key.")
-	}
-	if err = crypto.Initialize(key); err != nil {
-		logger.WithError(err).Fatal("Failed to initialize encryption.")
-	}
-
-	clientID, clientSecret, callbackURL := os.Getenv("EVE_CLIENT_ID"), os.Getenv("EVE_CLIENT_SECRET"), os.Getenv("EVE_CALLBACK_URL")
-	if clientID == "" || clientSecret == "" || callbackURL == "" {
-		logger.Fatal("EVE_CLIENT_ID, EVE_CLIENT_SECRET, and EVE_CALLBACK_URL must be set")
-	}
-
-	auth.InitializeOAuth(clientID, clientSecret, callbackURL)
-
-}
-
-func startServer(r http.Handler, port string, logger interfaces.Logger) error {
-	srv := &http.Server{
+func createServer(r http.Handler, port string) *http.Server {
+	return &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
 	}
+}
 
+func runServer(srv *http.Server, logger interfaces.Logger) error {
 	// Channel to listen for termination signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -78,7 +60,6 @@ func startServer(r http.Handler, port string, logger interfaces.Logger) error {
 		}
 	}()
 
-	logger.Infof("Server listening on port %s", port)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("listen: %w", err)
 	}

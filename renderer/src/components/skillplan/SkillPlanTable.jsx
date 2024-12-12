@@ -21,7 +21,8 @@ import {
     AccessTime,
     Error as ErrorIcon,
 } from '@mui/icons-material';
-import { calculateDaysFromToday } from '../../utils/utils.jsx';
+
+import {calculateDaysFromToday} from "../../utils/formatter.jsx";
 
 const SkillPlanRow = ({ row }) => {
     const [open, setOpen] = React.useState(false);
@@ -103,7 +104,7 @@ SkillPlanRow.propTypes = {
     row: PropTypes.object.isRequired,
 };
 
-const SkillPlanTable = ({ skillPlans, identities }) => {
+const SkillPlanTable = ({ skillPlans, characters }) => {
     const skillPlanData = useMemo(() => {
         return Object.values(skillPlans).map((skillPlan) => {
             const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
@@ -118,10 +119,10 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
                     statusText: 'Qualified',
                 })),
                 ...pendingCharacters.map((characterName) => {
-                    const identity = identities.find(
-                        (identity) => identity.Character?.CharacterName === characterName
+                    const character = characters.find(
+                        (character) => character.Character?.CharacterName === characterName
                     );
-                    const characterData = identity?.Character || null;
+                    const characterData = character?.Character || null;
                     const pendingFinishDate =
                         characterData?.PendingFinishDates?.[skillPlan.Name] || '';
                     const daysRemaining = calculateDaysFromToday(pendingFinishDate);
@@ -146,7 +147,7 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
                 children,
             };
         });
-    }, [skillPlans, identities]);
+    }, [skillPlans, characters]);
 
     return (
         <div className="mb-8 w-full">
@@ -176,7 +177,7 @@ const SkillPlanTable = ({ skillPlans, identities }) => {
 
 SkillPlanTable.propTypes = {
     skillPlans: PropTypes.object.isRequired,
-    identities: PropTypes.array.isRequired,
+    characters: PropTypes.array.isRequired,
 };
 
 export default SkillPlanTable;

@@ -15,6 +15,7 @@ export async function apiRequest(url, fetchOptions, {
         const isJSON = contentType && contentType.includes('application/json');
         if (isJSON) {
             result = await response.json();
+            console.log(result)
         } else {
             result = await response.text();
         }
@@ -26,6 +27,7 @@ export async function apiRequest(url, fetchOptions, {
             if (onSuccess) {
                 onSuccess(result);
             }
+            return result;
         } else {
             const errorMsg = result?.error || errorMessage || 'An unexpected error occurred.';
             toast.error(errorMsg);

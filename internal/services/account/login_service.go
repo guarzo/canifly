@@ -2,8 +2,8 @@ package account
 
 import (
 	"errors"
-	"github.com/guarzo/canifly/internal/crypto"
 	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -20,7 +20,7 @@ func NewLoginService(logger interfaces.Logger, loginRepo interfaces.LoginReposit
 }
 
 func (l *loginService) GenerateAndStoreInitialState(value string) (string, error) {
-	state, err := crypto.GenerateRandomString(16)
+	state, err := persist.GenerateRandomString(16)
 	if err != nil {
 		return "", err
 	}
