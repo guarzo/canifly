@@ -8,7 +8,7 @@ import (
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/persist/config"
-	"github.com/guarzo/canifly/internal/testUtils"
+	"github.com/guarzo/canifly/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 

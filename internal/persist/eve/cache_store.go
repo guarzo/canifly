@@ -107,3 +107,11 @@ type cacheItem struct {
 	Value      []byte
 	Expiration time.Time
 }
+
+func (c *CacheStore) CacheItemsForTest() map[string]cache.Item {
+	return c.cache.Items()
+}
+
+func (c *CacheStore) CacheSetForTest(key string, value interface{}) {
+	c.cache.Set(key, value, DefaultExpiration)
+}

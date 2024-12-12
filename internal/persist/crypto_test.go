@@ -62,7 +62,7 @@ func TestEncryptDecryptData(t *testing.T) {
 }
 
 func TestEncryptDecryptData_NoKey(t *testing.T) {
-	// Key not initialized here
+	persist.ResetKeyForTest()
 	type TestData struct{ Foo string }
 	data := TestData{Foo: "bar"}
 
@@ -93,7 +93,7 @@ func TestEncryptDecryptString(t *testing.T) {
 }
 
 func TestEncryptDecryptString_NoKey(t *testing.T) {
-	// Without initialization
+	persist.ResetKeyForTest()
 	_, err := persist.EncryptString("test")
 	assert.Error(t, err)
 

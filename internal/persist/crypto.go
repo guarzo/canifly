@@ -173,3 +173,7 @@ func GenerateRandomString(lengthBytes int) (string, error) {
 	// Encode as hex string
 	return hex.EncodeToString(b), nil
 }
+
+func ResetKeyForTest() {
+	key = nil
+}
