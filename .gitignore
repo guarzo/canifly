@@ -10,3 +10,4 @@ notes.sh
 data/
 .idea/
 .env
+package.json.tmp
