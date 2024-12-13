@@ -116,10 +116,10 @@ func initLoginService(logger interfaces.Logger) interfaces.LoginService {
 }
 
 func initESIService(logger interfaces.Logger, cfg Config, authClient interfaces.AuthClient) interfaces.ESIService {
-	httpClient := http.NewAPIClient("https://esi.evetech.net", "", logger)
 	cacheStr := eve.NewCacheStore(logger, persist.OSFileSystem{}, cfg.BasePath)
 	deletedStr := eve.NewDeletedStore(logger, persist.OSFileSystem{}, cfg.BasePath)
 	cacheService := eveSvc.NewCacheService(logger, cacheStr)
+	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, cacheService)
 	return eveSvc.NewESIService(httpClient, authClient, logger, cacheService, deletedStr)
 }
 

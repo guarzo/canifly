@@ -28,7 +28,7 @@ func decodeJSONBody(r *http.Request, dst interface{}) error {
 	return json.NewDecoder(r.Body).Decode(dst)
 }
 
-func clearSession(s *flyHttp.SessionService, w http.ResponseWriter, r *http.Request, logger interfaces.Logger) {
+func clearSession(s interfaces.SessionService, w http.ResponseWriter, r *http.Request, logger interfaces.Logger) {
 	session, err := s.Get(r, flyHttp.SessionName)
 	if err != nil {
 		logger.Errorf("Failed to get session to clear: %v", err)

@@ -4,18 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 
-	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type DashboardHandler struct {
-	sessionService   *flyHttp.SessionService
+	sessionService   interfaces.SessionService
 	logger           interfaces.Logger
 	dashboardService interfaces.DashboardService
 }
 
 func NewDashboardHandler(
-	s *flyHttp.SessionService,
+	s interfaces.SessionService,
 	logger interfaces.Logger,
 	dashboardService interfaces.DashboardService,
 ) *DashboardHandler {

@@ -138,6 +138,9 @@ func (s *skillService) GetMatchingSkillPlans(
 			if character.MissingSkills == nil {
 				character.MissingSkills = make(map[string]map[string]int32)
 			}
+			if character.PendingFinishDates == nil {
+				character.PendingFinishDates = make(map[string]*time.Time)
+			}
 
 			// Check matching eve plans for the current character
 			for planName, plan := range skillPlans {

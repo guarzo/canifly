@@ -2,15 +2,16 @@
 package http
 
 import (
-	"github.com/guarzo/canifly/internal/services/interfaces"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-func AuthMiddleware(s *SessionService, logger interfaces.Logger) mux.MiddlewareFunc {
+func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Define public routes that don't require authentication

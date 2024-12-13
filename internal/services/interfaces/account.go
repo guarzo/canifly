@@ -2,8 +2,11 @@
 package interfaces
 
 import (
-	"golang.org/x/oauth2"
+	"github.com/gorilla/sessions"
+	"net/http"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/guarzo/canifly/internal/model"
 )
@@ -74,10 +77,8 @@ type AuthClient interface {
 	ExchangeCode(code string) (*oauth2.Token, error)
 }
 
-type HTTPClient interface {
-	// DoRequest executes an HTTP request with the given method, endpoint, and optional body,
-	// then unmarshals the result into target.
-	DoRequest(method, endpoint string, body interface{}, target interface{}) error
+type EsiHttpClient interface {
+	GetJSON(endpoint string, token *oauth2.Token, useCache bool, target interface{}) error
 }
 
 type DeletedCharactersRepository interface {
@@ -96,4 +97,12 @@ type LoginRepository interface {
 	Set(state string, authStatus *model.AuthStatus)
 	Get(state string) (*model.AuthStatus, bool)
 	Delete(state string)
+}
+
+type SessionService interface {
+	Get(r *http.Request, name string) (*sessions.Session, error)
+}
+
+type SessionRepo interface {
+	Get()
 }

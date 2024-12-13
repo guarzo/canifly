@@ -11,7 +11,7 @@ import (
 )
 
 type AuthHandler struct {
-	sessionService *flyHttp.SessionService
+	sessionService interfaces.SessionService
 	esiService     interfaces.ESIService
 	logger         interfaces.Logger
 	accountService interfaces.AccountService
@@ -21,7 +21,7 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(
-	s *flyHttp.SessionService,
+	s interfaces.SessionService,
 	e interfaces.ESIService,
 	l interfaces.Logger,
 	accountSvc interfaces.AccountService,

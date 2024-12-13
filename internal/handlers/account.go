@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"net/http"
 
-	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type AccountHandler struct {
-	sessionService flyHttp.SessionService
+	sessionService interfaces.SessionService
 	accountService interfaces.AccountService
 	logger         interfaces.Logger
 }
 
-func NewAccountHandler(session *flyHttp.SessionService, logger interfaces.Logger, accountSrv interfaces.AccountService) *AccountHandler {
+func NewAccountHandler(session interfaces.SessionService, logger interfaces.Logger, accountSrv interfaces.AccountService) *AccountHandler {
 	return &AccountHandler{
-		sessionService: *session,
+		sessionService: session,
 		logger:         logger,
 		accountService: accountSrv,
 	}

@@ -489,3 +489,37 @@ func (m *MockEveProfilesRepository) SyncAllSubdirectories(baseSubDir, userId, ch
 	args := m.Called(baseSubDir, userId, charId, settingsDir)
 	return args.Int(0), args.Int(1), args.Error(2)
 }
+
+type MockSkillRepository struct {
+	mock.Mock
+}
+
+func (m *MockSkillRepository) GetSkillPlans() map[string]model.SkillPlan {
+	args := m.Called()
+	return args.Get(0).(map[string]model.SkillPlan)
+}
+
+func (m *MockSkillRepository) GetSkillPlanFile(name string) ([]byte, error) {
+	args := m.Called(name)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockSkillRepository) GetSkillTypes() map[string]model.SkillType {
+	args := m.Called()
+	return args.Get(0).(map[string]model.SkillType)
+}
+
+func (m *MockSkillRepository) SaveSkillPlan(planName string, skills map[string]model.Skill) error {
+	args := m.Called(planName, skills)
+	return args.Error(0)
+}
+
+func (m *MockSkillRepository) DeleteSkillPlan(planName string) error {
+	args := m.Called(planName)
+	return args.Error(0)
+}
+
+func (m *MockSkillRepository) GetSkillTypeByID(id string) (model.SkillType, bool) {
+	args := m.Called(id)
+	return args.Get(0).(model.SkillType), args.Bool(1)
+}
