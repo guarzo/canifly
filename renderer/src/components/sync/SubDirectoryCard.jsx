@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Card, Typography, Divider, FormControl, InputLabel, Select, MenuItem, Grid, Tooltip } from '@mui/material';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -12,7 +13,6 @@ const SubDirectoryCard = ({
                               handleSyncAll,
                               isLoading
                           }) => {
-    // Sort users and chars alphabetically by name
     const sortedUserFiles = [...subDir.availableUserFiles].sort((a, b) => a.name.localeCompare(b.name));
     const sortedCharFiles = [...subDir.availableCharFiles].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -33,10 +33,7 @@ const SubDirectoryCard = ({
                 <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.2)' }} />
                 <div className="p-2 rounded-md border border-gray-600 bg-gray-700 mb-2">
                     <FormControl fullWidth margin="normal">
-                        <InputLabel
-                            id={`char-select-label-${subDir.profile}`}
-                            sx={{ color: '#99f6e4' }}
-                        >
+                        <InputLabel id={`char-select-label-${subDir.profile}`} sx={{ color: '#99f6e4' }}>
                             Select Character
                         </InputLabel>
                         <Select
@@ -44,13 +41,7 @@ const SubDirectoryCard = ({
                             id={`char-select-${subDir.profile}`}
                             value={selectedCharId}
                             label="Select Character"
-                            onChange={(e) =>
-                                handleSelectionChange(
-                                    subDir.profile,
-                                    'charId',
-                                    e.target.value
-                                )
-                            }
+                            onChange={(e) => handleSelectionChange(subDir.profile, 'charId', e.target.value)}
                             sx={{
                                 borderRadius: 1,
                                 color: '#fff',
@@ -76,10 +67,7 @@ const SubDirectoryCard = ({
                         </Select>
                     </FormControl>
                     <FormControl fullWidth margin="normal">
-                        <InputLabel
-                            id={`user-select-label-${subDir.profile}`}
-                            sx={{ color: '#99f6e4' }}
-                        >
+                        <InputLabel id={`user-select-label-${subDir.profile}`} sx={{ color: '#99f6e4' }}>
                             Select User
                         </InputLabel>
                         <Select
@@ -87,13 +75,7 @@ const SubDirectoryCard = ({
                             id={`user-select-${subDir.profile}`}
                             value={selectedUserId}
                             label="Select User"
-                            onChange={(e) =>
-                                handleSelectionChange(
-                                    subDir.profile,
-                                    'userId',
-                                    e.target.value
-                                )
-                            }
+                            onChange={(e) => handleSelectionChange(subDir.profile, 'userId', e.target.value)}
                             sx={{
                                 borderRadius: 1,
                                 color: '#fff',
@@ -126,16 +108,13 @@ const SubDirectoryCard = ({
                         <Tooltip title="Sync this specific profile">
                             <span style={{ width: '100%', display: 'block' }}>
                                 <LoadingButton
+                                    aria-label="Sync this specific profile"
                                     variant="contained"
                                     color="primary"
                                     onClick={() => handleSync(subDir.profile)}
                                     loading={isLoading}
                                     fullWidth
-                                    disabled={
-                                        isLoading ||
-                                        !selectedCharId ||
-                                        !selectedUserId
-                                    }
+                                    disabled={isLoading || !selectedCharId || !selectedUserId}
                                     className="p-0"
                                 >
                                     <SyncIcon fontSize="small" />
@@ -147,16 +126,13 @@ const SubDirectoryCard = ({
                         <Tooltip title="Sync all profiles based on this selection">
                             <span style={{ width: '100%', display: 'block' }}>
                                 <LoadingButton
+                                    aria-label="Sync all profiles based on this selection"
                                     variant="contained"
                                     color="secondary"
                                     onClick={() => handleSyncAll(subDir.profile)}
                                     loading={isLoading}
                                     fullWidth
-                                    disabled={
-                                        isLoading ||
-                                        !selectedCharId ||
-                                        !selectedUserId
-                                    }
+                                    disabled={isLoading || !selectedCharId || !selectedUserId}
                                     className="p-0"
                                 >
                                     <SyncAllIcon fontSize="small" />

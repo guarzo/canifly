@@ -1,4 +1,5 @@
 // src/components/dashboard/GroupCard.jsx
+import React from 'react';
 import PropTypes from 'prop-types';
 import CharacterItem from './CharacterItem.jsx';
 

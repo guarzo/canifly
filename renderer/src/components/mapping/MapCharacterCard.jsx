@@ -1,5 +1,5 @@
 // CharacterCard.jsx
-
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Card, Typography, CardContent, useTheme } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';

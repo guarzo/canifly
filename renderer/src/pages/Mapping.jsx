@@ -1,6 +1,6 @@
 // src/components/mapping/Mapping.jsx
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { Grid, Box, Typography } from '@mui/material';
@@ -163,7 +163,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
                         )}
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <Grid container spacing={2}>
+                        <Grid container spacing={2} data-testid="available-characters">
                             {availableCharacters.length ? (
                                 availableCharacters.map(char => (
                                     <Grid item xs={12} sm={6} key={`${char.charId}-${char.mtime}`}>

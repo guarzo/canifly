@@ -1,6 +1,6 @@
 // Dashboard.jsx
 import PropTypes from 'prop-types';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import AccountCard from '../components/dashboard/AccountCard.jsx';
 import GroupCard from '../components/dashboard/GroupCard.jsx';
 import {
@@ -171,17 +171,17 @@ const Dashboard = ({
                             },
                         }}
                     >
-                        <ToggleButton value="account">
+                        <ToggleButton value="account" aria-label="Account">
                             <Tooltip title="Account">
                                 <AccountBalance fontSize="small" />
                             </Tooltip>
                         </ToggleButton>
-                        <ToggleButton value="role">
+                        <ToggleButton value="role" aria-label="Role">
                             <Tooltip title="Role">
                                 <AccountCircle fontSize="small" />
                             </Tooltip>
                         </ToggleButton>
-                        <ToggleButton value="location">
+                        <ToggleButton value="location" aria-label="Location">
                             <Tooltip title="Location">
                                 <Place fontSize="small" />
                             </Tooltip>
@@ -206,6 +206,7 @@ const Dashboard = ({
                     </Typography>
                     <IconButton
                         onClick={toggleSortOrder}
+                        aria-label="Sort" // Add this line
                         sx={{
                             '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
                             padding: '4px',

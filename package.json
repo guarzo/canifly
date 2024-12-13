@@ -17,7 +17,9 @@
     "bump": "bash scripts/bump.sh",
     "dist": "npm run build && electron-builder --win --x64",
     "package:renderer": "cd renderer && npm install && npm run build",
-    "package:app": "npm run package:renderer && npm run dist"
+    "package:app": "npm run package:renderer && npm run dist",
+    "test:go": "go test ./...",
+    "test:react": "cd renderer && "
   },
   "build": {
     "productName": "CanIFly",

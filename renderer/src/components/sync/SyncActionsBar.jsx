@@ -1,4 +1,4 @@
-// SyncActionsBar.jsx
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Tooltip } from '@mui/material';
 import BackupIcon from '@mui/icons-material/Backup';
@@ -17,6 +17,7 @@ const SyncActionsBar = ({
             <Tooltip title="Backup Settings">
                 <span>
                     <Button
+                        aria-label="Backup Settings"
                         variant="contained"
                         color="primary"
                         onClick={handleBackup}
@@ -30,6 +31,7 @@ const SyncActionsBar = ({
             <Tooltip title="Choose Settings Directory">
                 <span>
                     <Button
+                        aria-label="Choose Settings Directory"
                         variant="contained"
                         color="info"
                         onClick={handleChooseSettingsDir}
@@ -44,6 +46,7 @@ const SyncActionsBar = ({
                 <Tooltip title="Reset to Default Directory">
                     <span>
                         <Button
+                            aria-label="Reset to Default Directory"
                             variant="contained"
                             color="warning"
                             onClick={handleResetToDefault}

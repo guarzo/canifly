@@ -1,5 +1,5 @@
 // MapAccountCard.jsx
-
+import React from 'react';
 import PropTypes from 'prop-types';
 import { Card, Typography, List, ListItem, ListItemText, IconButton, useTheme, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';

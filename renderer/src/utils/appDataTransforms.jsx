@@ -58,19 +58,28 @@ export function removeCharacterFromAppData(prev, characterID) {
 export function updateCharacterInAppData(prev, characterID, updates) {
     if (!prev) return prev;
 
+    let characterFound = false;
+
+    const updatedAccounts = prev.AccountData.Accounts.map((account) => {
+        const updatedCharacters = account.Characters.map((character) => {
+            if (character.Character.CharacterID === characterID) {
+                characterFound = true;
+                return { ...character, ...updates };
+            }
+            return character;
+        });
+        return { ...account, Characters: updatedCharacters };
+    });
+
+    // If character not found, return prev as is
+    if (!characterFound) {
+        return prev;
+    }
+
     const updatedRoles = Array.isArray(prev.ConfigData.Roles) ? [...prev.ConfigData.Roles] : [];
     if (updates.Role && !updatedRoles.includes(updates.Role)) {
         updatedRoles.push(updates.Role);
     }
-
-    const updatedAccounts = prev.AccountData.Accounts.map((account) => {
-        const updatedCharacters = account.Characters.map((character) =>
-            character.Character.CharacterID === characterID
-                ? { ...character, ...updates }
-                : character
-        );
-        return { ...account, Characters: updatedCharacters };
-    });
 
     return {
         ...prev,
@@ -84,6 +93,7 @@ export function updateCharacterInAppData(prev, characterID, updates) {
         }
     };
 }
+
 
 export function toggleAccountStatusInAppData(prev, accountID) {
     if (!prev) return prev;
