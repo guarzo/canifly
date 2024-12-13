@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"net/http"
@@ -74,7 +75,8 @@ func (c *APIClient) DoRequest(method, endpoint string, body interface{}, target 
 			"status_code": resp.StatusCode,
 			"response":    string(body),
 		}).Error("Received non-2xx response")
-		return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, body)
+
+		return flyErrors.NewCustomError(resp.StatusCode, fmt.Sprintf("unexpected status code: %d, response: %s", resp.StatusCode, body))
 	}
 
 	respBody, err := io.ReadAll(resp.Body)

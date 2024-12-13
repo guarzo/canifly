@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"golang.org/x/oauth2"
+	"time"
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -392,4 +393,99 @@ func (m *MockSystemRepository) GetSystemName(systemID int64) string {
 func (m *MockSystemRepository) LoadSystems() error {
 	args := m.Called()
 	return args.Error(0)
+}
+
+type MockHTTPClient struct {
+	mock.Mock
+}
+
+func (m *MockHTTPClient) DoRequest(method, endpoint string, body interface{}, target interface{}) error {
+	args := m.Called(method, endpoint, body, target)
+	return args.Error(0)
+}
+
+type MockAuthClient struct {
+	mock.Mock
+}
+
+func (m *MockAuthClient) RefreshToken(refreshToken string) (*oauth2.Token, error) {
+	args := m.Called(refreshToken)
+	return args.Get(0).(*oauth2.Token), args.Error(1)
+}
+
+func (m *MockAuthClient) GetAuthURL(state string) string {
+	args := m.Called(state)
+	return args.String(0)
+}
+
+func (m *MockAuthClient) ExchangeCode(code string) (*oauth2.Token, error) {
+	args := m.Called(code)
+	return args.Get(0).(*oauth2.Token), args.Error(1)
+}
+
+type MockDeletedCharactersRepository struct {
+	mock.Mock
+}
+
+func (m *MockDeletedCharactersRepository) FetchDeletedCharacters() ([]string, error) {
+	args := m.Called()
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockDeletedCharactersRepository) SaveDeletedCharacters(chars []string) error {
+	args := m.Called(chars)
+	return args.Error(0)
+}
+
+type MockCacheService struct {
+	mock.Mock
+}
+
+func (m *MockCacheService) Get(key string) ([]byte, bool) {
+	args := m.Called(key)
+	return args.Get(0).([]byte), args.Bool(1)
+}
+
+func (m *MockCacheService) Set(key string, value []byte, expiration time.Duration) {
+	m.Called(key, value, expiration)
+}
+
+func (m *MockCacheService) LoadCache() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockCacheService) SaveCache() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+// MockEveProfilesRepository is a mock implementation of the EveProfilesRepository interface.
+type MockEveProfilesRepository struct {
+	mock.Mock
+}
+
+func (m *MockEveProfilesRepository) ListSettingsFiles(subDir, settingsDir string) ([]model.RawFileInfo, error) {
+	args := m.Called(subDir, settingsDir)
+	return args.Get(0).([]model.RawFileInfo), args.Error(1)
+}
+
+func (m *MockEveProfilesRepository) BackupDirectory(targetDir, backupDir string) error {
+	args := m.Called(targetDir, backupDir)
+	return args.Error(0)
+}
+
+func (m *MockEveProfilesRepository) GetSubDirectories(settingsDir string) ([]string, error) {
+	args := m.Called(settingsDir)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockEveProfilesRepository) SyncSubdirectory(subDir, userId, charId, settingsDir string) (int, int, error) {
+	args := m.Called(subDir, userId, charId, settingsDir)
+	return args.Int(0), args.Int(1), args.Error(2)
+}
+
+func (m *MockEveProfilesRepository) SyncAllSubdirectories(baseSubDir, userId, charId, settingsDir string) (int, int, error) {
+	args := m.Called(baseSubDir, userId, charId, settingsDir)
+	return args.Int(0), args.Int(1), args.Error(2)
 }

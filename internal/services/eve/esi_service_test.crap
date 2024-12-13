@@ -1,0 +1,244 @@
+package eve_test
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"testing"
+
+	flyErrors "github.com/guarzo/canifly/internal/errors"
+	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/services/eve"
+	"github.com/guarzo/canifly/internal/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
+)
+
+// TestResolveCharacterNames_Success tests a successful scenario where a character is found.
+func TestResolveCharacterNames_Success(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	logger := &testutil.MockLogger{}
+	cache := &testutil.MockCacheService{}
+	deleted := &testutil.MockDeletedCharactersRepository{}
+
+	esiSvc := eve.NewESIService(httpClient, auth, logger, cache, deleted)
+
+	deleted.On("FetchDeletedCharacters").Return([]string{}, nil).Once()
+
+	cache.On("Get", "https://esi.evetech.net/latest/characters/1234/?datasource=tranquility").
+		Return([]byte(nil), false).Once()
+
+	charBytes := []byte(`{
+        "name": "TestChar",
+        "gender": "male",
+        "birthday": "2000-01-01T00:00:00Z",
+        "corporation_id": 1000
+    }`)
+
+	httpClient.On("DoRequest", "GET", "https://esi.evetech.net/latest/characters/1234/?datasource=tranquility", nil, mock.Anything).
+		Run(func(args mock.Arguments) {
+			raw := args.Get(3).(*json.RawMessage)
+			*raw = json.RawMessage(charBytes)
+		}).
+		Return(nil).Once()
+
+	cache.On("Set", "https://esi.evetech.net/latest/characters/1234/?datasource=tranquility", mock.Anything, mock.Anything).
+		Return().Once()
+
+	deleted.On("SaveDeletedCharacters", []string{}).Return(nil).Once()
+	cache.On("SaveCache").Return(nil).Once()
+
+	names, err := esiSvc.ResolveCharacterNames([]string{"1234"})
+	assert.NoError(t, err)
+	assert.Equal(t, "TestChar", names["1234"])
+
+	httpClient.AssertExpectations(t)
+	deleted.AssertExpectations(t)
+	cache.AssertExpectations(t)
+}
+
+// TestResolveCharacterNames_404 tests a scenario where GetCharacter returns a 404.
+func TestResolveCharacterNames_404(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	logger := &testutil.MockLogger{}
+	cache := &testutil.MockCacheService{}
+	deleted := &testutil.MockDeletedCharactersRepository{}
+
+	esiSvc := eve.NewESIService(httpClient, auth, logger, cache, deleted)
+
+	deleted.On("FetchDeletedCharacters").Return([]string{}, nil).Once()
+
+	cache.On("Get", "https://esi.evetech.net/latest/characters/1234/?datasource=tranquility").
+		Return([]byte(nil), false).Once()
+
+	notFoundErr := flyErrors.NewCustomError(http.StatusNotFound, "Not found")
+	httpClient.On("DoRequest", "GET", "https://esi.evetech.net/latest/characters/1234/?datasource=tranquility", nil, mock.Anything).
+		Return(notFoundErr).Once()
+
+	deleted.On("SaveDeletedCharacters", []string{"1234"}).Return(nil).Once()
+	cache.On("SaveCache").Return(nil).Once()
+
+	names, err := esiSvc.ResolveCharacterNames([]string{"1234"})
+	require.NoError(t, err)
+	require.Empty(t, names)
+
+	httpClient.AssertExpectations(t)
+	deleted.AssertExpectations(t)
+	cache.AssertExpectations(t)
+}
+
+// TestResolveCharacterNames_FetchDeletedError tests a scenario where FetchDeletedCharacters returns an error.
+func TestResolveCharacterNames_FetchDeletedError(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	logger := &testutil.MockLogger{}
+	cache := &testutil.MockCacheService{}
+	deleted := &testutil.MockDeletedCharactersRepository{}
+
+	esiSvc := eve.NewESIService(httpClient, auth, logger, cache, deleted)
+
+	// Return an empty slice and an error, not nil, to avoid panic.
+	deleted.On("FetchDeletedCharacters").Return([]string{}, fmt.Errorf("fetch error")).Once()
+
+	// For character "9999"
+	cache.On("Get", "https://esi.evetech.net/latest/characters/9999/?datasource=tranquility").
+		Return([]byte(nil), false).Once()
+
+	charResp := model.CharacterResponse{Name: "CharX"}
+	charBytes, _ := json.Marshal(charResp)
+
+	httpClient.On("DoRequest", "GET", "https://esi.evetech.net/latest/characters/9999/?datasource=tranquility", nil, mock.AnythingOfType("*json.RawMessage")).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*json.RawMessage)
+			*target = json.RawMessage(charBytes)
+		}).
+		Return(nil).Once()
+
+	deleted.On("SaveDeletedCharacters", []string{}).Return(nil).Once()
+	cache.On("SaveCache").Return(nil).Once()
+
+	names, err := esiSvc.ResolveCharacterNames([]string{"9999"})
+	assert.NoError(t, err)
+	assert.Equal(t, "CharX", names["9999"])
+
+	httpClient.AssertExpectations(t)
+	deleted.AssertExpectations(t)
+	cache.AssertExpectations(t)
+}
+
+// GetUserInfo Tests
+func TestGetUserInfo_NoToken(t *testing.T) {
+	esiSvc := eve.NewESIService(nil, nil, nil, nil, nil)
+	_, err := esiSvc.GetUserInfo(nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no access token")
+}
+
+func TestGetUserInfo_HttpError(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	esiSvc := eve.NewESIService(httpClient, auth, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	token := &oauth2.Token{AccessToken: "abc"}
+
+	httpClient.On("DoRequest", "GET", "https://login.eveonline.com/oauth/verify", nil, mock.Anything).
+		Return(errors.New("http error")).Once()
+
+	_, err := esiSvc.GetUserInfo(token)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "http error")
+}
+
+func TestGetUserInfo_ParseError(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	esiSvc := eve.NewESIService(httpClient, auth, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	token := &oauth2.Token{AccessToken: "abc"}
+
+	httpClient.On("DoRequest", "GET", "https://login.eveonline.com/oauth/verify", nil, mock.Anything).
+		Run(func(args mock.Arguments) {
+			raw := args.Get(3).(*json.RawMessage)
+			*raw = json.RawMessage("invalid json")
+		}).
+		Return(nil).Once()
+
+	_, err := esiSvc.GetUserInfo(token)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode user info")
+}
+
+func TestGetUserInfo_Success(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	auth := &testutil.MockAuthClient{}
+	esiSvc := eve.NewESIService(httpClient, auth, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	token := &oauth2.Token{AccessToken: "abc"}
+
+	user := model.UserInfoResponse{CharacterID: 123, CharacterName: "Pilot"}
+	userBytes, _ := json.Marshal(user)
+
+	httpClient.On("DoRequest", "GET", "https://login.eveonline.com/oauth/verify", nil, mock.Anything).
+		Run(func(args mock.Arguments) {
+			raw := args.Get(3).(*json.RawMessage)
+			*raw = json.RawMessage(userBytes)
+		}).
+		Return(nil).Once()
+
+	u, err := esiSvc.GetUserInfo(token)
+	assert.NoError(t, err)
+	assert.Equal(t, "Pilot", u.CharacterName)
+}
+
+// GetCharacter tests
+func TestGetCharacter_HttpError(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	esiSvc := eve.NewESIService(httpClient, nil, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	httpClient.On("DoRequest", "GET", mock.Anything, nil, mock.Anything).
+		Return(errors.New("char http error")).Once()
+
+	_, err := esiSvc.GetCharacter("999")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "char http error")
+}
+
+func TestGetCharacter_ParseError(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	esiSvc := eve.NewESIService(httpClient, nil, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	httpClient.On("DoRequest", "GET", mock.Anything, nil, mock.Anything).
+		Run(func(args mock.Arguments) {
+			raw := args.Get(3).(*json.RawMessage)
+			*raw = json.RawMessage("invalid")
+		}).
+		Return(nil).Once()
+
+	_, err := esiSvc.GetCharacter("999")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode character response")
+}
+
+func TestGetCharacter_Success(t *testing.T) {
+	httpClient := &testutil.MockHTTPClient{}
+	esiSvc := eve.NewESIService(httpClient, nil, &testutil.MockLogger{}, &testutil.MockCacheService{}, &testutil.MockDeletedCharactersRepository{})
+
+	char := model.CharacterResponse{Name: "CharC"}
+	charBytes, _ := json.Marshal(char)
+
+	httpClient.On("DoRequest", "GET", mock.Anything, nil, mock.Anything).
+		Run(func(args mock.Arguments) {
+			raw := args.Get(3).(*json.RawMessage)
+			*raw = json.RawMessage(charBytes)
+		}).
+		Return(nil).Once()
+
+	cResp, err := esiSvc.GetCharacter("777")
+	assert.NoError(t, err)
+	assert.Equal(t, "CharC", cResp.Name)
+}

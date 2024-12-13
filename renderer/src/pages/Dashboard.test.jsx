@@ -20,6 +20,7 @@ describe('Dashboard', () => {
                 {
                     Character: {
                         CharacterName: 'Alice',
+                        CharacterID: 1111, // Provide a unique ID here
                         LocationName: 'Jita',
                         CharacterSkillsResponse: { total_sp: 1000000 }
                     },
@@ -35,6 +36,7 @@ describe('Dashboard', () => {
                 {
                     Character: {
                         CharacterName: 'Bob',
+                        CharacterID: 2222, // And a unique ID here as well
                         LocationName: 'Amarr',
                         CharacterSkillsResponse: { total_sp: 2000000 }
                     },
@@ -44,6 +46,7 @@ describe('Dashboard', () => {
             ]
         }
     ];
+
 
     const roles = ['Pvp', 'Logistics'];
 

@@ -2,9 +2,9 @@
 package eve
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"time"
@@ -53,59 +53,41 @@ func retryWithExponentialBackoff(operation func() (interface{}, error)) (interfa
 	return nil, err
 }
 
-func makeRequest(url string, token *oauth2.Token, auth interfaces.AuthClient) ([]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func makeRequest(url string, token *oauth2.Token, auth interfaces.AuthClient, httpClient interfaces.HTTPClient) ([]byte, error) {
+	var raw json.RawMessage
+	err := httpClient.DoRequest("GET", url, nil, &raw)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	client := &http.Client{}
-
-	if token != nil && token.AccessToken != "" {
-		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized && token != nil {
-		// Refresh the token using auth client
-		newToken, err := auth.RefreshToken(token.RefreshToken)
-		if err != nil {
-			return nil, fmt.Errorf("failed to refresh token: %v", err)
+		var customErr *flyErrors.CustomError
+		if errors.As(err, &customErr) && customErr.StatusCode == http.StatusUnauthorized && token != nil && token.RefreshToken != "" {
+			// Refresh the token
+			newToken, refreshErr := auth.RefreshToken(token.RefreshToken)
+			if refreshErr != nil {
+				return nil, fmt.Errorf("failed to refresh token: %w", refreshErr)
+			}
+			*token = *newToken
+			// Retry the request with the new token
+			err = httpClient.DoRequest("GET", url, nil, &raw)
+			if err != nil {
+				return nil, err // If still fails, return the error
+			}
+		} else {
+			// If not 401 or can't refresh, return the original error
+			return nil, err
 		}
-		*token = *newToken
-		// Retry the request with the new access token
-		return makeRequest(url, newToken, auth)
 	}
 
-	if customErr, exists := flyErrors.HttpStatusErrors[resp.StatusCode]; exists {
-		return nil, customErr
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, flyErrors.NewCustomError(resp.StatusCode, "failed request")
-	}
-
-	return bodyBytes, nil
+	// Successful response (2xx)
+	return raw, nil
 }
 
-func createOperation(url string, token *oauth2.Token, auth interfaces.AuthClient) func() (interface{}, error) {
+func createOperation(url string, token *oauth2.Token, auth interfaces.AuthClient, client interfaces.HTTPClient) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		return makeRequest(url, token, auth)
+		return makeRequest(url, token, auth, client)
 	}
 }
 
-func getResults(address string, token *oauth2.Token, auth interfaces.AuthClient) ([]byte, error) {
-	operation := createOperation(address, token, auth)
+func getResults(address string, token *oauth2.Token, auth interfaces.AuthClient, client interfaces.HTTPClient) ([]byte, error) {
+	operation := createOperation(address, token, auth, client)
 
 	// Use retryWithExponentialBackoff to handle retries
 	result, err := retryWithExponentialBackoff(operation)
@@ -121,7 +103,7 @@ func getResults(address string, token *oauth2.Token, auth interfaces.AuthClient)
 	return bodyBytes, nil
 }
 
-func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger interfaces.Logger, auth interfaces.AuthClient) ([]byte, error) {
+func getResultsWithCache(address string, token *oauth2.Token, cacheService interfaces.CacheService, logger interfaces.Logger, auth interfaces.AuthClient, client interfaces.HTTPClient) ([]byte, error) {
 	if cachedData, found := cacheService.Get(address); found {
 		logger.Debugf("using cacheService data for call to %s", address)
 		return cachedData, nil
@@ -129,7 +111,7 @@ func getResultsWithCache(address string, token *oauth2.Token, cacheService inter
 		logger.Debugf("no cacheService data found for call to %s", address)
 	}
 
-	bodyBytes, err := getResults(address, token, auth)
+	bodyBytes, err := getResults(address, token, auth, client)
 	if err != nil {
 		return nil, err
 	}

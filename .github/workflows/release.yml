@@ -96,7 +96,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "release/canifly Setup ${{ env.CLEAN_TAG }}.exe"
+          asset_path: "release/CanIFly-Setup-${{ env.CLEAN_TAG }}.exe"
           asset_name: "CanIFly-Setup${{ env.CLEAN_TAG }}.exe"
           asset_content_type: application/x-msdownload
       

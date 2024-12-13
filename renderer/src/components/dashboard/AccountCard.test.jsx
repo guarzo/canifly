@@ -3,7 +3,23 @@ import { render, screen } from '@testing-library/react';
 import AccountCard from './AccountCard';
 
 test('renders account name and status', () => {
-    const mockAccount = { Name: 'TestAccount', Status: 'Omega', Characters: [] };
+    const mockAccount = {
+        Name: 'TestAccount',
+        Status: 'Omega',
+        Characters: [
+            {
+                MCT: false,
+                Role: 'Pvp',
+                Training: 'Minmatar Dreadnought',
+                Character: {
+                    CharacterName: 'TestCharacter',
+                    CharacterID: 123456, // A unique ID
+                    CharacterSkillsResponse: { total_sp: 5000000 },
+                    LocationName: 'Jita'
+                }
+            }
+        ]
+    };
 
     render(
         <AccountCard
@@ -17,5 +33,9 @@ test('renders account name and status', () => {
         />
     );
 
+    // Check account name
     expect(screen.getByText('TestAccount')).toBeInTheDocument();
+
+    // Check character name inside account
+    expect(screen.getByText('TestCharacter')).toBeInTheDocument();
 });
