@@ -1,6 +1,6 @@
 {
   "name": "canifly",
-  "version": "0.0.43",
+  "version": "0.0.44",
   "description": "Can I Fly?",
   "main": "main.js",
   "scripts": {
@@ -19,7 +19,8 @@
     "package:renderer": "cd renderer && npm install && npm run build",
     "package:app": "npm run package:renderer && npm run dist",
     "test:go": "go test ./...",
-    "test:react": "cd renderer && "
+    "test:react": "cd renderer && npm test",
+    "test": "npm run test:go && npm run test:react"
   },
   "build": {
     "productName": "CanIFly",
