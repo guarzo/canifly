@@ -6,10 +6,10 @@ import PropTypes from 'prop-types';
 import eveSsoImage from '../../assets/images/eve-sso.jpg';
 import { initiateLogin } from '../../api/apiService';
 import { error as cError } from '../../utils/logger';
+import { isDev } from '../../Config';
 
 const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
     const [modalOpen, setModalOpen] = useState(false);
-    const isDev = import.meta.env.DEV;
 
     const handleOpenModal = () => {
         setModalOpen(true);

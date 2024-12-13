@@ -2,12 +2,13 @@
 
 import { apiRequest } from './apiRequest';
 import { normalizeAppData } from '../utils/dataNormalizer';
+import { isDev } from '../Config';
 
 export async function getAppData(backEndURL) {
     const response = await apiRequest(`${backEndURL}/api/app-data`, {
         credentials: 'include'
     }, {
-        errorMessage: 'Failed to load app data.'
+        errorMessage: isDev ? 'Failed to load app data.' : undefined
     });
     return response ? normalizeAppData(response) : null;
 }
@@ -26,7 +27,6 @@ export async function logout() {
         method: 'POST',
         credentials: 'include'
     }, {
-        successMessage: 'Logged out successfully!',
         errorMessage: 'Failed to log out.'
     });
 }
@@ -38,7 +38,6 @@ export async function toggleAccountStatus(accountID) {
         credentials: 'include',
         body: JSON.stringify({ accountID })
     }, {
-        successMessage: 'Account status toggled successfully!',
         errorMessage: 'Failed to toggle account status.'
     });
 }
@@ -50,7 +49,6 @@ export async function updateCharacter(characterID, updates) {
         body: JSON.stringify({ characterID, updates }),
         credentials: 'include'
     }, {
-        successMessage: 'Character updated successfully!',
         errorMessage: 'Failed to update character.'
     });
 }
@@ -62,7 +60,6 @@ export async function removeCharacter(characterID) {
         body: JSON.stringify({ characterID }),
         credentials: 'include'
     }, {
-        successMessage: 'Character removed successfully!',
         errorMessage: 'Failed to remove character.'
     });
 }
@@ -74,7 +71,6 @@ export async function updateAccountName(accountID, newName) {
         body: JSON.stringify({ accountID, accountName: newName }),
         credentials: 'include'
     }, {
-        successMessage: 'Account name updated successfully!',
         errorMessage: 'Failed to update account name.'
     });
 }
@@ -102,7 +98,7 @@ export async function addCharacter(account) {
         onSuccess: (data) => {
             if (data.redirectURL) {
                 // If running in dev mode, redirect internally; otherwise, open externally
-                if (window.isDev) {
+                if (isDev) {
                     window.location.href = data.redirectURL;
                 } else {
                     window.electronAPI.openExternal(data.redirectURL);
@@ -113,6 +109,7 @@ export async function addCharacter(account) {
         }
     });
 }
+
 
 export async function saveSkillPlan(planName, planContents) {
     return apiRequest('/api/save-skill-plan', {

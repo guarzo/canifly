@@ -61,7 +61,7 @@ func (s *AppStateStore) ClearAppState() {
 
 func (s *AppStateStore) SaveAppStateSnapshot(appState model.AppState) error {
 	snapshotPath := filepath.Join(s.basePath, "appstate_snapshot.json")
-	s.logger.Infof("app state saved at %s", snapshotPath)
+	s.logger.Debugf("app state saved at %s", snapshotPath)
 	return persist.SaveJsonToFile(s.fs, snapshotPath, appState)
 }
 

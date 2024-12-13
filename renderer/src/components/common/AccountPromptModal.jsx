@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Select, MenuItem, TextField } from '@mui/material';
 import { Check as CheckIcon } from '@mui/icons-material';
@@ -8,21 +8,42 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
     const [isAddingAccount, setIsAddingAccount] = useState(false);
     const [newAccount, setNewAccount] = useState('');
 
+    const selectRef = useRef(null);
+    const textFieldRef = useRef(null);
+
     useEffect(() => {
-        // Reset state when modal opens/closes
         if (!isOpen) {
             setAccount('');
             setIsAddingAccount(false);
             setNewAccount('');
+        } else {
+            // Modal just opened
+            // Focus the appropriate element
+            if (existingAccounts && existingAccounts.length > 0 && !isAddingAccount) {
+                // Focus the select component
+                if (selectRef.current) {
+                    selectRef.current.focus();
+                }
+            } else {
+                // Focus the text field for adding a new account
+                if (textFieldRef.current) {
+                    textFieldRef.current.querySelector('input')?.focus();
+                }
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, existingAccounts, isAddingAccount]);
 
     const handleAccountChange = (event) => {
         const selectedValue = event.target.value;
         if (selectedValue === 'add_new_account') {
-            // Switch to adding a new account
             setIsAddingAccount(true);
             setAccount('');
+            // Focus the text field when switching to add new account
+            setTimeout(() => {
+                if (textFieldRef.current) {
+                    textFieldRef.current.querySelector('input')?.focus();
+                }
+            }, 0);
         } else {
             setIsAddingAccount(false);
             setAccount(selectedValue);
@@ -40,9 +61,8 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
 
     const handleSubmit = () => {
         const finalAccount = isAddingAccount ? newAccount.trim() : account;
-        if (!finalAccount) return; // Ensure we have an account name
+        if (!finalAccount) return;
         onSubmit(finalAccount);
-        // Reset after submit
         setAccount('');
         setIsAddingAccount(false);
         setNewAccount('');
@@ -64,6 +84,7 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
                             onChange={handleAccountChange}
                             displayEmpty
                             fullWidth
+                            inputRef={selectRef}
                             sx={{
                                 backgroundColor: 'background.paper',
                                 borderRadius: 1,
@@ -86,7 +107,7 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
                 )}
 
                 {(!hasExistingAccounts || isAddingAccount) && (
-                    <div className="mb-4 flex items-center space-x-2">
+                    <div className="mb-4 flex items-center space-x-2" ref={textFieldRef}>
                         <TextField
                             size="small"
                             value={isAddingAccount ? newAccount : account}

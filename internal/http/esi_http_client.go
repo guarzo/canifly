@@ -52,7 +52,10 @@ func NewEsiHttpClient(baseURL string, logger interfaces.Logger, auth interfaces.
 // If a token is provided, it will include it in the request and attempt token refresh if Unauthorized.
 func (c *EsiHttpClient) GetJSON(endpoint string, token *oauth2.Token, useCache bool, target interface{}) error {
 	url := fmt.Sprintf("%s%s", c.BaseURL, endpoint)
+	return c.GetJSONFromURL(url, token, useCache, target)
+}
 
+func (c *EsiHttpClient) GetJSONFromURL(url string, token *oauth2.Token, useCache bool, target interface{}) error {
 	// Check cache first
 	if useCache && c.CacheService != nil {
 		if cachedData, found := c.CacheService.Get(url); found {

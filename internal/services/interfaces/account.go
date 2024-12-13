@@ -79,6 +79,7 @@ type AuthClient interface {
 
 type EsiHttpClient interface {
 	GetJSON(endpoint string, token *oauth2.Token, useCache bool, target interface{}) error
+	GetJSONFromURL(url string, token *oauth2.Token, useCache bool, target interface{}) error
 }
 
 type DeletedCharactersRepository interface {

@@ -6,12 +6,12 @@ import {
     Toolbar,
     IconButton,
     Typography,
+    Box,
     Drawer,
     List,
     ListItem,
     ListItemIcon,
     ListItemText,
-    Divider,
     ListItemButton,
     Tooltip,
     CircularProgress
@@ -29,12 +29,24 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import AccountPromptModal from './AccountPromptModal.jsx';
+import nav_img from '../../assets/images/nav-logo.png';
 
 const StyledAppBar = styled(AppBar)(() => ({
     backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
     color: '#14b8a6',
     boxShadow: 'inset 0 -4px 0 0 #14b8a6',
     borderBottom: '4px solid #14b8a6',
+}));
+
+const StyledDrawer = styled(Drawer)(() => ({
+    '& .MuiPaper-root': {
+        background: 'linear-gradient(to bottom, #1f2937, #111827)',
+        overflow: 'hidden',
+        color: '#5eead4',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+    }
 }));
 
 const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh, onAddCharacter, isRefreshing }) => {
@@ -69,9 +81,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
         setModalOpen(false);
     };
 
-    // Updated to call onAddCharacter from props
     const handleAddCharacterSubmit = async (account) => {
-        // Just call the prop from App
         await onAddCharacter(account);
         setModalOpen(false);
     };
@@ -84,43 +94,45 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     return (
         <>
             <StyledAppBar position="fixed">
-                <Toolbar style={{ WebkitAppRegion: 'drag' }}>
+                <Toolbar style={{ WebkitAppRegion: 'drag', display: 'flex', alignItems: 'center' }}>
                     {loggedIn && (
-                        <IconButton
-                            edge="start"
-                            color="inherit"
-                            aria-label="menu"
-                            onClick={toggleDrawer(true)}
-                            style={{ WebkitAppRegion: 'no-drag' }}
-                        >
-                            <MenuIcon />
-                        </IconButton>
+                        <>
+                            <IconButton
+                                edge="start"
+                                color="inherit"
+                                aria-label="menu"
+                                onClick={toggleDrawer(true)}
+                                style={{ WebkitAppRegion: 'no-drag' }}
+                            >
+                                <MenuIcon />
+                            </IconButton>
+                            <Tooltip title="Add Character">
+                                <IconButton onClick={handleAddCharacterClick} style={{ WebkitAppRegion: 'no-drag' }}>
+                                    <AddCircleOutline sx={{ color: '#22c55e' }} />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Add Skill Plan">
+                                <IconButton onClick={openSkillPlanModal} style={{ WebkitAppRegion: 'no-drag' }}>
+                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} />
+                                </IconButton>
+                            </Tooltip>
+                        </>
                     )}
 
-                    <Typography
-                        variant="h6"
-                        className="flex-grow text-center"
-                        sx={{ color: '#14b8a6' }}
-                    >
-                        Can I Fly?
-                    </Typography>
+                    {/* Centered Title */}
+                    <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                        <Typography
+                            variant="h6"
+                            sx={{ color: '#14b8a6', textAlign: 'center' }}
+                        >
+                            Can I Fly?
+                        </Typography>
+                    </Box>
 
-                    <div
-                        className="flex items-center space-x-3"
-                        style={{ WebkitAppRegion: 'no-drag' }}
-                    >
+                    {/* Right-side icons */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' }}>
                         {loggedIn && (
                             <>
-                                <Tooltip title="Add Character">
-                                    <IconButton onClick={handleAddCharacterClick}>
-                                        <AddCircleOutline sx={{ color: '#22c55e' }} />
-                                    </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Add Skill Plan">
-                                    <IconButton onClick={openSkillPlanModal}>
-                                        <SkillPlansIcon sx={{ color: '#f59e0b' }} />
-                                    </IconButton>
-                                </Tooltip>
                                 <Tooltip title="Refresh Data">
                                     <IconButton onClick={handleRefreshClick}>
                                         {isRefreshing ? (
@@ -142,34 +154,69 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                                 <Close sx={{ color: '#9ca3af' }} />
                             </IconButton>
                         </Tooltip>
-                    </div>
+                    </Box>
                 </Toolbar>
             </StyledAppBar>
 
-            <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
+            <StyledDrawer
+                anchor="left"
+                open={drawerOpen}
+                onClose={toggleDrawer(false)}
+                disableScrollLock
+            >
                 <div
                     role="presentation"
                     onClick={toggleDrawer(false)}
                     onKeyDown={toggleDrawer(false)}
-                    style={{ width: 250 }}
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
-                    <List>
+                    <List sx={{ flex: 1 }}>
                         {navigationLinks.map((item) => (
                             <ListItem key={item.text} disablePadding>
                                 <ListItemButton
                                     component={Link}
                                     to={item.path}
                                     selected={location.pathname === item.path}
+                                    sx={{
+                                        '&:hover': {
+                                            backgroundColor: '#0f172a',
+                                            '& .MuiListItemText-primary': {
+                                                color: '#a7f3d0',
+                                            },
+                                            '& .MuiListItemIcon-root': {
+                                                color: '#a7f3d0',
+                                            },
+                                        },
+                                        '&.Mui-selected': {
+                                            backgroundColor: '#134e4a',
+                                            '&:hover': {
+                                                backgroundColor: '#145a54',
+                                                '& .MuiListItemText-primary': {
+                                                    color: '#a7f3d0',
+                                                },
+                                                '& .MuiListItemIcon-root': {
+                                                    color: '#a7f3d0',
+                                                },
+                                            },
+                                        },
+                                    }}
                                 >
-                                    <ListItemIcon sx={{ color: '#14b8a6' }}>{item.icon}</ListItemIcon>
-                                    <ListItemText primary={item.text} />
+                                    <ListItemIcon sx={{ color: '#5eead4' }}>{item.icon}</ListItemIcon>
+                                    <ListItemText
+                                        primary={item.text}
+                                        primaryTypographyProps={{ sx: { color: '#5eead4' } }}
+                                    />
                                 </ListItemButton>
                             </ListItem>
                         ))}
                     </List>
-                    <Divider />
+
+                    {/* Image at the bottom of the nav drawer with fixed width */}
+                    <Box sx={{ p: 2, textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+                        <img src={nav_img} alt="Nav Logo" style={{ maxWidth: '150px', width: '100%' }} />
+                    </Box>
                 </div>
-            </Drawer>
+            </StyledDrawer>
 
             <AccountPromptModal
                 isOpen={modalOpen}

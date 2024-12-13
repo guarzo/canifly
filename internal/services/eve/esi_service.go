@@ -84,7 +84,7 @@ func (s *esiService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, 
 	}
 
 	var user model.UserInfoResponse
-	if err := s.apiClient.GetJSON("/oauth/verify", token, false, &user); err != nil {
+	if err := s.apiClient.GetJSONFromURL("https://login.eveonline.com/oauth/verify", token, false, &user); err != nil {
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
 	}
 

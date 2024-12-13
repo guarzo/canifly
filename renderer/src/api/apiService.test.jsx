@@ -47,6 +47,7 @@ describe('apiService', () => {
             normalizeAppData.mockReturnValue(normalizedData);
 
             const result = await getAppData(backEndURL);
+            // Depending on isDev, errorMessage may be present or not. Let's assume isDev is true for testing.
             expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/app-data`, { credentials: 'include' }, { errorMessage: 'Failed to load app data.' });
             expect(normalizeAppData).toHaveBeenCalledWith(mockData);
             expect(result).toBe(normalizedData);
@@ -87,7 +88,6 @@ describe('apiService', () => {
                 method: 'POST',
                 credentials: 'include'
             }, {
-                successMessage: 'Logged out successfully!',
                 errorMessage: 'Failed to log out.'
             });
             expect(result).toBe('success');
@@ -104,7 +104,6 @@ describe('apiService', () => {
                 credentials: 'include',
                 body: JSON.stringify({ accountID: 123 })
             }, {
-                successMessage: 'Account status toggled successfully!',
                 errorMessage: 'Failed to toggle account status.'
             });
             expect(result).toBe('toggled');
@@ -122,7 +121,6 @@ describe('apiService', () => {
                 body: JSON.stringify({ characterID: 456, updates }),
                 credentials: 'include'
             }, {
-                successMessage: 'Character updated successfully!',
                 errorMessage: 'Failed to update character.'
             });
             expect(result).toBe('updated');
@@ -139,7 +137,6 @@ describe('apiService', () => {
                 body: JSON.stringify({ characterID: 789 }),
                 credentials: 'include'
             }, {
-                successMessage: 'Character removed successfully!',
                 errorMessage: 'Failed to remove character.'
             });
             expect(result).toBe('removed');
@@ -156,13 +153,13 @@ describe('apiService', () => {
                 body: JSON.stringify({ accountID: 42, accountName: 'NewName' }),
                 credentials: 'include'
             }, {
-                successMessage: 'Account name updated successfully!',
                 errorMessage: 'Failed to update account name.'
             });
             expect(result).toBe('name updated');
         });
     });
 
+    // In apiService.test.js, update the removeAccount test:
     describe('removeAccount', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('account removed');
@@ -173,12 +170,33 @@ describe('apiService', () => {
                 body: JSON.stringify({ accountName: 'TestAccount' }),
                 credentials: 'include'
             }, {
+                // Include successMessage since the code now has it
                 successMessage: 'Account removed successfully!',
                 errorMessage: 'Failed to remove account.'
             });
             expect(result).toBe('account removed');
         });
     });
+
+// In apiService.test.js, update the saveSkillPlan test:
+    describe('saveSkillPlan', () => {
+        test('calls apiRequest correctly', async () => {
+            apiRequest.mockResolvedValue('saved');
+            const result = await saveSkillPlan('MyPlan', { skill: 'Level5' });
+            expect(apiRequest).toHaveBeenCalledWith('/api/save-skill-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'MyPlan', contents: { skill: 'Level5' } }),
+                credentials: 'include'
+            }, {
+                // Include successMessage here as well
+                successMessage: 'Skill Plan Saved!',
+                errorMessage: 'Failed to save skill plan.'
+            });
+            expect(result).toBe('saved');
+        });
+    });
+
 
     describe('addCharacter', () => {
         test('calls apiRequest correctly', async () => {
@@ -211,23 +229,7 @@ describe('apiService', () => {
             expect(result).toEqual({ redirectURL: 'http://redirect.url' });
         });
     });
-    describe('saveSkillPlan', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue('saved');
-            const result = await saveSkillPlan('MyPlan', { skill: 'Level5' });
-            expect(apiRequest).toHaveBeenCalledWith('/api/save-skill-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'MyPlan', contents: { skill: 'Level5' } }),
-                credentials: 'include'
-            }, {
-                successMessage: 'Skill Plan Saved!',
-                errorMessage: 'Failed to save skill plan.'
-            });
-            expect(result).toBe('saved');
-        });
-    });
-
+    
     describe('saveUserSelections', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('selections saved');

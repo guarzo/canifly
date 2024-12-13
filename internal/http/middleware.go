@@ -31,13 +31,13 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 					logger.WithFields(logrus.Fields{
 						"path":   r.URL.Path,
 						"public": true,
-					}).Info("Public route accessed")
+					}).Debug("Public route accessed")
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
 
-			logger.WithField("path", r.URL.Path).Info("Authentication required for private route")
+			logger.WithField("path", r.URL.Path).Debug("Authentication required for private route")
 
 			// Retrieve the session
 			session, err := s.Get(r, SessionName)
@@ -56,7 +56,7 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 
 			logger.WithFields(logrus.Fields{
 				"path": r.URL.Path,
-			}).Info("User authenticated")
+			}).Debug("User authenticated")
 
 			// Proceed to the next handler
 			next.ServeHTTP(w, r)
