@@ -46,6 +46,8 @@ func NewSkillStore(logger interfaces.Logger, fs persist.FileSystem, basePath str
 }
 
 func (s *SkillStore) LoadSkillPlans() error {
+	s.logger.Infof("load skill plans")
+
 	writableDir := filepath.Join(s.basePath, plansDir)
 	if err := s.fs.MkdirAll(writableDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to ensure plans directory: %w", err)
@@ -246,6 +248,7 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 }
 
 func (s *SkillStore) LoadSkillTypes() error {
+	s.logger.Infof("load skill types")
 	file, err := embed.StaticFiles.Open(skillTypeFile)
 	if err != nil {
 		return fmt.Errorf("failed to open eve type file %s: %w", skillTypeFile, err)

@@ -25,6 +25,10 @@ type ConfigStore struct {
 	fs       persist.FileSystem
 	basePath string
 	mut      sync.RWMutex
+
+	// cachedData holds an in-memory copy of the config.
+	// This avoids multiple disk reads for subsequent fetches.
+	cachedData *model.ConfigData
 }
 
 func NewConfigStore(logger interfaces.Logger, fs persist.FileSystem, basePath string) *ConfigStore {
@@ -177,13 +181,20 @@ func runCommand(name string, args []string) (string, error) {
 // Internal methods assume lock is already held
 
 func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
+	// If we have cached data, return it directly
+	if c.cachedData != nil {
+		return c.cachedData, nil
+	}
+
 	filePath := filepath.Join(c.basePath, configFileName)
 	var configData model.ConfigData
 
 	fileInfo, err := c.fs.Stat(filePath)
 	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
 		c.logger.Info("No config data file found, returning empty config")
-		return &configData, nil
+		// Update the cache with empty config
+		c.cachedData = &configData
+		return c.cachedData, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to stat config data file: %w", err)
 	}
@@ -194,7 +205,9 @@ func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	}
 
 	c.logger.Debugf("Loaded config: %v", configData)
-	return &configData, nil
+	// Cache the loaded data
+	c.cachedData = &configData
+	return c.cachedData, nil
 }
 
 func (c *ConfigStore) saveConfigDataLocked(configData *model.ConfigData) error {
@@ -204,5 +217,8 @@ func (c *ConfigStore) saveConfigDataLocked(configData *model.ConfigData) error {
 		return err
 	}
 	c.logger.Debugf("Config data saved")
+
+	// Update the cache with the newly saved data
+	c.cachedData = configData
 	return nil
 }

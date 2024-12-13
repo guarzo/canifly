@@ -29,6 +29,7 @@ func NewSystemStore(logger interfaces.Logger) *SystemStore {
 }
 
 func (sys *SystemStore) LoadSystems() error {
+	sys.logger.Infof("load systems")
 	file, err := embed.StaticFiles.Open("static/systems.csv")
 	if err != nil {
 		return fmt.Errorf("failed to read systems file: %w", err)

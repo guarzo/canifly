@@ -35,7 +35,10 @@ func (h *AssociationHandler) AssociateCharacter(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	h.logger.Infof("%v", req)
+
 	if err := h.assocService.AssociateCharacter(req.UserId, req.CharId); err != nil {
+		h.logger.Errorf("%v", err)
 		respondJSON(w, map[string]interface{}{"success": false, "message": err.Error()})
 		return
 	}

@@ -2,7 +2,9 @@
 
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type EveData struct {
 	EveProfiles []EveProfile
@@ -58,6 +60,7 @@ type CloneLocation struct {
 // SkillPlanWithStatus holds detailed information about each eve plan
 type SkillPlanWithStatus struct {
 	Name                string
+	TypeId              int64 // used for image lookup
 	Skills              map[string]Skill
 	QualifiedCharacters []string
 	PendingCharacters   []string

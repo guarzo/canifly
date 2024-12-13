@@ -22,35 +22,6 @@ const (
 	LoggedIn    = "logged_in"
 )
 
-// MockSessionService simulates the behavior of SessionService.
-// Now it returns a real *sessions.Session instead of a mock session.
-type MockSessionService struct {
-	Store    *sessions.CookieStore
-	Err      error
-	LoggedIn bool
-}
-
-func (m *MockSessionService) Get(r *http.Request, name string) (*sessions.Session, error) {
-	if m.Err != nil {
-		return nil, m.Err
-	}
-
-	if m.Store == nil {
-		m.Store = sessions.NewCookieStore([]byte("secret"))
-	}
-
-	// Get the session once
-	session, _ := m.Store.Get(r, name)
-
-	// If we want the user to be logged in, set the value here
-	if m.LoggedIn {
-		session.Values[LoggedIn] = true
-	}
-
-	// Return the modified session
-	return session, nil
-}
-
 // createTestRouter creates a router with the AuthMiddleware applied and test handlers.
 func createTestRouter(sessionService interfaces.SessionService, logger interfaces.Logger) *mux.Router {
 	r := mux.NewRouter()
@@ -76,7 +47,7 @@ func createTestRouter(sessionService interfaces.SessionService, logger interface
 }
 
 func TestAuthMiddleware_PublicRoute(t *testing.T) {
-	sessionService := &MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
+	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
 	router := createTestRouter(sessionService, logger)
@@ -92,7 +63,7 @@ func TestAuthMiddleware_PublicRoute(t *testing.T) {
 }
 
 func TestAuthMiddleware_PublicRoute_Landing(t *testing.T) {
-	sessionService := &MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
+	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
 	router := createTestRouter(sessionService, logger)
@@ -108,7 +79,7 @@ func TestAuthMiddleware_PublicRoute_Landing(t *testing.T) {
 }
 
 func TestAuthMiddleware_PrivateRoute_NotLoggedIn(t *testing.T) {
-	sessionService := &MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
+	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
 	router := createTestRouter(sessionService, logger)
@@ -124,7 +95,7 @@ func TestAuthMiddleware_PrivateRoute_NotLoggedIn(t *testing.T) {
 }
 
 func TestAuthMiddleware_PrivateRoute_SessionError(t *testing.T) {
-	sessionService := &MockSessionService{
+	sessionService := &testutil.MockSessionService{
 		Err: errors.New("session retrieval error"),
 	}
 	logger := &testutil.MockLogger{}
@@ -142,7 +113,7 @@ func TestAuthMiddleware_PrivateRoute_SessionError(t *testing.T) {
 }
 
 func TestAuthMiddleware_PrivateRoute_LoggedIn(t *testing.T) {
-	sessionService := &MockSessionService{
+	sessionService := &testutil.MockSessionService{
 		Store:    sessions.NewCookieStore([]byte("secret")),
 		LoggedIn: true,
 	}

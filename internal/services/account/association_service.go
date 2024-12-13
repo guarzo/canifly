@@ -29,12 +29,12 @@ func (assoc *associationService) UpdateAssociationsAfterNewCharacter(account *mo
 		return err
 	}
 
-	associations := accountData.Associations
-	if err := assoc.syncAccountWithUserFileAndAssociations(account, charID, associations); err != nil {
+	updatedAssociations, err := assoc.syncAccountWithUserFileAndAssociations(account, charID, accountData.Associations)
+	if err != nil {
 		return err
 	}
 
-	accountData.Associations = associations
+	accountData.Associations = updatedAssociations
 	if err := assoc.accountRepo.SaveAccountData(accountData); err != nil {
 		return err
 	}
@@ -47,16 +47,39 @@ func (assoc *associationService) AssociateCharacter(userId, charId string) error
 		return fmt.Errorf("failed to fetch account data: %w", err)
 	}
 	associations := accountData.Associations
-
-	if err := assoc.associateCharacter(userId, charId, associations); err != nil {
+	associations, err = assoc.associateCharacter(userId, charId, associations)
+	if err != nil {
 		return err
 	}
+	accountData.Associations = associations
 
-	if err := assoc.updateAccountAfterNewAssociation(userId, charId, accountData); err != nil {
-		assoc.logger.Infof(err.Error())
+	assoc.logger.Infof("assocations after associate character %v", associations)
+
+	charIdInt, err := strconv.ParseInt(charId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid charId %s: %w", charId, err)
 	}
 
-	accountData.Associations = associations
+	userIdInt, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid userId %s: %w", userId, err)
+	}
+
+	foundAccount := assoc.findAccountByCharacterID(accountData.Accounts, charIdInt)
+	if foundAccount == nil {
+		assoc.logger.Infof("no matching account found for charId %s", charId)
+	} else if foundAccount.ID != userIdInt {
+		foundAccount.ID = userIdInt
+		updatedAssociations, err := assoc.associateMissingCharacters(foundAccount, userId, accountData.Associations)
+		if err != nil {
+			assoc.logger.Warnf("failed to associate missing characters for account %s, userId %s: %v", foundAccount.Name, userId, err)
+		} else {
+			accountData.Associations = updatedAssociations
+		}
+	}
+
+	assoc.logger.Infof("assocations after assign missing %v", associations)
+
 	if err = assoc.accountRepo.SaveAccountData(accountData); err != nil {
 		return fmt.Errorf("failed to save updated account data: %w", err)
 	}
@@ -165,7 +188,7 @@ func (assoc *associationService) findAccountByCharacterID(accounts []model.Accou
 	return nil
 }
 
-func (assoc *associationService) associateCharacter(userId string, charId string, associations []model.Association) error {
+func (assoc *associationService) associateCharacter(userId string, charId string, associations []model.Association) ([]model.Association, error) {
 	// Enforce a maximum of 3 characters per user
 	userAssociations := 0
 	for _, a := range associations {
@@ -174,17 +197,17 @@ func (assoc *associationService) associateCharacter(userId string, charId string
 		}
 	}
 	if userAssociations >= 3 {
-		return fmt.Errorf("user ID %s already has the maximum of 3 associated characters", userId)
+		return nil, fmt.Errorf("user ID %s already has the maximum of 3 associated characters", userId)
 	}
 
 	if err := checkForExistingAssociation(associations, charId); err != nil {
 		assoc.logger.Errorf("already associated")
-		return err
+		return nil, err
 	}
 
 	character, err := assoc.esi.GetCharacter(charId)
 	if err != nil {
-		return fmt.Errorf("failed to fetch character name for ID %s: %v", charId, err)
+		return nil, fmt.Errorf("failed to fetch character name for ID %s: %v", charId, err)
 	}
 
 	associations = append(associations, model.Association{
@@ -192,8 +215,9 @@ func (assoc *associationService) associateCharacter(userId string, charId string
 		CharId:   charId,
 		CharName: character.Name,
 	})
+	assoc.logger.Infof("associated userfile %s with character %s-%s", userId, charId, character.Name)
 
-	return nil
+	return associations, nil
 }
 
 func checkForExistingAssociation(associations []model.Association, charId string) error {
@@ -205,16 +229,18 @@ func checkForExistingAssociation(associations []model.Association, charId string
 	return nil
 }
 
-func (assoc *associationService) associateMissingCharacters(foundAccount *model.Account, userId string, associations []model.Association) error {
+func (assoc *associationService) associateMissingCharacters(foundAccount *model.Account, userId string, associations []model.Association) ([]model.Association, error) {
 	assocCharIds := assoc.getAssociationMap(associations)
 
 	for _, ch := range foundAccount.Characters {
 		cidStr := fmt.Sprintf("%d", ch.Character.CharacterID)
 		err := checkForExistingAssociation(associations, cidStr)
 		if _, hasId := assocCharIds[cidStr]; !hasId && err == nil {
-			err = assoc.associateCharacter(userId, cidStr, associations)
+			updatedAssociations, err := assoc.associateCharacter(userId, cidStr, associations)
 			if err != nil {
 				assoc.logger.Warnf("failed to associate character %d: %v", ch.Character.CharacterID, err)
+			} else {
+				associations = updatedAssociations
 			}
 			assocCharIds[cidStr] = userId
 		} else {
@@ -222,52 +248,29 @@ func (assoc *associationService) associateMissingCharacters(foundAccount *model.
 			assoc.logger.Debugf("character %s already associated", ch.Character.CharacterName)
 		}
 	}
-	return nil
+	return associations, nil
 }
 
 func (assoc *associationService) syncAccountWithUserFileAndAssociations(
 	account *model.Account,
 	charID int64,
 	associations []model.Association,
-) error {
+) ([]model.Association, error) {
 	foundUserID, err := assoc.getUserIdWithCharId(associations, strconv.FormatInt(charID, 10))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = assoc.updateAccountId(account, foundUserID); err != nil {
-		return fmt.Errorf("failed to update account id: %w", err)
+		return nil, fmt.Errorf("failed to update account id: %w", err)
 	}
+	assoc.logger.Infof("associated user: %s with account %s", foundUserID, account.Name)
 
-	if err = assoc.associateMissingCharacters(account, foundUserID, associations); err != nil {
+	updatedAssociations, err := assoc.associateMissingCharacters(account, foundUserID, associations)
+	if err != nil {
 		assoc.logger.Warnf("failed to associate missing characters for account %s, userId %s: %v", account.Name, foundUserID, err)
+		return associations, nil // intentionally not returning the error to allow the account update to save
 	}
 
-	return nil
-}
-
-func (assoc *associationService) updateAccountAfterNewAssociation(userId string, charId string, accountData model.AccountData) error {
-	accounts := accountData.Accounts
-	associations := accountData.Associations
-
-	charIdInt, err := strconv.ParseInt(charId, 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid charId %s: %w", charId, err)
-	}
-
-	foundAccount := assoc.findAccountByCharacterID(accounts, charIdInt)
-	if foundAccount == nil {
-		return fmt.Errorf("no matching account found for charId %s", charId)
-	}
-
-	if strconv.FormatInt(foundAccount.ID, 10) == userId {
-		return fmt.Errorf("account already matched with user file")
-	}
-
-	err = assoc.syncAccountWithUserFileAndAssociations(foundAccount, charIdInt, associations)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return updatedAssociations, nil
 }

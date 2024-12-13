@@ -114,7 +114,7 @@ func (c *EsiHttpClient) doRequestWithToken(method, url string, body interface{},
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnauthorized && token != nil && token.RefreshToken != "" {
+	if (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden) && token != nil && token.RefreshToken != "" {
 		// Attempt token refresh
 		newToken, refreshErr := c.AuthClient.RefreshToken(token.RefreshToken)
 		if refreshErr != nil {

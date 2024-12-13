@@ -1,9 +1,12 @@
 package testutil
 
 import (
+	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
+	"net/http"
 	"time"
 
+	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	"github.com/stretchr/testify/mock"
@@ -522,4 +525,53 @@ func (m *MockSkillRepository) DeleteSkillPlan(planName string) error {
 func (m *MockSkillRepository) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	args := m.Called(id)
 	return args.Get(0).(model.SkillType), args.Bool(1)
+}
+
+// MockSessionService simulates the behavior of SessionService.
+// Now it returns a real *sessions.Session instead of a mock session.
+type MockSessionService struct {
+	Store    *sessions.CookieStore
+	Err      error
+	LoggedIn bool
+}
+
+func (m *MockSessionService) Get(r *http.Request, name string) (*sessions.Session, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+
+	if m.Store == nil {
+		m.Store = sessions.NewCookieStore([]byte("secret"))
+	}
+
+	// Get the session once
+	session, _ := m.Store.Get(r, name)
+
+	// If we want the user to be logged in, set the value here
+	if m.LoggedIn {
+		session.Values[flyHttp.LoggedIn] = true
+	}
+
+	// Return the modified session
+	return session, nil
+}
+
+// MockDashboardService is a testify mock for DashboardService
+type MockDashboardService struct {
+	mock.Mock
+}
+
+func (m *MockDashboardService) RefreshAccountsAndState() (model.AppState, error) {
+	args := m.Called()
+	return args.Get(0).(model.AppState), args.Error(1)
+}
+
+func (m *MockDashboardService) RefreshDataInBackground() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockDashboardService) GetCurrentAppState() model.AppState {
+	args := m.Called()
+	return args.Get(0).(model.AppState)
 }

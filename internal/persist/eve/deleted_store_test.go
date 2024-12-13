@@ -18,10 +18,10 @@ func TestDeletedStore_FetchNoFile(t *testing.T) {
 
 	store := eve.NewDeletedStore(logger, fs, basePath)
 
+	// With the updated store, no file means an empty slice and no error.
 	chars, err := store.FetchDeletedCharacters()
-	assert.Error(t, err)
-	assert.Empty(t, chars, "Should return empty slice on error")
-	assert.Contains(t, err.Error(), "does not exist")
+	assert.NoError(t, err, "Should not error if file does not exist")
+	assert.Empty(t, chars, "Should return empty slice if no file found")
 }
 
 func TestDeletedStore_SaveAndFetch(t *testing.T) {
