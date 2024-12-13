@@ -29,7 +29,8 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import AccountPromptModal from './AccountPromptModal.jsx';
-import nav_img from '../../assets/images/nav-logo.png';
+import nav_img1 from '../../assets/images/nav-logo.png';
+import nav_img2 from '../../assets/images/nav-logo2.webp';
 
 const StyledAppBar = styled(AppBar)(() => ({
     backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
@@ -46,6 +47,7 @@ const StyledDrawer = styled(Drawer)(() => ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
+        width: 250 // Ensure the drawer has a fixed width
     }
 }));
 
@@ -53,6 +55,8 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    // State to toggle between two images each time the nav is opened
+    const [useAlternateImage, setUseAlternateImage] = useState(false);
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
@@ -64,6 +68,9 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
 
     const toggleDrawer = (open) => () => {
         setDrawerOpen(open);
+        if (open === true) {
+            setUseAlternateImage((prev) => !prev);
+        }
     };
 
     const navigationLinks = [
@@ -90,6 +97,8 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
         if (!onSilentRefresh) return;
         await onSilentRefresh();
     };
+
+    const chosenImage = useAlternateImage ? nav_img2 : nav_img1;
 
     return (
         <>
@@ -119,7 +128,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                         </>
                     )}
 
-                    {/* Centered Title */}
                     <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                         <Typography
                             variant="h6"
@@ -129,7 +137,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                         </Typography>
                     </Box>
 
-                    {/* Right-side icons */}
                     <Box sx={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' }}>
                         {loggedIn && (
                             <>
@@ -158,12 +165,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                 </Toolbar>
             </StyledAppBar>
 
-            <StyledDrawer
-                anchor="left"
-                open={drawerOpen}
-                onClose={toggleDrawer(false)}
-                disableScrollLock
-            >
+            <StyledDrawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)} disableScrollLock>
                 <div
                     role="presentation"
                     onClick={toggleDrawer(false)}
@@ -211,9 +213,18 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                         ))}
                     </List>
 
-                    {/* Image at the bottom of the nav drawer with fixed width */}
-                    <Box sx={{ p: 2, textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-                        <img src={nav_img} alt="Nav Logo" style={{ maxWidth: '150px', width: '100%' }} />
+                    {/* Image at the bottom of the nav drawer */}
+                    <Box sx={{ p: 2, textAlign: 'center' }}>
+                        <img
+                            src={chosenImage}
+                            alt="Nav Logo"
+                            style={{
+                                maxWidth: '220px',
+                                height: 'auto',
+                                display: 'block',
+                                margin: '0 auto'
+                            }}
+                        />
                     </Box>
                 </div>
             </StyledDrawer>

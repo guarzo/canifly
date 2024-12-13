@@ -229,7 +229,7 @@ describe('apiService', () => {
             expect(result).toEqual({ redirectURL: 'http://redirect.url' });
         });
     });
-    
+
     describe('saveUserSelections', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('selections saved');
