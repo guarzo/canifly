@@ -22,7 +22,7 @@ import {
     AddCircleOutline,
     ExitToApp,
     Close,
-    Dashboard as DashboardIcon,
+    Dashboard as CharacterOverviewIcon,
     ListAlt as SkillPlansIcon,
     Sync as SyncIcon,
     AccountTree as MappingIcon,
@@ -75,7 +75,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     };
 
     const navigationLinks = [
-        { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+        { text: 'Overview', icon: <CharacterOverviewIcon />, path: '/' },
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
         { text: 'Sync', icon: <SyncIcon />, path: '/sync' },

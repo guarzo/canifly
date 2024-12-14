@@ -13,7 +13,7 @@ const SyncActionsBar = ({
                             isLoading
                         }) => {
     return (
-        <div className="mt-16 mb-4 flex justify-center space-x-2">
+        <div className="mb-4 flex justify-center space-x-2">
             <Tooltip title="Backup Settings">
                 <span>
                     <Button

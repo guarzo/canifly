@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { IconButton, Select, MenuItem, TextField, Tooltip } from '@mui/material';
 import { Delete, Check as CheckIcon } from '@mui/icons-material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import CharacterDetailModal from "./CharacterDetailModal.jsx";
+import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
 import { formatSP } from "../../utils/formatter.jsx";
 
 

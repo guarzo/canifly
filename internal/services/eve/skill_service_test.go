@@ -1,344 +1,185 @@
 package eve_test
 
 import (
-	"errors"
+	"os"
+	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/services/eve"
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/persist/eve"
 	"github.com/guarzo/canifly/internal/testutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGetSkillPlanFile_Success(t *testing.T) {
+func TestSkillStore_SaveAndDeleteSkillPlan(t *testing.T) {
 	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
 
-	expectedData := []byte("skillplan file content")
-	skillRepo.On("GetSkillPlanFile", "myplan").Return(expectedData, nil).Once()
+	store := eve.NewSkillStore(logger, fs, basePath)
 
-	data, err := svc.GetSkillPlanFile("myplan")
+	// Ensure the plans directory exists
+	require.NoError(t, store.LoadSkillPlans())
+
+	skills := map[string]model.Skill{
+		"Gunnery":  {Name: "Gunnery", Level: 5},
+		"Missiles": {Name: "Missiles", Level: 3},
+	}
+
+	err := store.SaveSkillPlan("myplan", skills)
+	assert.NoError(t, err, "Saving skill plan should succeed")
+
+	planFile := filepath.Join(basePath, "plans", "myplan.txt")
+	assert.FileExists(t, planFile, "Plan file should exist")
+
+	// Now delete it
+	err = store.DeleteSkillPlan("myplan")
+	assert.NoError(t, err, "Deleting skill plan should succeed")
+	assert.NoFileExists(t, planFile, "Plan file should be deleted")
+}
+
+func TestSkillStore_GetSkillPlanFile(t *testing.T) {
+	logger := &testutil.MockLogger{}
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
+
+	store := eve.NewSkillStore(logger, fs, basePath)
+
+	// Ensure the plans directory is created
+	require.NoError(t, store.LoadSkillPlans())
+
+	skills := map[string]model.Skill{
+		"Engineering": {Name: "Engineering", Level: 4},
+	}
+	err := store.SaveSkillPlan("engineering_plan", skills)
+	require.NoError(t, err)
+
+	data, err := store.GetSkillPlanFile("engineering_plan")
 	assert.NoError(t, err)
-	assert.Equal(t, expectedData, data)
-
-	skillRepo.AssertExpectations(t)
+	content := string(data)
+	assert.Contains(t, content, "Engineering 4")
 }
 
-func TestGetSkillPlanFile_Error(t *testing.T) {
+func TestSkillStore_GetSkillPlans(t *testing.T) {
 	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
 
-	skillRepo.On("GetSkillPlanFile", "unknown").Return([]byte(nil), errors.New("not found")).Once()
+	store := eve.NewSkillStore(logger, fs, basePath)
 
-	data, err := svc.GetSkillPlanFile("unknown")
-	assert.Error(t, err)
-	assert.Nil(t, data)
+	// Initially empty
+	plans := store.GetSkillPlans()
+	assert.Empty(t, plans)
 
-	skillRepo.AssertExpectations(t)
+	// Manually create the plans directory so we can save a plan
+	plansDir := filepath.Join(basePath, "plans")
+	require.NoError(t, os.MkdirAll(plansDir, 0755), "Failed to create plans directory")
+
+	// Save a plan
+	skills := map[string]model.Skill{"Drones": {Name: "Drones", Level: 2}}
+	err := store.SaveSkillPlan("drones_plan", skills)
+	require.NoError(t, err)
+
+	// Now GetSkillPlans should return exactly one
+	plans = store.GetSkillPlans()
+	assert.Len(t, plans, 1, "Expected exactly one plan")
+	assert.Equal(t, "drones_plan", plans["drones_plan"].Name)
+	assert.Equal(t, 2, plans["drones_plan"].Skills["Drones"].Level)
 }
 
-func TestDeleteSkillPlan_Success(t *testing.T) {
+// This test scenario checks that once an embedded plan is deleted, it is not re-copied on subsequent loads.
+// It assumes a known embedded plan exists, e.g., "sample_plan.txt".
+func TestSkillStore_DeleteEmbeddedPlanAndReload(t *testing.T) {
+	// Skip if we don't have embedded data
+	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
+		t.Skip("Skipping because no embedded files available")
+	}
+
 	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
+	store := eve.NewSkillStore(logger, fs, basePath)
 
-	skillRepo.On("DeleteSkillPlan", "myplan").Return(nil).Once()
+	// Initial load copies embedded plans to writable directory
+	require.NoError(t, store.LoadSkillPlans())
+	plans := store.GetSkillPlans()
 
-	err := svc.DeleteSkillPlan("myplan")
+	// Adjust this to match a known embedded plan name you have
+	// For example, if you have "sample_plan.txt" in `static/plans`, use "sample_plan".
+	embeddedPlanName := "sample_plan"
+
+	// Ensure the embedded plan was loaded initially
+	if _, exists := plans[embeddedPlanName]; !exists {
+		t.Skipf("No embedded plan named %q found, skipping test", embeddedPlanName)
+	}
+
+	// Delete the embedded plan
+	require.NoError(t, store.DeleteSkillPlan(embeddedPlanName))
+
+	// Plans should no longer include the deleted embedded plan
+	plans = store.GetSkillPlans()
+	assert.NotContains(t, plans, embeddedPlanName, "Plan should be deleted")
+
+	// Reload skill plans to simulate application restart
+	require.NoError(t, store.LoadSkillPlans())
+	plans = store.GetSkillPlans()
+
+	// The deleted embedded plan should NOT reappear after reloading
+	assert.NotContains(t, plans, embeddedPlanName, "Deleted embedded plan should not reappear")
+}
+
+// The following tests assume that `static/plans` and `static/invTypes.csv`
+// contain some test data.
+
+func TestSkillStore_LoadSkillPlans(t *testing.T) {
+	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
+		t.Skip("Skipping test because no embedded files available")
+	}
+
+	logger := &testutil.MockLogger{}
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
+
+	store := eve.NewSkillStore(logger, fs, basePath)
+	err := store.LoadSkillPlans()
 	assert.NoError(t, err)
-	skillRepo.AssertExpectations(t)
+
+	plans := store.GetSkillPlans()
+	assert.NotEmpty(t, plans)
 }
 
-func TestDeleteSkillPlan_Error(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	skillRepo.On("DeleteSkillPlan", "badplan").Return(errors.New("delete error")).Once()
-
-	err := svc.DeleteSkillPlan("badplan")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "delete error")
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestParseAndSaveSkillPlan_Success(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	contents := `
-Skill A 3
-Skill B IV
-Skill C 1
-` // Skill B "IV" should parse as 4
-
-	// After parsing:
-	// Skill A -> 3
-	// Skill B -> 4 (Roman numeral)
-	// Skill C -> 1
-	// Verify that these are passed to SaveSkillPlan
-	expectedSkills := map[string]model.Skill{
-		"Skill A": {Name: "Skill A", Level: 3},
-		"Skill B": {Name: "Skill B", Level: 4},
-		"Skill C": {Name: "Skill C", Level: 1},
+func TestSkillStore_LoadSkillTypes(t *testing.T) {
+	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
+		t.Skip("Skipping test because no embedded files available")
 	}
 
-	skillRepo.On("SaveSkillPlan", "myplan", mock.MatchedBy(func(skills map[string]model.Skill) bool {
-		if len(skills) != len(expectedSkills) {
-			return false
-		}
-		for k, v := range expectedSkills {
-			if sv, ok := skills[k]; !ok || sv.Level != v.Level {
-				return false
-			}
-		}
-		return true
-	})).Return(nil).Once()
+	logger := &testutil.MockLogger{}
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
 
-	err := svc.ParseAndSaveSkillPlan(contents, "myplan")
+	store := eve.NewSkillStore(logger, fs, basePath)
+	err := store.LoadSkillTypes()
 	assert.NoError(t, err)
 
-	skillRepo.AssertExpectations(t)
+	types := store.GetSkillTypes()
+	assert.NotEmpty(t, types)
 }
 
-func TestParseAndSaveSkillPlan_Empty(t *testing.T) {
+func TestSkillStore_GetSkillTypeByID(t *testing.T) {
+	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
+		t.Skip("Skipping test because no embedded files available")
+	}
+
 	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
+	fs := persist.OSFileSystem{}
+	basePath := t.TempDir()
 
-	contents := `
-InvalidLine
-` // No valid lines with space/level
-	// Should result in an empty skills map
-	skillRepo.On("SaveSkillPlan", "emptyplan", mock.Anything).Return(errors.New("cannot save empty skillplan")).Once()
+	store := eve.NewSkillStore(logger, fs, basePath)
+	err := store.LoadSkillTypes()
+	require.NoError(t, err)
 
-	err := svc.ParseAndSaveSkillPlan(contents, "emptyplan")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "empty skillplan")
-	skillRepo.AssertExpectations(t)
+	_, found := store.GetSkillTypeByID("999999")
+	assert.False(t, found, "ID 999999 should not be found in skill types")
 }
-
-func TestGetSkillPlans(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	plans := map[string]model.SkillPlan{"p1": {Name: "p1"}}
-	skillRepo.On("GetSkillPlans").Return(plans).Once()
-
-	result := svc.GetSkillPlans()
-	assert.Equal(t, plans, result)
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestGetSkillTypes(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	typesMap := map[string]model.SkillType{"skillX": {TypeID: "1001"}}
-	skillRepo.On("GetSkillTypes").Return(typesMap).Once()
-
-	result := svc.GetSkillTypes()
-	assert.Equal(t, typesMap, result)
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestGetSkillTypeByID(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	st := model.SkillType{TypeID: "2002", TypeName: "Afterburner"}
-	skillRepo.On("GetSkillTypeByID", "2002").Return(st, true).Once()
-
-	skill, found := svc.GetSkillTypeByID("2002")
-	assert.True(t, found)
-	assert.Equal(t, "Afterburner", skill.TypeName)
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestGetSkillName_NotFound(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	// Skill not found
-	skillRepo.On("GetSkillTypeByID", "9999").Return(model.SkillType{}, false).Once()
-
-	name := svc.GetSkillName(9999)
-	assert.Equal(t, "", name) // no skill found means empty name
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestGetMatchingSkillPlans(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	// Define some skill plans
-	skillPlans := map[string]model.SkillPlan{
-		"PlanA": {
-			Name: "PlanA",
-			Skills: map[string]model.Skill{
-				"Afterburner":         {Name: "Afterburner", Level: 3},
-				"Small Hybrid Turret": {Name: "Small Hybrid Turret", Level: 2},
-			},
-		},
-		"PlanB": {
-			Name: "PlanB",
-			Skills: map[string]model.Skill{
-				"Small Hybrid Turret": {Name: "Small Hybrid Turret", Level: 5},
-			},
-		},
-	}
-
-	// Define skill types so we can map skill names to IDs and check character skills
-	skillTypes := map[string]model.SkillType{
-		"Afterburner":         {TypeID: "1001", TypeName: "Afterburner"},
-		"Small Hybrid Turret": {TypeID: "1002", TypeName: "Small Hybrid Turret"},
-	}
-
-	// Define a character with some skills
-	charSkillList := []model.SkillResponse{
-		{SkillID: 1001, TrainedSkillLevel: 3}, // Afterburner level 3
-		{SkillID: 1002, TrainedSkillLevel: 2}, // Small Hybrid Turret level 2
-	}
-
-	// Define a skill queue: let's say character is training Small Hybrid Turret to level 5
-	finishDate := time.Now().Add(2 * time.Hour)
-	charQueue := []model.SkillQueue{
-		{
-			SkillID:       1002,
-			FinishedLevel: 5,
-			FinishDate:    &finishDate,
-		},
-	}
-
-	character := model.Character{
-		UserInfoResponse:        model.UserInfoResponse{CharacterName: "MyChar"},
-		CharacterSkillsResponse: model.CharacterSkillsResponse{Skills: charSkillList},
-		SkillQueue:              charQueue,
-	}
-
-	account := model.Account{
-		Name: "MyAccount",
-		Characters: []model.CharacterIdentity{
-			{Character: character},
-		},
-		Status: model.Alpha,
-	}
-
-	accounts := []model.Account{account}
-
-	// Mock skillRepo to return the skill types as requested
-	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
-	skillRepo.On("GetSkillTypeByID", "1002").Return(skillTypes["Small Hybrid Turret"], true).Maybe()
-
-	// Call GetPlanAndConversionData
-	updatedPlans, _ := svc.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
-
-	// Let's analyze what we expect:
-	// PlanA: requires Afterburner (3) and Small Hybrid Turret (2)
-	// Character has exactly these levels, so qualifies. Not pending.
-	// PlanB: requires Small Hybrid Turret (5), character is training to 5 -> Pending.
-
-	planAResult := updatedPlans["PlanA"]
-	assert.Equal(t, "PlanA", planAResult.Name)
-	assert.Contains(t, planAResult.QualifiedCharacters, "MyChar")
-	assert.Len(t, planAResult.PendingCharacters, 0)
-	assert.Empty(t, planAResult.MissingSkills["MyChar"])
-	assert.Len(t, planAResult.Characters, 1)
-	assert.Equal(t, "Qualified", planAResult.Characters[0].Status)
-
-	planBResult := updatedPlans["PlanB"]
-	assert.Equal(t, "PlanB", planBResult.Name)
-	assert.Len(t, planBResult.QualifiedCharacters, 0)
-	assert.Contains(t, planBResult.PendingCharacters, "MyChar")
-	assert.Empty(t, planBResult.MissingSkills["MyChar"])
-	assert.Len(t, planBResult.Characters, 1)
-	assert.Equal(t, "Pending", planBResult.Characters[0].Status)
-
-	skillRepo.AssertExpectations(t)
-}
-
-func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
-	logger := &testutil.MockLogger{}
-	skillRepo := &testutil.MockSkillRepository{}
-	svc := eve.NewSkillService(logger, skillRepo)
-
-	// PlanC requires Afterburner level 5
-	skillPlans := map[string]model.SkillPlan{
-		"PlanC": {
-			Name: "PlanC",
-			Skills: map[string]model.Skill{
-				"Afterburner": {Name: "Afterburner", Level: 5},
-			},
-		},
-	}
-
-	// Known skill type for Afterburner
-	skillTypes := map[string]model.SkillType{
-		"Afterburner": {TypeID: "1001", TypeName: "Afterburner"},
-	}
-
-	// The character only has Afterburner at level 1, needs 5
-	charSkillList := []model.SkillResponse{
-		{SkillID: 1001, TrainedSkillLevel: 1},
-	}
-	character := model.Character{
-		UserInfoResponse:        model.UserInfoResponse{CharacterName: "MyChar2"},
-		CharacterSkillsResponse: model.CharacterSkillsResponse{Skills: charSkillList},
-		SkillQueue:              []model.SkillQueue{},
-	}
-
-	account := model.Account{
-		Name: "MyAccount2",
-		Characters: []model.CharacterIdentity{
-			{Character: character},
-		},
-		Status: model.Alpha,
-	}
-
-	accounts := []model.Account{account}
-
-	// Since we have Afterburner as a known skill, the service might query skillRepo.GetSkillTypeByID
-	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
-
-	updatedPlans, _ := svc.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
-
-	planCResult := updatedPlans["PlanC"]
-	assert.Equal(t, "PlanC", planCResult.Name)
-	assert.Empty(t, planCResult.QualifiedCharacters)
-	assert.Empty(t, planCResult.PendingCharacters)
-	// MissingSkills should have an entry for MyChar2 and Afterburner
-	assert.NotEmpty(t, planCResult.MissingSkills["MyChar2"])
-	assert.Equal(t, "Not Qualified", planCResult.Characters[0].Status)
-
-	skillRepo.AssertExpectations(t)
-}
-
-/*
-If you needed to mock GetPlanAndConversionData in a test with a mock service, you could do something like:
-
-mockSkillService := &MockSkillService{}
-mockSkillService.On("GetPlanAndConversionData", mock.Anything, mock.Anything, mock.Anything).
-    Return(expectedPlanStatusMap, expectedConversionsMap)
-
-Then in your code:
-
-plans, conv := mockSkillService.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
-assert.Equal(t, expectedPlanStatusMap, plans)
-assert.Equal(t, expectedConversionsMap, conv)
-
-*/

@@ -14,6 +14,8 @@ import (
 
 const AlphaMaxSp = 5000000
 
+var _ interfaces.AccountService = (*accountService)(nil)
+
 type accountService struct {
 	logger       interfaces.Logger
 	accountRepo  interfaces.AccountDataRepository

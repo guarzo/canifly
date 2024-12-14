@@ -65,6 +65,12 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 			return
 		}
 
+		if h.skillService.CheckIfDuplicatePlan(requestData.PlanName) {
+			h.logger.Errorf("duplicate plan name %s", requestData.PlanName)
+			http.Error(w, fmt.Sprintf("%s is already used as a plan name", requestData.PlanName), http.StatusBadRequest)
+			return
+		}
+
 		if err := h.skillService.ParseAndSaveSkillPlan(requestData.Contents, requestData.PlanName); err != nil {
 			h.logger.Errorf("Failed to save eve plan: %v", err)
 			http.Error(w, "Failed to save eve plan", http.StatusInternalServerError)

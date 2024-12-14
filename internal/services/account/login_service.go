@@ -7,6 +7,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.LoginService = (*loginService)(nil)
+
 type loginService struct {
 	logger    interfaces.Logger
 	loginRepo interfaces.LoginRepository

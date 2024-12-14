@@ -9,6 +9,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.AssociationService = (*associationService)(nil)
+
 type associationService struct {
 	logger      interfaces.Logger
 	accountRepo interfaces.AccountDataRepository

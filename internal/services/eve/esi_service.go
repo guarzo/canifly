@@ -14,6 +14,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.ESIService = (*esiService)(nil)
+
 type esiService struct {
 	apiClient    interfaces.EsiHttpClient
 	auth         interfaces.AuthClient

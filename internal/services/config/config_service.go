@@ -11,6 +11,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.ConfigService = (*configService)(nil)
+
 type configService struct {
 	logger     interfaces.Logger
 	configRepo interfaces.ConfigRepository

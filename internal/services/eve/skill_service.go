@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var _ interfaces.SkillService = (*skillService)(nil)
+
 type skillService struct {
 	logger    interfaces.Logger
 	skillRepo interfaces.SkillRepository
@@ -34,6 +36,16 @@ func (s *skillService) DeleteSkillPlan(name string) error {
 func (s *skillService) ParseAndSaveSkillPlan(contents, name string) error {
 	skills := s.parseSkillPlanContents(contents)
 	return s.skillRepo.SaveSkillPlan(name, skills)
+}
+
+func (s *skillService) CheckIfDuplicatePlan(name string) bool {
+	plans := s.skillRepo.GetSkillPlans()
+	for _, plan := range plans {
+		if plan.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // parseSkillPlanContents takes the contents as a string and parses it into a map of skills.

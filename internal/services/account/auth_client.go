@@ -17,6 +17,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.AuthClient = (*authClient)(nil)
+
 const (
 	tokenURL        = "https://login.eveonline.com/v2/oauth/token"
 	requestTimeout  = 10 * time.Second

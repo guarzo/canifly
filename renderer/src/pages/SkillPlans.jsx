@@ -1,13 +1,18 @@
 // src/components/skillplan/SkillPlans.jsx
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import CharacterTable from '../components/skillplan/CharacterTable.jsx';
 import SkillPlanTable from '../components/skillplan/SkillPlanTable.jsx';
 import { toast } from 'react-toastify';
-import { Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material';
-import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';
+import {Typography, ToggleButtonGroup, ToggleButton, Box} from '@mui/material';
+import {
+    People as PeopleIcon,
+    ListAlt as SkillPlansIcon,
+} from '@mui/icons-material';
 import { deleteSkillPlan as deleteSkillPlanApi } from '../api/apiService.jsx';
+import {skillPlanInstructions} from "../utils/instructions.jsx";
+import PageHeader from "../components/common/SubPageHeader.jsx";
 
 const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversions }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
@@ -78,10 +83,12 @@ const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversion
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pt-16 pb-10">
             <div className="max-w-7xl mx-auto">
+                <PageHeader
+                    title="Skill Plans"
+                    instructions={skillPlanInstructions}
+                    storageKey="showSkillPlanInstructions"
+                />
                 <Box className="flex items-center justify-between mb-4">
-                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold' }}>
-                        Skill Plans
-                    </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography variant="body2" sx={{ color: '#99f6e4' }}>
                             View:

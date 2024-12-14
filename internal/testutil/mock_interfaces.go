@@ -147,6 +147,11 @@ type MockSkillService struct {
 	mock.Mock
 }
 
+func (m *MockSkillService) CheckIfDuplicatePlan(name string) bool {
+	args := m.Called(name)
+	return args.Bool(1)
+}
+
 func (m *MockSkillService) GetSkillPlans() map[string]model.SkillPlan {
 	args := m.Called()
 	return args.Get(0).(map[string]model.SkillPlan)

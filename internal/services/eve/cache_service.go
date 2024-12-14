@@ -7,6 +7,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.CacheService = (*cacheService)(nil)
+
 type cacheService struct {
 	logger       interfaces.Logger
 	persistCache interfaces.CacheRepository // We'll define CacheRepository below

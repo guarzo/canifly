@@ -9,14 +9,11 @@ import {
     Grid,
     Box,
     Typography,
-    IconButton,
-    Tooltip
 } from '@mui/material';
-import { HelpOutline as HelpIcon, Help as HelpFilledIcon } from '@mui/icons-material';
 
 import SyncActionsBar from '../components/sync/SyncActionsBar.jsx';
 import SubDirectoryCard from '../components/sync/SubDirectoryCard.jsx';
-import { syncInstructions } from '../utils/instructions.jsx';
+import {syncInstructions} from '../utils/instructions.jsx';
 
 import {
     saveUserSelections,
@@ -26,6 +23,7 @@ import {
     backupDirectory,
     resetToDefaultDirectory
 } from '../api/apiService.jsx';
+import PageHeader from "../components/common/SubPageHeader.jsx";
 
 const Sync = ({
                   settingsData,
@@ -224,30 +222,11 @@ const Sync = ({
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
-            <Box className="max-w-7xl mx-auto mb-6">
-                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md relative">
-                    <Box display="flex" alignItems="center">
-                        <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem', flex: 1 }}>
-                            Sync Settings
-                        </Typography>
-                        <Tooltip title={showInstructions ? "Hide instructions" : "Show instructions"}>
-                            <IconButton
-                                onClick={toggleInstructions}
-                                sx={{ color: '#99f6e4' }}
-                                size="small"
-                            >
-                                {showInstructions ? <HelpFilledIcon fontSize="small" /> : <HelpIcon fontSize="small" />}
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                    {showInstructions && (
-                        <Typography variant="body2" sx={{ color: '#99f6e4', marginTop: '0.5rem' }}>
-                            {syncInstructions}
-                        </Typography>
-                    )}
-                </Box>
-            </Box>
-
+            <PageHeader
+                title="Sync Profile Settings"
+                instructions={syncInstructions}
+                storageKey="showSyncInstructions"
+            />
             <SyncActionsBar
                 handleBackup={handleBackup}
                 handleChooseSettingsDir={handleChooseSettingsDir}

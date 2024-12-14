@@ -6,6 +6,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.EveProfilesService = (*eveProfileService)(nil)
+
 type eveProfileService struct {
 	logger         interfaces.Logger
 	eveRepo        interfaces.EveProfilesRepository

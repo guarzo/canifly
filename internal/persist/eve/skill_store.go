@@ -2,6 +2,7 @@ package eve
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -95,25 +96,6 @@ func (s *SkillStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 	return nil
 }
 
-func (s *SkillStore) DeleteSkillPlan(planName string) error {
-	planFilePath := filepath.Join(s.basePath, plansDir, planName+".txt")
-
-	if err := s.fs.Remove(planFilePath); err != nil {
-		if os.IsNotExist(err) {
-			s.logger.Warnf("Skill plan %s does not exist", planName)
-			return fmt.Errorf("eve plan does not exist: %w", err)
-		}
-		return fmt.Errorf("failed to delete eve plan file: %w", err)
-	}
-
-	s.mut.Lock()
-	delete(s.skillPlans, planName)
-	s.mut.Unlock()
-
-	s.logger.Infof("Deleted eve plan %s", planName)
-	return nil
-}
-
 func (s *SkillStore) GetSkillPlans() map[string]model.SkillPlan {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
@@ -134,25 +116,6 @@ func (s *SkillStore) GetSkillPlanFile(planName string) ([]byte, error) {
 
 	filePath := filepath.Join(skillPlanDir, planName)
 	return os.ReadFile(filePath)
-}
-
-func (s *SkillStore) copyEmbeddedPlansToWritable(writableDir string) error {
-	entries, err := embed.StaticFiles.ReadDir("static/plans")
-	if err != nil {
-		return fmt.Errorf("failed to read embedded plans: %w", err)
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			fileName := entry.Name()
-			destPath := filepath.Join(writableDir, fileName)
-
-			if err := s.copyEmbeddedFile("static/plans/"+fileName, destPath); err != nil {
-				return fmt.Errorf("failed to copy embedded plan %s: %w", fileName, err)
-			}
-		}
-	}
-	return nil
 }
 
 func (s *SkillStore) copyEmbeddedFile(srcPath, destPath string) error {
@@ -350,4 +313,127 @@ func (s *SkillStore) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	defer s.mut.RUnlock()
 	st, ok := s.skillIdToType[id]
 	return st, ok
+}
+
+// A helper function to load deleted embedded plans from a JSON or text file
+func (s *SkillStore) loadDeletedEmbeddedPlans() (map[string]bool, error) {
+	deletedPlans := make(map[string]bool)
+	deletedListPath := filepath.Join(s.basePath, plansDir, "deleted_embedded_plans.json")
+
+	if _, err := os.Stat(deletedListPath); os.IsNotExist(err) {
+		// No file, so no deleted plans
+		return deletedPlans, nil
+	}
+
+	data, err := s.fs.ReadFile(deletedListPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read deleted embedded plans: %w", err)
+	}
+
+	// Suppose we store them as a simple JSON array of plan names
+	var planNames []string
+	if err := json.Unmarshal(data, &planNames); err != nil {
+		return nil, fmt.Errorf("failed to parse deleted embedded plans: %w", err)
+	}
+	for _, name := range planNames {
+		deletedPlans[name] = true
+	}
+	return deletedPlans, nil
+}
+
+func (s *SkillStore) saveDeletedEmbeddedPlans(deletedPlans map[string]bool) error {
+	planNames := make([]string, 0, len(deletedPlans))
+	for name := range deletedPlans {
+		planNames = append(planNames, name)
+	}
+	data, err := json.MarshalIndent(planNames, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal deleted embedded plans: %w", err)
+	}
+
+	deletedListPath := filepath.Join(s.basePath, plansDir, "deleted_embedded_plans.json")
+	if err := s.fs.WriteFile(deletedListPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write deleted embedded plans file: %w", err)
+	}
+	return nil
+}
+
+// Enhance copyEmbeddedPlansToWritable to skip deleted plans
+func (s *SkillStore) copyEmbeddedPlansToWritable(writableDir string) error {
+	deletedPlans, err := s.loadDeletedEmbeddedPlans()
+	if err != nil {
+		return err
+	}
+
+	entries, err := embed.StaticFiles.ReadDir("static/plans")
+	if err != nil {
+		return fmt.Errorf("failed to read embedded plans: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			fileName := entry.Name()
+			planName := strings.TrimSuffix(fileName, ".txt")
+
+			// If the user previously deleted this embedded plan, skip copying it
+			if deletedPlans[planName] {
+				s.logger.Debugf("Skipping previously deleted embedded plan: %s", planName)
+				continue
+			}
+
+			destPath := filepath.Join(writableDir, fileName)
+			// Only copy if file does not exist to avoid overwriting custom user changes
+			if _, err := s.fs.Stat(destPath); os.IsNotExist(err) {
+				if err := s.copyEmbeddedFile("static/plans/"+fileName, destPath); err != nil {
+					return fmt.Errorf("failed to copy embedded plan %s: %w", fileName, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Modify DeleteSkillPlan to record deletions of embedded plans
+func (s *SkillStore) DeleteSkillPlan(planName string) error {
+	planFilePath := filepath.Join(s.basePath, plansDir, planName+".txt")
+
+	if err := s.fs.Remove(planFilePath); err != nil {
+		if os.IsNotExist(err) {
+			s.logger.Warnf("Skill plan %s does not exist", planName)
+			return fmt.Errorf("eve plan does not exist: %w", err)
+		}
+		return fmt.Errorf("failed to delete eve plan file: %w", err)
+	}
+
+	// If this plan was embedded originally, add it to the deleted list
+	// One way is to check if it matches an embedded plan name
+	// For a robust solution, store the original embedded plan list somewhere.
+	// Here, we read from embed and check if planName was one of them.
+	entries, err := embed.StaticFiles.ReadDir("static/plans")
+	if err == nil {
+		embeddedPlan := false
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.TrimSuffix(entry.Name(), ".txt") == planName {
+				embeddedPlan = true
+				break
+			}
+		}
+		if embeddedPlan {
+			deletedPlans, err := s.loadDeletedEmbeddedPlans()
+			if err != nil {
+				return err
+			}
+			deletedPlans[planName] = true
+			if err := s.saveDeletedEmbeddedPlans(deletedPlans); err != nil {
+				return err
+			}
+		}
+	}
+
+	s.mut.Lock()
+	delete(s.skillPlans, planName)
+	s.mut.Unlock()
+
+	s.logger.Infof("Deleted eve plan %s", planName)
+	return nil
 }

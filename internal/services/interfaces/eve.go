@@ -10,6 +10,7 @@ type SkillService interface {
 	GetSkillPlans() map[string]model.SkillPlan
 	GetSkillName(id int32) string
 	GetSkillTypes() map[string]model.SkillType
+	CheckIfDuplicatePlan(name string) bool
 	ParseAndSaveSkillPlan(contents, name string) error
 	GetSkillPlanFile(name string) ([]byte, error)
 	DeleteSkillPlan(name string) error

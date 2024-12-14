@@ -52,7 +52,7 @@ describe('CharacterTable', () => {
     });
 
     test('expands and collapses character plans', async () => {
-        render(<CharacterTable characters={mockCharacters} skillPlans={mockSkillPlans} />);
+        render(<CharacterTable characters={mockCharacters} skillPlans={mockSkillPlans} conversions={mockConversions} />);
         const user = userEvent.setup();
 
         // Initially, the plans are collapsed, and we only see the main row

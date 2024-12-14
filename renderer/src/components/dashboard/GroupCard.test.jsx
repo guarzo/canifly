@@ -31,6 +31,7 @@ describe('GroupCard', () => {
 
     const roles = ['Pvp', 'Logistics'];
     const mockOnUpdateCharacter = vi.fn(); // Use vi.fn() instead of jest.fn()
+    const mockConversions = {}
 
     test('renders the group name and its characters', () => {
         render(
@@ -39,6 +40,7 @@ describe('GroupCard', () => {
                 characters={mockCharacters}
                 onUpdateCharacter={mockOnUpdateCharacter}
                 roles={roles}
+                skillConversions={mockConversions}
             />
         );
 

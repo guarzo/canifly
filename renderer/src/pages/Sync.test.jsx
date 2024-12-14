@@ -56,7 +56,7 @@ describe('Sync component', () => {
 
     it('renders with no settingsData and shows no subdirectories', () => {
         render(<Sync {...defaultProps} />);
-        expect(screen.getByText('Sync Settings')).toBeInTheDocument();
+        expect(screen.getByText('Sync Profile Settings')).toBeInTheDocument();
         // No subDir => no SubDirectoryCard
         expect(screen.queryByText('-- Select Character --')).not.toBeInTheDocument();
     });

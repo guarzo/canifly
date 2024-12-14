@@ -9,6 +9,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.DashboardService = (*dashboardService)(nil)
+
 type dashboardService struct {
 	logger            interfaces.Logger
 	skillService      interfaces.SkillService

@@ -10,6 +10,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.CharacterService = (*characterService)(nil)
+
 // CharacterService orchestrates character data updates by using ESIService
 type characterService struct {
 	esi            interfaces.ESIService

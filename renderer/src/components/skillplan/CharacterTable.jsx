@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { CheckCircle, AccessTime, Error as ErrorIcon } from '@mui/icons-material';
 import {calculateDaysFromToday, formatNumberWithCommas} from "../../utils/formatter.jsx";
-import CharacterDetailModal from "../dashboard/CharacterDetailModal.jsx";
+import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];

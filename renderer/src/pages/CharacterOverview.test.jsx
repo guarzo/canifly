@@ -1,12 +1,12 @@
-// src/pages/Dashboard.test.jsx
+// src/pages/CharacterOverview.test.jsx
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import Dashboard from './Dashboard';
+import Overview from './CharacterOverview.jsx';
 
-describe('Dashboard', () => {
+describe('Overview', () => {
     let user;
     beforeAll(() => {
         user = userEvent.setup();
@@ -60,7 +60,7 @@ describe('Dashboard', () => {
 
     test('renders accounts by default', () => {
         render(
-            <Dashboard
+            <Overview
                 accounts={mockAccounts}
                 onToggleAccountStatus={onToggleAccountStatus}
                 onUpdateCharacter={onUpdateCharacter}
@@ -82,7 +82,7 @@ describe('Dashboard', () => {
 
     test('can toggle sorting', async () => {
         render(
-            <Dashboard
+            <Overview
                 accounts={mockAccounts}
                 onToggleAccountStatus={onToggleAccountStatus}
                 onUpdateCharacter={onUpdateCharacter}
@@ -111,7 +111,7 @@ describe('Dashboard', () => {
 
     test('displays no accounts message if empty', () => {
         render(
-            <Dashboard
+            <Overview
                 accounts={[]}
                 onToggleAccountStatus={onToggleAccountStatus}
                 onUpdateCharacter={onUpdateCharacter}

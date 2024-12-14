@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import PropTypes from 'prop-types';
 import React, { useState, useMemo } from 'react';
 import AccountCard from '../components/dashboard/AccountCard.jsx';
@@ -18,31 +17,19 @@ import {
     AccountCircle,
     Place
 } from '@mui/icons-material';
-import skillPlans from "./SkillPlans.jsx";
+import { overviewInstructions} from "../utils/instructions.jsx";
+import PageHeader from '../components/common/SubPageHeader.jsx';
 
-/**
- * A unified dashboard that can display characters grouped by account, role, or location.
- *
- * @param {Object} props
- * @param {Array} props.accounts - Array of account objects.
- * @param {Function} props.onToggleAccountStatus
- * @param {Function} props.onUpdateCharacter
- * @param {Function} props.onUpdateAccountName
- * @param {Function} props.onRemoveCharacter
- * @param {Function} props.onRemoveAccount
- * @param {Array} props.roles - List of roles
- */
-const Dashboard = ({
-                       accounts,
-                       onToggleAccountStatus,
-                       onUpdateCharacter,
-                       onUpdateAccountName,
-                       onRemoveCharacter,
-                       onRemoveAccount,
-                       roles,
-                       skillConversions,
-                   }) => {
-    // 'account', 'role', 'location'
+const CharacterOverview = ({
+                               accounts,
+                               onToggleAccountStatus,
+                               onUpdateCharacter,
+                               onUpdateAccountName,
+                               onRemoveCharacter,
+                               onRemoveAccount,
+                               roles,
+                               skillConversions,
+                           }) => {
     const [view, setView] = useState('account');
     const [sortOrder, setSortOrder] = useState('asc');
 
@@ -58,7 +45,6 @@ const Dashboard = ({
             <ArrowDownward fontSize="small" sx={{ color: sortIconColor }} />
         );
 
-    // Prepare all characters
     const allCharacters = useMemo(() => {
         let chars = [];
         (accounts || []).forEach((account) => {
@@ -75,7 +61,6 @@ const Dashboard = ({
         return chars;
     }, [accounts]);
 
-    // Group by role
     const roleMap = useMemo(() => {
         const map = { Unassigned: [] };
         roles.forEach((r) => {
@@ -91,7 +76,6 @@ const Dashboard = ({
         return map;
     }, [allCharacters, roles]);
 
-    // Group by location
     const locationMap = useMemo(() => {
         const map = {};
         allCharacters.forEach((character) => {
@@ -104,7 +88,6 @@ const Dashboard = ({
         return map;
     }, [allCharacters]);
 
-    // Sorting logic for accounts
     const sortedAccounts = useMemo(() => {
         if (!accounts) return [];
         const accountsCopy = [...accounts];
@@ -133,7 +116,11 @@ const Dashboard = ({
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
-            {/* Top bar with view toggle and sort order */}
+            <PageHeader
+                title="Character Overview"
+                instructions={overviewInstructions}
+                storageKey="showDashboardInstructions"
+            />
             <Box
                 sx={{
                     display: 'flex',
@@ -191,7 +178,7 @@ const Dashboard = ({
                     </ToggleButtonGroup>
                 </Box>
 
-                {/* Sort Order Control (now always visible) */}
+                {/* Sort Order Control */}
                 <Box
                     sx={{
                         display: 'flex',
@@ -208,7 +195,7 @@ const Dashboard = ({
                     </Typography>
                     <IconButton
                         onClick={toggleSortOrder}
-                        aria-label="Sort" // Add this line
+                        aria-label="Sort"
                         sx={{
                             '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
                             padding: '4px',
@@ -270,7 +257,7 @@ const Dashboard = ({
     );
 };
 
-Dashboard.propTypes = {
+CharacterOverview.propTypes = {
     accounts: PropTypes.array.isRequired,
     onToggleAccountStatus: PropTypes.func.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
@@ -281,4 +268,4 @@ Dashboard.propTypes = {
     skillConversions: PropTypes.object.isRequired,
 };
 
-export default Dashboard;
+export default CharacterOverview;

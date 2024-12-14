@@ -8,6 +8,8 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+var _ interfaces.AppStateService = (*appStateService)(nil)
+
 type appStateService struct {
 	logger    interfaces.Logger
 	stateRepo interfaces.AppStateRepository

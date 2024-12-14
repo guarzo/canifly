@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
-import { Grid, Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { HelpOutline as HelpIcon, Help as HelpFilledIcon } from '@mui/icons-material';
+import { Grid, Box } from '@mui/material';
 import AccountCard from '../components/mapping/MapAccountCard.jsx';
 import CharacterCard from '../components/mapping/MapCharacterCard.jsx';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
-import { mappingInstructions } from './../utils/instructions'; // Imported from a separate file
+import {mappingInstructions} from './../utils/instructions';
+import PageHeader from "../components/common/SubPageHeader.jsx"; // Imported from a separate file
 
 function roundToSeconds(mtime) {
     const date = new Date(mtime);
@@ -22,12 +22,6 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
     const [associations, setAssociations] = useState(initialAssociations);
     const [mtimeToColor, setMtimeToColor] = useState({});
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
-
-    // Load instruction visibility from localStorage
-    const [showInstructions, setShowInstructions] = useState(() => {
-        const stored = localStorage.getItem('showMappingInstructions');
-        return stored === null ? true : JSON.parse(stored);
-    });
 
     useEffect(() => {
         if (subDirs.length === 0) return;
@@ -136,38 +130,14 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
         }
     };
 
-    const toggleInstructions = () => {
-        const newValue = !showInstructions;
-        setShowInstructions(newValue);
-        localStorage.setItem('showMappingInstructions', JSON.stringify(newValue));
-    };
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
-            <Box className="max-w-7xl mx-auto mb-6">
-                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md relative">
-                    <Box display="flex" alignItems="center">
-                        <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem', flex: 1 }}>
-                            Map Characters to User Files
-                        </Typography>
-                        <Tooltip title={showInstructions ? "Hide instructions" : "Show instructions"}>
-                            <IconButton
-                                onClick={toggleInstructions}
-                                sx={{ color: '#99f6e4' }}
-                                size="small"
-                            >
-                                {showInstructions ? <HelpFilledIcon fontSize="small" /> : <HelpIcon fontSize="small" />}
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                    {showInstructions && (
-                        <Typography variant="body2" sx={{ color: '#99f6e4', marginTop: '0.5rem' }}>
-                            {mappingInstructions}
-                        </Typography>
-                    )}
-                </Box>
-            </Box>
-
+            <PageHeader
+                title="Map Character Files to User Files"
+                instructions={mappingInstructions}
+                storageKey="showMappingInstructions"
+            />
             <Box className="max-w-7xl mx-auto">
                 <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>

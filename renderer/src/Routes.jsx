@@ -3,7 +3,7 @@
 import { Routes, Route } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-import Dashboard from './pages/Dashboard.jsx';
+import CharacterOverview from './pages/CharacterOverview.jsx';
 import SkillPlans from './pages/SkillPlans.jsx';
 import Landing from './pages/Landing.jsx';
 import Sync from './pages/Sync.jsx';
@@ -49,7 +49,7 @@ function AppRoutes({
                 <Route
                     path="/"
                     element={
-                        <Dashboard
+                        <CharacterOverview
                             accounts={accounts}
                             onToggleAccountStatus={handleToggleAccountStatus}
                             onUpdateCharacter={handleUpdateCharacter}
