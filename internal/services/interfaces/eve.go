@@ -14,7 +14,7 @@ type SkillService interface {
 	GetSkillPlanFile(name string) ([]byte, error)
 	DeleteSkillPlan(name string) error
 	GetSkillTypeByID(id string) (model.SkillType, bool)
-	GetPlanandConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
+	GetPlanAndConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
 }
 
 type SkillRepository interface {

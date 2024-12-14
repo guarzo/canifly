@@ -2,12 +2,11 @@ package eve
 
 import (
 	"bufio"
+	"github.com/guarzo/canifly/internal/model"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/guarzo/canifly/internal/model"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type skillService struct {
@@ -83,164 +82,235 @@ func parseSkillLevel(levelStr string) (int, error) {
 	return strconv.Atoi(levelStr) // Fall back to numeric conversion
 }
 
-func (s *skillService) GetPlanandConversionData(
+func (s *skillService) GetPlanAndConversionData(
 	accounts []model.Account,
 	skillPlans map[string]model.SkillPlan,
 	skillTypes map[string]model.SkillType,
 ) (map[string]model.SkillPlanWithStatus, map[string]string) {
 
-	updatedSkillPlans := make(map[string]model.SkillPlanWithStatus)
-	eveConversions := make(map[string]string)
-	var typeIds []int32
+	// Step 1: Initialize updatedSkillPlans and eveConversions
+	updatedSkillPlans := s.initializeUpdatedPlans(skillPlans)
+	eveConversions := s.initializeEveConversions(skillPlans, skillTypes)
 
-	// Initialize updatedSkillPlans with empty QualifiedCharacters, PendingCharacters, and Characters
+	// Step 2: Process all accounts and characters
+	typeIds := s.processAccountsAndCharacters(accounts, skillPlans, skillTypes, updatedSkillPlans)
+
+	// Step 3: Convert skill IDs into names and update eveConversions
+	s.updateEveConversionsWithSkillNames(typeIds, eveConversions)
+
+	return updatedSkillPlans, eveConversions
+}
+
+func (s *skillService) initializeUpdatedPlans(skillPlans map[string]model.SkillPlan) map[string]model.SkillPlanWithStatus {
+	updated := make(map[string]model.SkillPlanWithStatus)
 	for planName, plan := range skillPlans {
-		updatedSkillPlans[planName] = model.SkillPlanWithStatus{
+		updated[planName] = model.SkillPlanWithStatus{
 			Name:                plan.Name,
 			Skills:              plan.Skills,
 			QualifiedCharacters: []string{},
 			PendingCharacters:   []string{},
-			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills
+			MissingSkills:       make(map[string]map[string]int32),
 			Characters:          []model.CharacterSkillPlanStatus{},
 		}
+	}
+	return updated
+}
 
-		planType, exists := skillTypes[planName]
-		if exists {
-			eveConversions[planName] = planType.TypeID
+func (s *skillService) initializeEveConversions(
+	skillPlans map[string]model.SkillPlan,
+	skillTypes map[string]model.SkillType,
+) map[string]string {
+	conversions := make(map[string]string)
+	for planName := range skillPlans {
+		if planType, exists := skillTypes[planName]; exists {
+			conversions[planName] = planType.TypeID
 		}
 	}
+	return conversions
+}
 
-	// Process each account and its characters
+func (s *skillService) processAccountsAndCharacters(
+	accounts []model.Account,
+	skillPlans map[string]model.SkillPlan,
+	skillTypes map[string]model.SkillType,
+	updatedSkillPlans map[string]model.SkillPlanWithStatus,
+) []int32 {
+
+	var typeIds []int32
 	for _, account := range accounts {
-		for _, characterData := range account.Characters {
-			character := characterData.Character
-			characterSkills := make(map[int32]int32)
+		for _, chData := range account.Characters {
+			character := chData.Character
 
-			// Map character's current skills for lookup
-			for _, skill := range character.Skills {
-				characterSkills[skill.SkillID] = skill.TrainedSkillLevel
-				typeIds = append(typeIds, skill.SkillID)
+			// Extract character skill and queue info
+			characterSkills := s.mapCharacterSkills(character, &typeIds)
+			skillQueueLevels := s.mapSkillQueueLevels(character)
+
+			s.ensureCharacterMaps(character)
+
+			// Evaluate each plan for this character
+			for planName, plan := range skillPlans {
+				planResult := s.evaluatePlanForCharacter(plan, skillTypes, characterSkills, skillQueueLevels)
+
+				planStatus := updatedSkillPlans[planName]
+				s.updatePlanAndCharacterStatus(
+					&planStatus,
+					character,
+					planName,
+					planResult,
+				)
+				updatedSkillPlans[planName] = planStatus
 			}
+		}
+	}
+	return typeIds
+}
 
-			// Track eve queue levels for pending skills
-			skillQueueLevels := make(map[int32]struct {
+func (s *skillService) mapCharacterSkills(character model.Character, typeIds *[]int32) map[int32]int32 {
+	skillsMap := make(map[int32]int32)
+	for _, skill := range character.Skills {
+		skillsMap[skill.SkillID] = skill.TrainedSkillLevel
+		*typeIds = append(*typeIds, skill.SkillID)
+	}
+	return skillsMap
+}
+
+func (s *skillService) mapSkillQueueLevels(character model.Character) map[int32]struct {
+	level      int32
+	finishDate *time.Time
+} {
+	queueMap := make(map[int32]struct {
+		level      int32
+		finishDate *time.Time
+	})
+	for _, queuedSkill := range character.SkillQueue {
+		current, exists := queueMap[queuedSkill.SkillID]
+		if !exists || queuedSkill.FinishedLevel > current.level {
+			queueMap[queuedSkill.SkillID] = struct {
 				level      int32
 				finishDate *time.Time
-			})
-			for _, queuedSkill := range character.SkillQueue {
-				if current, exists := skillQueueLevels[queuedSkill.SkillID]; !exists || queuedSkill.FinishedLevel > current.level {
-					skillQueueLevels[queuedSkill.SkillID] = struct {
-						level      int32
-						finishDate *time.Time
-					}{level: queuedSkill.FinishedLevel, finishDate: queuedSkill.FinishDate}
-				}
+			}{level: queuedSkill.FinishedLevel, finishDate: queuedSkill.FinishDate}
+		}
+	}
+	return queueMap
+}
+
+func (s *skillService) ensureCharacterMaps(character model.Character) {
+	if character.QualifiedPlans == nil {
+		character.QualifiedPlans = make(map[string]bool)
+	}
+	if character.PendingPlans == nil {
+		character.PendingPlans = make(map[string]bool)
+	}
+	if character.MissingSkills == nil {
+		character.MissingSkills = make(map[string]map[string]int32)
+	}
+	if character.PendingFinishDates == nil {
+		character.PendingFinishDates = make(map[string]*time.Time)
+	}
+}
+
+type planEvaluationResult struct {
+	Qualifies        bool
+	Pending          bool
+	MissingSkills    map[string]int32
+	LatestFinishDate *time.Time
+}
+
+func (s *skillService) evaluatePlanForCharacter(
+	plan model.SkillPlan,
+	skillTypes map[string]model.SkillType,
+	characterSkills map[int32]int32,
+	skillQueueLevels map[int32]struct {
+		level      int32
+		finishDate *time.Time
+	},
+) planEvaluationResult {
+
+	result := planEvaluationResult{
+		Qualifies:     true,
+		MissingSkills: make(map[string]int32),
+	}
+
+	for skillName, requiredSkill := range plan.Skills {
+		skillType, exists := skillTypes[skillName]
+		if !exists {
+			s.logger.Errorf("Error: Skill '%s' does not exist in eve types", skillName)
+			result.Qualifies = false
+			continue
+		}
+
+		skillID, err := strconv.Atoi(skillType.TypeID)
+		if err != nil {
+			s.logger.Errorf("Error: Converting eve type ID '%s' for eve '%s': %v", skillType.TypeID, skillName, err)
+			result.Qualifies = false
+			continue
+		}
+
+		requiredLevel := int32(requiredSkill.Level)
+		characterLevel, hasSkill := characterSkills[int32(skillID)]
+		queued, inQueue := skillQueueLevels[int32(skillID)]
+
+		switch {
+		case hasSkill && characterLevel >= requiredLevel:
+			// Already qualified for this skill
+		case inQueue && queued.level >= requiredLevel:
+			// Pending this skill
+			result.Pending = true
+			if result.LatestFinishDate == nil || (queued.finishDate != nil && queued.finishDate.After(*result.LatestFinishDate)) {
+				result.LatestFinishDate = queued.finishDate
 			}
-
-			// Initialize QualifiedPlans, PendingPlans, and MissingSkills for the character
-			if character.QualifiedPlans == nil {
-				character.QualifiedPlans = make(map[string]bool)
-			}
-			if character.PendingPlans == nil {
-				character.PendingPlans = make(map[string]bool)
-			}
-			if character.MissingSkills == nil {
-				character.MissingSkills = make(map[string]map[string]int32)
-			}
-			if character.PendingFinishDates == nil {
-				character.PendingFinishDates = make(map[string]*time.Time)
-			}
-
-			// Check matching eve plans for the current character
-			for planName, plan := range skillPlans {
-				qualifies := true
-				pending := false
-				missingSkills := make(map[string]int32)
-				var latestFinishDate *time.Time
-
-				for skillName, requiredSkill := range plan.Skills {
-					// Map skillName to skillID via skillTypes
-					skillType, exists := skillTypes[skillName]
-					if !exists {
-						s.logger.Errorf("Error: Skill '%s' does not exist in eve types", skillName)
-						qualifies = false
-						continue
-					}
-
-					skillID, err := strconv.Atoi(skillType.TypeID)
-					if err != nil {
-						s.logger.Errorf("Error: Converting eve type ID '%s' for eve '%s': %v", skillType.TypeID, skillName, err)
-						qualifies = false
-						continue
-					}
-
-					requiredLevel := int32(requiredSkill.Level)
-					characterLevel, hasSkill := characterSkills[int32(skillID)]
-					queued, inQueue := skillQueueLevels[int32(skillID)]
-
-					// Compare current eve and eve queue for qualification
-					if hasSkill && characterLevel >= requiredLevel {
-						continue // Qualified for this eve
-					} else if inQueue && queued.level >= requiredLevel {
-						pending = true
-						if latestFinishDate == nil || (queued.finishDate != nil && queued.finishDate.After(*latestFinishDate)) {
-							latestFinishDate = queued.finishDate
-						}
-					} else {
-						qualifies = false
-						missingSkills[skillName] = requiredLevel
-					}
-				}
-
-				// Add this character's status to the eve plan's Characters list
-				characterSkillStatus := model.CharacterSkillPlanStatus{
-					CharacterName:     character.CharacterName,
-					Status:            getStatus(qualifies, pending),
-					MissingSkills:     missingSkills, // Store missing skills correctly
-					PendingFinishDate: latestFinishDate,
-				}
-
-				modifiedPlan := updatedSkillPlans[planName]
-
-				// If qualifies and not pending, add to QualifiedCharacters
-				if qualifies && !pending {
-					modifiedPlan.QualifiedCharacters = append(modifiedPlan.QualifiedCharacters, character.CharacterName)
-					character.QualifiedPlans[planName] = true // Update the character's QualifiedPlans
-				}
-
-				// If pending, add to PendingCharacters
-				if pending {
-					modifiedPlan.PendingCharacters = append(modifiedPlan.PendingCharacters, character.CharacterName)
-					characterSkillStatus.PendingFinishDate = latestFinishDate
-					character.PendingPlans[planName] = true // Update the character's PendingPlans
-					character.PendingFinishDates[planName] = latestFinishDate
-				}
-
-				// If there are missing skills, store them in the MissingSkills map
-				if len(missingSkills) > 0 {
-					if modifiedPlan.MissingSkills == nil {
-						modifiedPlan.MissingSkills = make(map[string]map[string]int32)
-					}
-					modifiedPlan.MissingSkills[character.CharacterName] = missingSkills
-					character.MissingSkills[planName] = missingSkills // Update MissingSkills for the character
-				}
-
-				// Add the character's eve status to the plan's character list
-				modifiedPlan.Characters = append(modifiedPlan.Characters, characterSkillStatus)
-
-				// Update the eve plan with the new status
-				updatedSkillPlans[planName] = modifiedPlan
-			}
+		default:
+			// Missing this skill
+			result.Qualifies = false
+			result.MissingSkills[skillName] = requiredLevel
 		}
 	}
 
+	return result
+}
+
+func (s *skillService) updatePlanAndCharacterStatus(
+	plan *model.SkillPlanWithStatus,
+	character model.Character,
+	planName string,
+	res planEvaluationResult,
+) {
+	characterSkillStatus := model.CharacterSkillPlanStatus{
+		CharacterName:     character.CharacterName,
+		Status:            getStatus(res.Qualifies, res.Pending),
+		MissingSkills:     res.MissingSkills,
+		PendingFinishDate: res.LatestFinishDate,
+	}
+
+	// If qualifies and not pending, add to QualifiedCharacters
+	if res.Qualifies && !res.Pending {
+		plan.QualifiedCharacters = append(plan.QualifiedCharacters, character.CharacterName)
+		character.QualifiedPlans[planName] = true
+	}
+
+	// If pending, add to PendingCharacters
+	if res.Pending {
+		plan.PendingCharacters = append(plan.PendingCharacters, character.CharacterName)
+		character.PendingPlans[planName] = true
+		character.PendingFinishDates[planName] = res.LatestFinishDate
+	}
+
+	// If there are missing skills, store them in both plan and character
+	if len(res.MissingSkills) > 0 {
+		plan.MissingSkills[character.CharacterName] = res.MissingSkills
+		character.MissingSkills[planName] = res.MissingSkills
+	}
+
+	plan.Characters = append(plan.Characters, characterSkillStatus)
+}
+
+func (s *skillService) updateEveConversionsWithSkillNames(typeIds []int32, eveConversions map[string]string) {
 	for _, skillId := range typeIds {
 		name := s.GetSkillName(skillId)
 		if name != "" {
 			eveConversions[strconv.FormatInt(int64(skillId), 10)] = name
 		}
 	}
-
-	return updatedSkillPlans, eveConversions
 }
 
 func getStatus(qualifies bool, pending bool) string {

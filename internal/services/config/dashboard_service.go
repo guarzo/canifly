@@ -60,7 +60,7 @@ func (d *dashboardService) GetCurrentAppState() model.AppState {
 }
 
 func (d *dashboardService) prepareAppData(accountData *model.AccountData) model.AppState {
-	skillPlans, eveConversions := d.skillService.GetPlanandConversionData(
+	skillPlans, eveConversions := d.skillService.GetPlanAndConversionData(
 		accountData.Accounts,
 		d.skillService.GetSkillPlans(),
 		d.skillService.GetSkillTypes(),

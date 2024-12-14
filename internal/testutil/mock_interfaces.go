@@ -107,6 +107,16 @@ func (m *MockESIService) SaveEsiCache() error {
 	return args.Error(0)
 }
 
+func (m *MockESIService) GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error) {
+	args := m.Called(id, token)
+	return args.Get(0).(*model.Corporation), args.Error(1)
+}
+
+func (m *MockESIService) GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error) {
+	args := m.Called(id, token)
+	return args.Get(0).(*model.Alliance), args.Error(1)
+}
+
 // MockCharacterService mocks interfaces.CharacterService
 type MockCharacterService struct {
 	mock.Mock
@@ -172,9 +182,15 @@ func (m *MockSkillService) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return args.Get(0).(model.SkillType), args.Bool(1)
 }
 
-func (m *MockSkillService) GetMatchingSkillPlans(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) map[string]model.SkillPlanWithStatus {
+func (m *MockSkillService) GetPlanAndConversionData(
+	accounts []model.Account,
+	skillPlans map[string]model.SkillPlan,
+	skillTypes map[string]model.SkillType,
+) (map[string]model.SkillPlanWithStatus, map[string]string) {
 	args := m.Called(accounts, skillPlans, skillTypes)
-	return args.Get(0).(map[string]model.SkillPlanWithStatus)
+	// args.Get(0) should be a map[string]model.SkillPlanWithStatus
+	// args.Get(1) should be a map[string]string
+	return args.Get(0).(map[string]model.SkillPlanWithStatus), args.Get(1).(map[string]string)
 }
 
 // MockAccountService mocks interfaces.AccountService

@@ -90,7 +90,6 @@ Skill C 1
 	}
 
 	skillRepo.On("SaveSkillPlan", "myplan", mock.MatchedBy(func(skills map[string]model.Skill) bool {
-		// Check if matches expectedSkills
 		if len(skills) != len(expectedSkills) {
 			return false
 		}
@@ -246,36 +245,33 @@ func TestGetMatchingSkillPlans(t *testing.T) {
 	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
 	skillRepo.On("GetSkillTypeByID", "1002").Return(skillTypes["Small Hybrid Turret"], true).Maybe()
 
-	// Call GetPlanandConversionData
-	updated := svc.GetPlanandConversionData(accounts, skillPlans, skillTypes)
+	// Call GetPlanAndConversionData
+	updatedPlans, _ := svc.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
 
 	// Let's analyze what we expect:
-	// PlanA requires Afterburner level 3 and Small Hybrid Turret level 2
-	// Character has exactly these levels trained, so qualifies. Not pending because already matches.
-	// For PlanB requires Small Hybrid Turret level 5, character only has level 2 trained, but is training to 5 in queue.
-	// So PlanB should be pending.
+	// PlanA: requires Afterburner (3) and Small Hybrid Turret (2)
+	// Character has exactly these levels, so qualifies. Not pending.
+	// PlanB: requires Small Hybrid Turret (5), character is training to 5 -> Pending.
 
-	planAResult := updated["PlanA"]
+	planAResult := updatedPlans["PlanA"]
 	assert.Equal(t, "PlanA", planAResult.Name)
 	assert.Contains(t, planAResult.QualifiedCharacters, "MyChar")
-	assert.Len(t, planAResult.PendingCharacters, 0) // not pending
-	// No missing skills for PlanA
+	assert.Len(t, planAResult.PendingCharacters, 0)
 	assert.Empty(t, planAResult.MissingSkills["MyChar"])
-	// Character should have a CharacterSkillPlanStatus of "Qualified"
 	assert.Len(t, planAResult.Characters, 1)
 	assert.Equal(t, "Qualified", planAResult.Characters[0].Status)
 
-	planBResult := updated["PlanB"]
+	planBResult := updatedPlans["PlanB"]
 	assert.Equal(t, "PlanB", planBResult.Name)
 	assert.Len(t, planBResult.QualifiedCharacters, 0)
 	assert.Contains(t, planBResult.PendingCharacters, "MyChar")
-	// The skill is not currently at 5, but is in queue to reach 5, so it's pending
 	assert.Empty(t, planBResult.MissingSkills["MyChar"])
 	assert.Len(t, planBResult.Characters, 1)
 	assert.Equal(t, "Pending", planBResult.Characters[0].Status)
 
 	skillRepo.AssertExpectations(t)
 }
+
 func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
 	logger := &testutil.MockLogger{}
 	skillRepo := &testutil.MockSkillRepository{}
@@ -298,12 +294,12 @@ func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
 
 	// The character only has Afterburner at level 1, needs 5
 	charSkillList := []model.SkillResponse{
-		{SkillID: 1001, TrainedSkillLevel: 1}, // insufficient level
+		{SkillID: 1001, TrainedSkillLevel: 1},
 	}
 	character := model.Character{
 		UserInfoResponse:        model.UserInfoResponse{CharacterName: "MyChar2"},
 		CharacterSkillsResponse: model.CharacterSkillsResponse{Skills: charSkillList},
-		SkillQueue:              []model.SkillQueue{}, // no training queue to help
+		SkillQueue:              []model.SkillQueue{},
 	}
 
 	account := model.Account{
@@ -319,9 +315,9 @@ func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
 	// Since we have Afterburner as a known skill, the service might query skillRepo.GetSkillTypeByID
 	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
 
-	updated := svc.GetPlanandConversionData(accounts, skillPlans, skillTypes)
+	updatedPlans, _ := svc.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
 
-	planCResult := updated["PlanC"]
+	planCResult := updatedPlans["PlanC"]
 	assert.Equal(t, "PlanC", planCResult.Name)
 	assert.Empty(t, planCResult.QualifiedCharacters)
 	assert.Empty(t, planCResult.PendingCharacters)
@@ -331,3 +327,18 @@ func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
 
 	skillRepo.AssertExpectations(t)
 }
+
+/*
+If you needed to mock GetPlanAndConversionData in a test with a mock service, you could do something like:
+
+mockSkillService := &MockSkillService{}
+mockSkillService.On("GetPlanAndConversionData", mock.Anything, mock.Anything, mock.Anything).
+    Return(expectedPlanStatusMap, expectedConversionsMap)
+
+Then in your code:
+
+plans, conv := mockSkillService.GetPlanAndConversionData(accounts, skillPlans, skillTypes)
+assert.Equal(t, expectedPlanStatusMap, plans)
+assert.Equal(t, expectedConversionsMap, conv)
+
+*/
