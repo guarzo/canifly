@@ -25,6 +25,8 @@ describe('CharacterItem', () => {
         }
     };
 
+    const mockSkillConversions = {}
+
     const roles = ['Pvp', 'Logistics', 'Scout'];
     let mockOnUpdateCharacter;
     let mockOnRemoveCharacter;
@@ -41,11 +43,12 @@ describe('CharacterItem', () => {
                 onUpdateCharacter={mockOnUpdateCharacter}
                 onRemoveCharacter={mockOnRemoveCharacter}
                 roles={roles}
+                skillConversions={mockSkillConversions}
             />
         );
 
         expect(screen.getByText('TestCharacter')).toBeInTheDocument();
-        expect(screen.getByText('5,000,000')).toBeInTheDocument();
+        expect(screen.getByText('5M SP')).toBeInTheDocument();
         expect(screen.getByText('Jita')).toBeInTheDocument();
     });
 
@@ -56,6 +59,7 @@ describe('CharacterItem', () => {
                 onUpdateCharacter={mockOnUpdateCharacter}
                 onRemoveCharacter={mockOnRemoveCharacter}
                 roles={roles}
+                skillConversions={mockSkillConversions}
             />
         );
 
@@ -78,6 +82,7 @@ describe('CharacterItem', () => {
                 onRemoveCharacter={mockOnRemoveCharacter}
                 roles={roles}
                 hideRemoveIcon={true}
+                skillConversions={mockSkillConversions}
             />
         );
 

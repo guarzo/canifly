@@ -76,11 +76,13 @@ describe('normalizeAppData', () => {
         const result = normalizeAppData(data);
         expect(result.EveData).toEqual({
             SkillPlans: {},
-            EveProfiles: []
+            EveProfiles: [],
+            EveConversions: {},
         });
         expect(warn).toHaveBeenCalledWith("normalizeAppData: appData.EveData is not an object. Defaulting to empty object.");
         expect(warn).toHaveBeenCalledWith("normalizeAppData: appData.EveData.SkillPlans is not an object. Defaulting to {}.");
         expect(warn).toHaveBeenCalledWith("normalizeAppData: appData.EveData.EveProfiles is not an array. Defaulting to [].");
+        expect(warn).toHaveBeenCalledWith("normalizeAppData: appData.EveData.EveConversions is not an object. Defaulting to {}.");
     });
 
     it('returns a fully normalized object when given proper data', () => {
@@ -99,7 +101,8 @@ describe('normalizeAppData', () => {
             },
             EveData: {
                 SkillPlans: { PlanA: { Skills: {} } },
-                EveProfiles: [{ profile: 'default' }]
+                EveProfiles: [{ profile: 'default' }],
+                EveConversions: { Something: 'else'}
             }
         };
 
@@ -120,7 +123,8 @@ describe('normalizeAppData', () => {
             },
             EveData: {
                 SkillPlans: { PlanA: { Skills: {} } },
-                EveProfiles: [{ profile: 'default' }]
+                EveProfiles: [{ profile: 'default' }],
+                EveConversions: { Something: 'else'}
             }
         });
 

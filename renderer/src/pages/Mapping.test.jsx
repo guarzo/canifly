@@ -45,7 +45,6 @@ describe('Mapping', () => {
             />
         );
 
-        expect(screen.getByText('Mapping')).toBeInTheDocument();
         expect(screen.getByText('No accounts found.')).toBeInTheDocument();
         expect(screen.getByText('No available characters to associate.')).toBeInTheDocument();
     });

@@ -21,6 +21,8 @@ test('renders account name and status', () => {
         ]
     };
 
+    const mockConversions = {}
+
     render(
         <AccountCard
             account={mockAccount}
@@ -30,6 +32,7 @@ test('renders account name and status', () => {
             onRemoveCharacter={() => {}}
             onRemoveAccount={() => {}}
             roles={[]}
+            skillConversions={mockConversions}
         />
     );
 

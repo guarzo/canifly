@@ -64,8 +64,10 @@ describe('SkillPlanTable', () => {
         }
     ];
 
+    const mockConversions =  {}
+
     test('renders skill plans and allows expansion', async () => {
-        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} />);
+        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} conversions={mockConversions}/>);
 
         // Check if both plan names are rendered
         expect(screen.getByText('Plan A')).toBeInTheDocument();
@@ -85,7 +87,7 @@ describe('SkillPlanTable', () => {
     });
 
     test('copy and delete skill plan actions', async () => {
-        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} />);
+        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} conversions={mockConversions}/>);
         const user = userEvent.setup();
 
         // For Plan A

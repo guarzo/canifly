@@ -47,6 +47,8 @@ describe('Dashboard', () => {
         }
     ];
 
+    const mockConversions = {}
+
 
     const roles = ['Pvp', 'Logistics'];
 
@@ -66,6 +68,7 @@ describe('Dashboard', () => {
                 onRemoveCharacter={onRemoveCharacter}
                 onRemoveAccount={onRemoveAccount}
                 roles={roles}
+                skillConversions={mockConversions}
             />
         );
 
@@ -87,6 +90,7 @@ describe('Dashboard', () => {
                 onRemoveCharacter={onRemoveCharacter}
                 onRemoveAccount={onRemoveAccount}
                 roles={roles}
+                skillConversions={mockConversions}
             />
         );
 
@@ -115,6 +119,7 @@ describe('Dashboard', () => {
                 onRemoveCharacter={onRemoveCharacter}
                 onRemoveAccount={onRemoveAccount}
                 roles={roles}
+                skillConversions={mockConversions}
             />
         );
 

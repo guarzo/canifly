@@ -34,8 +34,10 @@ describe('CharacterTable', () => {
         "Plan B": {}
     };
 
+    const mockConversions = {}
+
     test('renders character name and total skill points', () => {
-        render(<CharacterTable characters={mockCharacters} skillPlans={mockSkillPlans} />);
+        render(<CharacterTable characters={mockCharacters} skillPlans={mockSkillPlans} conversions={mockConversions} />);
 
         // Check if character name is present
         expect(screen.getByText('Test Character')).toBeInTheDocument();

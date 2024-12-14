@@ -85,7 +85,6 @@ func TestGetCurrentAppState(t *testing.T) {
 
 	stateSvc.AssertExpectations(t)
 }
-
 func TestRefreshDataInBackground_Success(t *testing.T) {
 	logger := &testutil.MockLogger{}
 	skillSvc := &testutil.MockSkillService{}
@@ -97,14 +96,16 @@ func TestRefreshDataInBackground_Success(t *testing.T) {
 
 	ds := config.NewDashboardService(logger, skillSvc, charSvc, accSvc, conSvc, stateSvc, eveSvc)
 
-	accountData := &model.AccountData{}
-	// Mock RefreshAccountsAndState calls:
-	// It's simpler to just mock RefreshAccountData and the subsequent calls as in the success test:
+	accountData := &model.AccountData{
+		Accounts: []model.Account{{Name: "SomeAccount"}},
+	}
 	accSvc.On("RefreshAccountData", charSvc).Return(accountData, nil).Once()
 
 	skillSvc.On("GetSkillPlans").Return(map[string]model.SkillPlan{}).Once()
 	skillSvc.On("GetSkillTypes").Return(map[string]model.SkillType{}).Once()
-	skillSvc.On("GetPlanandConversionData", mock.Anything, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
+	// Mock GetPlanAndConversionData
+	skillSvc.On("GetPlanAndConversionData", accountData.Accounts, mock.Anything, mock.Anything).
+		Return(map[string]model.SkillPlanWithStatus{}, map[string]string{}).Once()
 
 	conSvc.On("FetchConfigData").Return(&model.ConfigData{}, nil).Once()
 	eveSvc.On("LoadCharacterSettings").Return([]model.EveProfile{}, nil).Once()

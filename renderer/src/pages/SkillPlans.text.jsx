@@ -44,6 +44,8 @@ describe('SkillPlans', () => {
         }
     };
 
+    const mockConversions = {}
+
     const mockSetAppData = vi.fn();
 
     beforeEach(() => {
@@ -57,6 +59,7 @@ describe('SkillPlans', () => {
                 skillPlans={mockSkillPlans}
                 setAppData={mockSetAppData}
                 backEndURL="http://mock-backend"
+                conversions={mockConversions}
             />
         );
 
@@ -75,6 +78,7 @@ describe('SkillPlans', () => {
                 skillPlans={mockSkillPlans}
                 setAppData={mockSetAppData}
                 backEndURL="http://mock-backend"
+                conversions={mockConversions}
             />
         );
 
@@ -93,6 +97,7 @@ describe('SkillPlans', () => {
                 skillPlans={mockSkillPlans}
                 setAppData={mockSetAppData}
                 backEndURL="http://mock-backend"
+                conversions={mockConversions}
             />
         );
 
