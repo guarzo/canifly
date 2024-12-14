@@ -14,7 +14,8 @@ import {
     ListItemText,
     ListItemButton,
     Tooltip,
-    CircularProgress
+    CircularProgress,
+    Divider
 } from '@mui/material';
 import {
     Menu as MenuIcon,
@@ -76,8 +77,8 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     const navigationLinks = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
-        { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
+        { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
     ];
 
     const handleAddCharacterClick = () => {
@@ -173,26 +174,16 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                     style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
                     <List sx={{ flex: 1 }}>
-                        {navigationLinks.map((item) => (
-                            <ListItem key={item.text} disablePadding>
-                                <ListItemButton
-                                    component={Link}
-                                    to={item.path}
-                                    selected={location.pathname === item.path}
-                                    sx={{
-                                        '&:hover': {
-                                            backgroundColor: '#0f172a',
-                                            '& .MuiListItemText-primary': {
-                                                color: '#a7f3d0',
-                                            },
-                                            '& .MuiListItemIcon-root': {
-                                                color: '#a7f3d0',
-                                            },
-                                        },
-                                        '&.Mui-selected': {
-                                            backgroundColor: '#134e4a',
+                        {navigationLinks.map((item, index) => (
+                            <div key={item.text}>
+                                <ListItem disablePadding>
+                                    <ListItemButton
+                                        component={Link}
+                                        to={item.path}
+                                        selected={location.pathname === item.path}
+                                        sx={{
                                             '&:hover': {
-                                                backgroundColor: '#145a54',
+                                                backgroundColor: '#0f172a',
                                                 '& .MuiListItemText-primary': {
                                                     color: '#a7f3d0',
                                                 },
@@ -200,19 +191,40 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                                                     color: '#a7f3d0',
                                                 },
                                             },
-                                        },
-                                    }}
-                                >
-                                    <ListItemIcon sx={{ color: '#5eead4' }}>{item.icon}</ListItemIcon>
-                                    <ListItemText
-                                        primary={item.text}
-                                        primaryTypographyProps={{ sx: { color: '#5eead4' } }}
+                                            '&.Mui-selected': {
+                                                backgroundColor: '#134e4a',
+                                                '&:hover': {
+                                                    backgroundColor: '#145a54',
+                                                    '& .MuiListItemText-primary': {
+                                                        color: '#a7f3d0',
+                                                    },
+                                                    '& .MuiListItemIcon-root': {
+                                                        color: '#a7f3d0',
+                                                    },
+                                                },
+                                            },
+                                        }}
+                                    >
+                                        <ListItemIcon sx={{ color: '#5eead4' }}>{item.icon}</ListItemIcon>
+                                        <ListItemText
+                                            primary={item.text}
+                                            primaryTypographyProps={{ sx: { color: '#5eead4' } }}
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+
+                                {index === 1 && (
+                                    <Divider
+                                        sx={{
+                                            backgroundColor: '#14b8a6',
+                                            marginY: '4px',
+                                            opacity: 0.5
+                                        }}
                                     />
-                                </ListItemButton>
-                            </ListItem>
+                                )}
+                            </div>
                         ))}
                     </List>
-
                     {/* Image at the bottom of the nav drawer */}
                     <Box sx={{ p: 2, textAlign: 'center' }}>
                         <img

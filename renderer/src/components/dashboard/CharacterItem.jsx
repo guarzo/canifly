@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import { IconButton, Select, MenuItem, TextField, Tooltip } from '@mui/material';
 import { Delete, Check as CheckIcon } from '@mui/icons-material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CharacterDetailModal from "./CharacterDetailModal.jsx";
+import { formatSP } from "../../utils/formatter.jsx";
+
 
 const CharacterItem = ({
                            character,
@@ -10,13 +13,16 @@ const CharacterItem = ({
                            onRemoveCharacter = () => {},
                            roles,
                            hideRemoveIcon = false,
+                           skillConversions,
                        }) => {
     const [role, setRole] = useState(character.Role || '');
     const [isAddingRole, setIsAddingRole] = useState(false);
     const [newRole, setNewRole] = useState('');
 
     const totalSp = character?.Character?.CharacterSkillsResponse?.total_sp;
-    const formattedSP = totalSp ? totalSp.toLocaleString() : '0';
+    const formattedSP = totalSp ? formatSP(totalSp): '0';
+
+    const [detailOpen, setDetailOpen] = useState(false);
 
     useEffect(() => {
         setRole(character.Role || '');
@@ -63,10 +69,16 @@ const CharacterItem = ({
 
     return (
         <div className="p-2 rounded-md shadow-sm bg-gray-700">
-            {/* Top row */}
+            <CharacterDetailModal
+                open={detailOpen}
+                onClose={() => setDetailOpen(false)}
+                character={character}
+                skillConversions={skillConversions}
+            />
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-sm text-teal-200">
+                    <span className="font-semibold text-sm text-teal-200 cursor-pointer underline"
+                        onClick={() => setDetailOpen(true)} >
                         {character.Character.CharacterName}
                     </span>
                     <Tooltip title="Total Skillpoints">
@@ -171,6 +183,7 @@ CharacterItem.propTypes = {
     onRemoveCharacter: PropTypes.func,
     roles: PropTypes.array.isRequired,
     hideRemoveIcon: PropTypes.bool,
+    skillConversions: PropTypes.object.isRequired,
 };
 
 export default CharacterItem;

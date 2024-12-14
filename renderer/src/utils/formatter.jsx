@@ -24,3 +24,12 @@ export const calculateDaysFromToday = (date) => {
 export const formatNumberWithCommas = (num) => {
     return num.toLocaleString(); // Using toLocaleString to format numbers with commas
 };
+
+export const formatSP = (totalSp) => {
+    if (!totalSp || totalSp < 1_000_000) {
+        return '<1M SP';
+    }
+
+    const millions = Math.round(totalSp / 1_000_000);
+    return `${millions}M SP`;
+}

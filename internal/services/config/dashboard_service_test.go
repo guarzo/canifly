@@ -31,7 +31,7 @@ func TestRefreshAccountsAndState_Success(t *testing.T) {
 	// prepareAppData calls skillService, configService, eveProfileService
 	skillSvc.On("GetSkillPlans").Return(map[string]model.SkillPlan{}).Once()
 	skillSvc.On("GetSkillTypes").Return(map[string]model.SkillType{}).Once()
-	skillSvc.On("GetMatchingSkillPlans", accountData.Accounts, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
+	skillSvc.On("GetPlanandConversionData", accountData.Accounts, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
 
 	conSvc.On("FetchConfigData").Return(&model.ConfigData{}, nil).Once()
 	eveSvc.On("LoadCharacterSettings").Return([]model.EveProfile{}, nil).Once()
@@ -109,7 +109,7 @@ func TestRefreshDataInBackground_Success(t *testing.T) {
 
 	skillSvc.On("GetSkillPlans").Return(map[string]model.SkillPlan{}).Once()
 	skillSvc.On("GetSkillTypes").Return(map[string]model.SkillType{}).Once()
-	skillSvc.On("GetMatchingSkillPlans", mock.Anything, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
+	skillSvc.On("GetPlanandConversionData", mock.Anything, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
 
 	conSvc.On("FetchConfigData").Return(&model.ConfigData{}, nil).Once()
 	eveSvc.On("LoadCharacterSettings").Return([]model.EveProfile{}, nil).Once()

@@ -83,13 +83,15 @@ func parseSkillLevel(levelStr string) (int, error) {
 	return strconv.Atoi(levelStr) // Fall back to numeric conversion
 }
 
-func (s *skillService) GetMatchingSkillPlans(
+func (s *skillService) GetPlanandConversionData(
 	accounts []model.Account,
 	skillPlans map[string]model.SkillPlan,
 	skillTypes map[string]model.SkillType,
-) map[string]model.SkillPlanWithStatus {
+) (map[string]model.SkillPlanWithStatus, map[string]string) {
 
 	updatedSkillPlans := make(map[string]model.SkillPlanWithStatus)
+	eveConversions := make(map[string]string)
+	var typeIds []int32
 
 	// Initialize updatedSkillPlans with empty QualifiedCharacters, PendingCharacters, and Characters
 	for planName, plan := range skillPlans {
@@ -100,6 +102,11 @@ func (s *skillService) GetMatchingSkillPlans(
 			PendingCharacters:   []string{},
 			MissingSkills:       make(map[string]map[string]int32), // Per character missing skills
 			Characters:          []model.CharacterSkillPlanStatus{},
+		}
+
+		planType, exists := skillTypes[planName]
+		if exists {
+			eveConversions[planName] = planType.TypeID
 		}
 	}
 
@@ -112,6 +119,7 @@ func (s *skillService) GetMatchingSkillPlans(
 			// Map character's current skills for lookup
 			for _, skill := range character.Skills {
 				characterSkills[skill.SkillID] = skill.TrainedSkillLevel
+				typeIds = append(typeIds, skill.SkillID)
 			}
 
 			// Track eve queue levels for pending skills
@@ -225,7 +233,14 @@ func (s *skillService) GetMatchingSkillPlans(
 		}
 	}
 
-	return updatedSkillPlans
+	for _, skillId := range typeIds {
+		name := s.GetSkillName(skillId)
+		if name != "" {
+			eveConversions[strconv.FormatInt(int64(skillId), 10)] = name
+		}
+	}
+
+	return updatedSkillPlans, eveConversions
 }
 
 func getStatus(qualifies bool, pending bool) string {

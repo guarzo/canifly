@@ -42,6 +42,7 @@ function AppRoutes({
         const userSelections = appData.ConfigData?.DropDownSelections || {};
         const currentSettingsDir = appData.ConfigData?.SettingsDir || '';
         const lastBackupDir = appData.ConfigData?.LastBackupDir || '';
+        const eveConversions = appData.EveData?.EveConversions || {};
 
         return (
             <Routes>
@@ -56,6 +57,7 @@ function AppRoutes({
                             onRemoveCharacter={handleRemoveCharacter}
                             onRemoveAccount={handleRemoveAccount}
                             roles={roles}
+                            skillConversions={eveConversions}
                         />
                     }
                 />
@@ -67,6 +69,7 @@ function AppRoutes({
                             skillPlans={skillPlans} // Using EveData.SkillPlans
                             setAppData={setAppData}
                             backEndURL={backEndURL}
+                            conversions={eveConversions}
                         />
                     }
                 />
@@ -117,6 +120,7 @@ AppRoutes.propTypes = {
         EveData: PropTypes.shape({
             SkillPlans: PropTypes.object,
             EveProfiles: PropTypes.array,
+            EveConversions: PropTypes.object,
         })
     }),
     handleToggleAccountStatus: PropTypes.func.isRequired,

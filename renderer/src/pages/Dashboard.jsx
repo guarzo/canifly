@@ -18,6 +18,7 @@ import {
     AccountCircle,
     Place
 } from '@mui/icons-material';
+import skillPlans from "./SkillPlans.jsx";
 
 /**
  * A unified dashboard that can display characters grouped by account, role, or location.
@@ -39,6 +40,7 @@ const Dashboard = ({
                        onRemoveCharacter,
                        onRemoveAccount,
                        roles,
+                       skillConversions,
                    }) => {
     // 'account', 'role', 'location'
     const [view, setView] = useState('account');
@@ -237,6 +239,7 @@ const Dashboard = ({
                                 onRemoveCharacter={onRemoveCharacter}
                                 onRemoveAccount={onRemoveAccount}
                                 roles={roles}
+                                skillConversions={skillConversions}
                             />
                         ))
                     )}
@@ -257,6 +260,7 @@ const Dashboard = ({
                                 characters={mapToDisplay[group] || []}
                                 onUpdateCharacter={onUpdateCharacter}
                                 roles={roles}
+                                skillConversions={skillConversions}
                             />
                         ))
                     )}
@@ -274,6 +278,7 @@ Dashboard.propTypes = {
     onRemoveCharacter: PropTypes.func.isRequired,
     onRemoveAccount: PropTypes.func.isRequired,
     roles: PropTypes.array.isRequired,
+    skillConversions: PropTypes.object.isRequired,
 };
 
 export default Dashboard;

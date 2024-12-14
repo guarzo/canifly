@@ -17,6 +17,7 @@
  *   EveData: {
  *     SkillPlans: {},
  *     EveProfiles: []
+ *     EveConversions: {},
  *   }
  * }
  *
@@ -76,6 +77,7 @@ export function normalizeAppData(data) {
     }
     const SkillPlans = (typeof EveData.SkillPlans === 'object' && EveData.SkillPlans !== null) ? EveData.SkillPlans : (warn("normalizeAppData: appData.EveData.SkillPlans is not an object. Defaulting to {}."), {});
     const EveProfiles = Array.isArray(EveData.EveProfiles) ? EveData.EveProfiles : (warn("normalizeAppData: appData.EveData.EveProfiles is not an array. Defaulting to []."), []);
+    const EveConversions = (typeof EveData.EveConversions === 'object' && EveData.EveConversions !== null) ? EveData.EveConversions : (warn("normalizeAppData: appData.EveData.EveConversions is not an object. Defaulting to {}."), {});
 
     return {
         LoggedIn,
@@ -92,7 +94,8 @@ export function normalizeAppData(data) {
         },
         EveData: {
             SkillPlans,
-            EveProfiles
+            EveProfiles,
+            EveConversions,
         }
     };
 }

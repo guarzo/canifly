@@ -9,7 +9,7 @@ import { Typography, ToggleButtonGroup, ToggleButton, Box } from '@mui/material'
 import { People as PeopleIcon, ListAlt as SkillPlansIcon } from '@mui/icons-material';
 import { deleteSkillPlan as deleteSkillPlanApi } from '../api/apiService.jsx';
 
-const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL }) => {
+const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversions }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
 
     useEffect(() => {
@@ -133,7 +133,7 @@ const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL }) => {
                             >
                                 By Character
                             </Typography>
-                            <CharacterTable characters={characters} skillPlans={skillPlans} />
+                            <CharacterTable characters={characters} skillPlans={skillPlans} conversions={conversions} />
                         </div>
                     )}
 
@@ -146,7 +146,7 @@ const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL }) => {
                             >
                                 By Skill Plan
                             </Typography>
-                            <SkillPlanTable skillPlans={skillPlans} characters={characters} />
+                            <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions} />
                         </div>
                     )}
                 </div>
@@ -160,6 +160,7 @@ SkillPlans.propTypes = {
     skillPlans: PropTypes.object.isRequired,
     setAppData: PropTypes.func.isRequired,
     backEndURL: PropTypes.string.isRequired,
+    conversions: PropTypes.object.isRequired,
 };
 
 export default SkillPlans;

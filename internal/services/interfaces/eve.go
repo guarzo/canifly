@@ -14,7 +14,7 @@ type SkillService interface {
 	GetSkillPlanFile(name string) ([]byte, error)
 	DeleteSkillPlan(name string) error
 	GetSkillTypeByID(id string) (model.SkillType, bool)
-	GetMatchingSkillPlans(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) map[string]model.SkillPlanWithStatus
+	GetPlanandConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
 }
 
 type SkillRepository interface {
@@ -64,4 +64,6 @@ type ESIService interface {
 	GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error)
 	ResolveCharacterNames(charIds []string) (map[string]string, error)
 	SaveEsiCache() error
+	GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error)
+	GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error)
 }

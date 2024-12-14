@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import CharacterItem from './CharacterItem.jsx';
 
-const GroupCard = ({ groupName, characters, onUpdateCharacter, roles }) => {
+const GroupCard = ({ groupName, characters, onUpdateCharacter, roles, skillConversions }) => {
     return (
         <div className="p-4 rounded-md shadow-md bg-gray-800 text-teal-200 max-w-sm">
             {/* Group Header */}
@@ -22,6 +22,7 @@ const GroupCard = ({ groupName, characters, onUpdateCharacter, roles }) => {
                         onUpdateCharacter={onUpdateCharacter}
                         roles={roles}
                         hideRemoveIcon={true}
+                        skillConversions={skillConversions}
                     />
                 ))}
             </div>
@@ -34,6 +35,7 @@ GroupCard.propTypes = {
     characters: PropTypes.array.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
     roles: PropTypes.array.isRequired,
+    skillConversions: PropTypes.object.isRequired,
 };
 
 export default GroupCard;

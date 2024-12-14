@@ -9,10 +9,11 @@ SECRET_KEY=
 todo
 - test all the things
 - test gh packaging
+
 - fix readme
 - make video
 
 # future
-- add clone locations - can we get implants??
-
+- improve instructions and allow hiding
+- clone locations / implants?
 

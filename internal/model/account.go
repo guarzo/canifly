@@ -34,11 +34,13 @@ type Association struct {
 }
 
 type CharacterIdentity struct {
-	Token     oauth2.Token
-	Character Character
-	Role      string
-	MCT       bool
-	Training  string
+	Token           oauth2.Token
+	Character       Character
+	CorporationName string
+	AllianceName    string
+	Role            string
+	MCT             bool
+	Training        string
 }
 
 type Character struct {
@@ -83,4 +85,30 @@ type CharacterSkillsResponse struct {
 type AuthStatus struct {
 	AccountName      string `json:"accountName"`
 	CallBackComplete bool   `json:"callBackComplete"`
+}
+
+// Alliance contains detailed information about an EVE Online alliance
+type Alliance struct {
+	CreatorCorporationID  int       `json:"creator_corporation_id"`
+	CreatorID             int       `json:"creator_id"`
+	DateFounded           time.Time `json:"date_founded"`
+	ExecutorCorporationID int       `json:"executor_corporation_id"`
+	Name                  string    `json:"name"`
+	Ticker                string    `json:"ticker"`
+}
+
+// Corporation represents detailed information about an EVE Online corporation
+type Corporation struct {
+	AllianceID    int       `json:"alliance_id"`
+	CeoID         int       `json:"ceo_id"`
+	CreatorID     int       `json:"creator_id"`
+	DateFounded   time.Time `json:"date_founded"`
+	Description   string    `json:"description"`
+	HomeStationID int       `json:"home_station_id"`
+	MemberCount   int       `json:"member_count"`
+	Name          string    `json:"name"`
+	Shares        int       `json:"shares"`
+	TaxRate       float64   `json:"tax_rate"`
+	Ticker        string    `json:"ticker"`
+	URL           string    `json:"url"`
 }

@@ -246,8 +246,8 @@ func TestGetMatchingSkillPlans(t *testing.T) {
 	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
 	skillRepo.On("GetSkillTypeByID", "1002").Return(skillTypes["Small Hybrid Turret"], true).Maybe()
 
-	// Call GetMatchingSkillPlans
-	updated := svc.GetMatchingSkillPlans(accounts, skillPlans, skillTypes)
+	// Call GetPlanandConversionData
+	updated := svc.GetPlanandConversionData(accounts, skillPlans, skillTypes)
 
 	// Let's analyze what we expect:
 	// PlanA requires Afterburner level 3 and Small Hybrid Turret level 2
@@ -319,7 +319,7 @@ func TestGetMatchingSkillPlans_MissingSkill(t *testing.T) {
 	// Since we have Afterburner as a known skill, the service might query skillRepo.GetSkillTypeByID
 	skillRepo.On("GetSkillTypeByID", "1001").Return(skillTypes["Afterburner"], true).Maybe()
 
-	updated := svc.GetMatchingSkillPlans(accounts, skillPlans, skillTypes)
+	updated := svc.GetPlanandConversionData(accounts, skillPlans, skillTypes)
 
 	planCResult := updated["PlanC"]
 	assert.Equal(t, "PlanC", planCResult.Name)

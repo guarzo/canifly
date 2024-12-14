@@ -60,7 +60,7 @@ func (d *dashboardService) GetCurrentAppState() model.AppState {
 }
 
 func (d *dashboardService) prepareAppData(accountData *model.AccountData) model.AppState {
-	skillPlans := d.skillService.GetMatchingSkillPlans(
+	skillPlans, eveConversions := d.skillService.GetPlanandConversionData(
 		accountData.Accounts,
 		d.skillService.GetSkillPlans(),
 		d.skillService.GetSkillTypes(),
@@ -79,8 +79,9 @@ func (d *dashboardService) prepareAppData(accountData *model.AccountData) model.
 	}
 
 	eveData := &model.EveData{
-		EveProfiles: subDirData,
-		SkillPlans:  skillPlans,
+		EveProfiles:    subDirData,
+		SkillPlans:     skillPlans,
+		EveConversions: eveConversions,
 	}
 
 	return model.AppState{

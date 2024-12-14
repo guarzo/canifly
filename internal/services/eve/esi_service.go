@@ -129,3 +129,23 @@ func (s *esiService) GetCharacterLocation(characterID int64, token *oauth2.Token
 
 	return location.SolarSystemID, nil
 }
+
+func (s *esiService) GetCorporation(corporationID int64, token *oauth2.Token) (*model.Corporation, error) {
+	var corporation model.Corporation
+	endpoint := fmt.Sprintf("/latest/corporations/%d/?datasource=tranquility", corporationID)
+
+	if err := s.apiClient.GetJSON(endpoint, token, true, &corporation); err != nil {
+		return nil, fmt.Errorf("failed to decode corporation: %w", err)
+	}
+	return &corporation, nil
+}
+
+func (s *esiService) GetAlliance(allianceID int64, token *oauth2.Token) (*model.Alliance, error) {
+	var alliance model.Alliance
+	endpoint := fmt.Sprintf("/latest/alliances/%d/?datasource=tranquility", allianceID)
+
+	if err := s.apiClient.GetJSON(endpoint, token, true, &alliance); err != nil {
+		return nil, fmt.Errorf("failed to decode alliance: %w", err)
+	}
+	return &alliance, nil
+}

@@ -7,8 +7,9 @@ import (
 )
 
 type EveData struct {
-	EveProfiles []EveProfile
-	SkillPlans  map[string]SkillPlanWithStatus
+	EveProfiles    []EveProfile
+	SkillPlans     map[string]SkillPlanWithStatus
+	EveConversions map[string]string // converts skill id to skill name
 }
 
 // EveProfile is the data from the eve settings

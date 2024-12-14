@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, {useMemo, useState} from 'react';
 import PropTypes from 'prop-types';
 import {
     Table,
@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { CheckCircle, AccessTime, Error as ErrorIcon } from '@mui/icons-material';
 import {calculateDaysFromToday, formatNumberWithCommas} from "../../utils/formatter.jsx";
+import CharacterDetailModal from "../dashboard/CharacterDetailModal.jsx";
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];
@@ -52,11 +53,18 @@ const generatePlanStatus = (planName, characterDetails) => {
     return status;
 };
 
-const CharacterRow = ({ row }) => {
+const CharacterRow = ({ row, conversions }) => {
     const [open, setOpen] = React.useState(false);
+    const [detailOpen, setDetailOpen] = useState(false);
 
     return (
         <React.Fragment>
+            <CharacterDetailModal
+                open={detailOpen}
+                onClose={() => setDetailOpen(false)}
+                character={row.fullCharacter}
+                skillConversions={conversions}
+            />
             <TableRow
                 className="hover:bg-gray-700 transition-colors duration-200"
                 sx={{ borderBottom: row.plans.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
@@ -75,8 +83,23 @@ const CharacterRow = ({ row }) => {
                     )}
                 </TableCell>
                 <TableCell className="text-teal-200 font-semibold whitespace-nowrap px-2 py-2">
-                    {row.CharacterName}
+                    <img
+                        src={`https://images.evetech.net/characters/${row.id}/portrait?size=32`}
+                        alt={`${row.CharacterName}'s portrait`}
+                        style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            verticalAlign: 'middle',
+                            display: 'inline-block',
+                            marginRight: '0.5rem'
+                        }}
+                    />
+                    <span style={{verticalAlign: 'middle'}}  className="font-semibold text-sm text-teal-200 cursor-pointer underline" onClick={() => setDetailOpen(true)} >
+                        {row.CharacterName}
+                    </span>
                 </TableCell>
+
                 <TableCell className="whitespace-nowrap text-teal-100 px-2 py-2">
                     {row.TotalSP}
                 </TableCell>
@@ -116,9 +139,10 @@ const CharacterRow = ({ row }) => {
 
 CharacterRow.propTypes = {
     row: PropTypes.object.isRequired,
+    conversions: PropTypes.object.isRequired,
 };
 
-const CharacterTable = ({ characters, skillPlans }) => {
+const CharacterTable = ({ characters, skillPlans, conversions }) => {
     const characterData = useMemo(() => {
         return characters.map((character) => {
             const characterDetails = character.Character || {};
@@ -139,6 +163,7 @@ const CharacterTable = ({ characters, skillPlans }) => {
                 CharacterName: characterDetails.CharacterName,
                 TotalSP,
                 plans,
+                fullCharacter: character
             };
         });
     }, [characters, skillPlans]);
@@ -160,7 +185,7 @@ const CharacterTable = ({ characters, skillPlans }) => {
                     </TableHead>
                     <TableBody>
                         {characterData.map((row) => (
-                            <CharacterRow key={row.id} row={row} />
+                            <CharacterRow key={row.id} row={row} conversions={conversions} />
                         ))}
                     </TableBody>
                 </Table>
@@ -172,6 +197,7 @@ const CharacterTable = ({ characters, skillPlans }) => {
 CharacterTable.propTypes = {
     characters: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
+    conversions: PropTypes.object.isRequired,
 };
 
 export default CharacterTable;

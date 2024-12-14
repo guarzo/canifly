@@ -1,5 +1,6 @@
 // src/api/apiRequest.js
 import { toast } from 'react-toastify';
+import { log, error as cerr } from '../utils/logger.jsx'
 
 export async function apiRequest(url, fetchOptions, {
     onSuccess,
@@ -15,7 +16,7 @@ export async function apiRequest(url, fetchOptions, {
         const isJSON = contentType && contentType.includes('application/json');
         if (isJSON) {
             result = await response.json();
-            console.log(result)
+            log(result)
         } else {
             result = await response.text();
         }
@@ -36,7 +37,7 @@ export async function apiRequest(url, fetchOptions, {
             }
         }
     } catch (error) {
-        console.error('API request error:', error);
+        cerr('API request error:', error);
         toast.error(errorMessage || 'An error occurred during the request.');
         if (onError) {
             onError(error.message);

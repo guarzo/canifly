@@ -1,3 +1,4 @@
+// SkillPlanTable.jsx
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -22,10 +23,14 @@ import {
     Error as ErrorIcon,
 } from '@mui/icons-material';
 
-import {calculateDaysFromToday} from "../../utils/formatter.jsx";
+import { calculateDaysFromToday } from "../../utils/formatter.jsx";
 
-const SkillPlanRow = ({ row }) => {
+const SkillPlanRow = ({ row, conversions }) => {
     const [open, setOpen] = React.useState(false);
+
+    // Lookup typeID from conversions map
+    const typeID = conversions[row.planName];
+    const planIconUrl = typeID ? `https://images.evetech.net/types/${typeID}/icon` : null;
 
     return (
         <React.Fragment>
@@ -44,6 +49,20 @@ const SkillPlanRow = ({ row }) => {
                     )}
                 </TableCell>
                 <TableCell className="text-teal-200 font-semibold whitespace-nowrap px-2 py-2">
+                    {planIconUrl && (
+                        <img
+                            src={planIconUrl}
+                            alt={`${row.planName} icon`}
+                            style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                verticalAlign: 'middle',
+                                display: 'inline-block',
+                                marginRight: '0.5rem',
+                            }}
+                        />
+                    )}
                     {row.planName}
                 </TableCell>
                 <TableCell className="whitespace-nowrap px-2 py-2">
@@ -102,9 +121,10 @@ const SkillPlanRow = ({ row }) => {
 
 SkillPlanRow.propTypes = {
     row: PropTypes.object.isRequired,
+    conversions: PropTypes.object.isRequired,
 };
 
-const SkillPlanTable = ({ skillPlans, characters }) => {
+const SkillPlanTable = ({ skillPlans, characters, conversions }) => {
     const skillPlanData = useMemo(() => {
         return Object.values(skillPlans).map((skillPlan) => {
             const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
@@ -120,7 +140,7 @@ const SkillPlanTable = ({ skillPlans, characters }) => {
                 })),
                 ...pendingCharacters.map((characterName) => {
                     const character = characters.find(
-                        (character) => character.Character?.CharacterName === characterName
+                        (c) => c.Character?.CharacterName === characterName
                     );
                     const characterData = character?.Character || null;
                     const pendingFinishDate =
@@ -166,7 +186,7 @@ const SkillPlanTable = ({ skillPlans, characters }) => {
                     </TableHead>
                     <TableBody>
                         {skillPlanData.map((row) => (
-                            <SkillPlanRow key={row.id} row={row} />
+                            <SkillPlanRow key={row.id} row={row} conversions={conversions} />
                         ))}
                     </TableBody>
                 </Table>
@@ -178,6 +198,7 @@ const SkillPlanTable = ({ skillPlans, characters }) => {
 SkillPlanTable.propTypes = {
     skillPlans: PropTypes.object.isRequired,
     characters: PropTypes.array.isRequired,
+    conversions: PropTypes.object.isRequired,
 };
 
 export default SkillPlanTable;

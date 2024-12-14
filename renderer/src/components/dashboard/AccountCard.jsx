@@ -12,6 +12,7 @@ const AccountCard = ({
                          onRemoveCharacter,
                          onRemoveAccount,
                          roles,
+                         skillConversions,
                      }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [accountName, setAccountName] = useState(account.Name);
@@ -113,6 +114,7 @@ const AccountCard = ({
                         onUpdateCharacter={onUpdateCharacter}
                         onRemoveCharacter={onRemoveCharacter}
                         roles={roles}
+                        skillConversions={skillConversions}
                     />
                 ))}
             </div>
@@ -128,6 +130,7 @@ AccountCard.propTypes = {
     onRemoveCharacter: PropTypes.func.isRequired,
     onRemoveAccount: PropTypes.func.isRequired,
     roles: PropTypes.array.isRequired,
+    skillConversions: PropTypes.object.isRequired,
 };
 
 export default AccountCard;

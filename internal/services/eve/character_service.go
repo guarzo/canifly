@@ -3,6 +3,7 @@ package eve
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/guarzo/canifly/internal/model"
@@ -42,6 +43,11 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	}
 	c.logger.Debugf("Fetched user info for character %s (ID: %d)", user.CharacterName, user.CharacterID)
 
+	characterResponse, err := c.esi.GetCharacter(strconv.FormatInt(charIdentity.Character.CharacterID, 10))
+	if err != nil {
+		c.logger.Warnf("Failed to get character %s: %v", charIdentity.Character.CharacterName, err)
+	}
+
 	skills, err := c.esi.GetCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
 		c.logger.Warnf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
@@ -61,6 +67,26 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 		c.logger.Warnf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
 		characterLocation = 0
 	}
+
+	corporationName := ""
+	allianceName := ""
+	if characterResponse != nil {
+		characterCorporation, err := c.esi.GetCorporation(int64(characterResponse.CorporationID), &charIdentity.Token)
+		if err != nil {
+			c.logger.Warnf("Failed to get corporation for corporation %d: %v", characterResponse.CorporationID, err)
+		} else {
+			corporationName = characterCorporation.Name
+		}
+		if characterCorporation != nil && characterCorporation.AllianceID != 0 {
+			characterAlliance, err := c.esi.GetAlliance(int64(characterCorporation.AllianceID), &charIdentity.Token)
+			if err != nil {
+				c.logger.Warnf("Failed to get alliance for character %s: %v", characterCorporation.AllianceID, err)
+			} else {
+				allianceName = characterAlliance.Name
+			}
+		}
+	}
+
 	c.logger.Debugf("Character %d is located at %d", charIdentity.Character.CharacterID, characterLocation)
 
 	// Update charIdentity with fetched data
@@ -74,6 +100,8 @@ func (c *characterService) ProcessIdentity(charIdentity *model.CharacterIdentity
 	if charIdentity.MCT {
 		charIdentity.Training = c.skillService.GetSkillName(charIdentity.Character.SkillQueue[0].SkillID)
 	}
+	charIdentity.CorporationName = corporationName
+	charIdentity.AllianceName = allianceName
 
 	// Initialize maps if nil
 	if charIdentity.Character.QualifiedPlans == nil {

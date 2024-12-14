@@ -1,3 +1,5 @@
+// src/components/sync/Sync.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
@@ -6,10 +8,15 @@ import {
     CircularProgress,
     Grid,
     Box,
-    Typography
+    Typography,
+    IconButton,
+    Tooltip
 } from '@mui/material';
+import { HelpOutline as HelpIcon, Help as HelpFilledIcon } from '@mui/icons-material';
+
 import SyncActionsBar from '../components/sync/SyncActionsBar.jsx';
 import SubDirectoryCard from '../components/sync/SubDirectoryCard.jsx';
+import { syncInstructions } from '../utils/instructions.jsx';
 
 import {
     saveUserSelections,
@@ -31,8 +38,14 @@ const Sync = ({
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
-    const [isDefaultDir, setIsDefaultDir] = useState(false); // Set false to ensure reset button shows for tests
-    const [message, setMessage] = useState(''); // Add this state to show success messages in DOM
+    const [isDefaultDir, setIsDefaultDir] = useState(false);
+    const [message, setMessage] = useState('');
+
+    // Load instruction visibility from localStorage
+    const [showInstructions, setShowInstructions] = useState(() => {
+        const stored = localStorage.getItem('showSyncInstructions');
+        return stored === null ? true : JSON.parse(stored);
+    });
 
     useEffect(() => {
         if (settingsData && settingsData.length > 0) {
@@ -46,16 +59,16 @@ const Sync = ({
         }
     }, [settingsData, userSelections]);
 
-    const saveSelections = useCallback(async (newSelections) => {
+    const saveSelectionsCallback = useCallback(async (newSelections) => {
         const result = await saveUserSelections(newSelections, backEndURL);
         if (!result || !result.success) {
-            // Toast handled by apiRequest if error occurs
+            // Errors handled by apiRequest/toast internally
         }
     }, [backEndURL]);
 
     const handleSelectionChange = (profile, field, value) => {
         setSelections(prev => {
-            let updated = {
+            const updated = {
                 ...prev,
                 [profile]: {
                     ...prev[profile],
@@ -71,7 +84,7 @@ const Sync = ({
                 }
             }
 
-            saveSelections(updated);
+            saveSelectionsCallback(updated);
             return updated;
         });
     };
@@ -96,7 +109,6 @@ const Sync = ({
             const result = await syncSubdirectory(profile, userId, charId, backEndURL);
             if (result && result.success) {
                 toast.success(result.message);
-                // Show message in DOM for tests
                 setMessage('Synced successfully!');
             }
         } catch (error) {
@@ -161,7 +173,6 @@ const Sync = ({
         try {
             setIsLoading(true);
 
-            // Use '' instead of null to match test expectations
             const chosenDir = await window.electronAPI.chooseDirectory(lastBackupDir || '');
             if (!chosenDir) {
                 toast.info('No backup directory chosen. Backup canceled.');
@@ -205,16 +216,35 @@ const Sync = ({
         }
     };
 
+    const toggleInstructions = () => {
+        const newValue = !showInstructions;
+        setShowInstructions(newValue);
+        localStorage.setItem('showSyncInstructions', JSON.stringify(newValue));
+    };
+
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
             <Box className="max-w-7xl mx-auto mb-6">
-                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md">
-                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                        Sync Settings
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#99f6e4' }}>
-                        Select a character and user for each profile, then sync or sync all. You can also choose or reset the settings directory and back up your configuration.
-                    </Typography>
+                <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md relative">
+                    <Box display="flex" alignItems="center">
+                        <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem', flex: 1 }}>
+                            Sync Settings
+                        </Typography>
+                        <Tooltip title={showInstructions ? "Hide instructions" : "Show instructions"}>
+                            <IconButton
+                                onClick={toggleInstructions}
+                                sx={{ color: '#99f6e4' }}
+                                size="small"
+                            >
+                                {showInstructions ? <HelpFilledIcon fontSize="small" /> : <HelpIcon fontSize="small" />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                    {showInstructions && (
+                        <Typography variant="body2" sx={{ color: '#99f6e4', marginTop: '0.5rem' }}>
+                            {syncInstructions}
+                        </Typography>
+                    )}
                 </Box>
             </Box>
 
@@ -232,7 +262,6 @@ const Sync = ({
                 </Box>
             )}
 
-            {/* Display the message for tests */}
             {message && (
                 <Box className="max-w-7xl mx-auto mt-4">
                     <Typography>{message}</Typography>
