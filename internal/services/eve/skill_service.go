@@ -154,7 +154,7 @@ func (s *skillService) processAccountsAndCharacters(
 				planStatus := updatedSkillPlans[planName]
 				s.updatePlanAndCharacterStatus(
 					&planStatus,
-					character,
+					&character,
 					planName,
 					planResult,
 				)
@@ -268,13 +268,25 @@ func (s *skillService) evaluatePlanForCharacter(
 
 	return result
 }
-
 func (s *skillService) updatePlanAndCharacterStatus(
 	plan *model.SkillPlanWithStatus,
-	character model.Character,
+	character *model.Character,
 	planName string,
 	res planEvaluationResult,
 ) {
+	if character.QualifiedPlans == nil {
+		character.QualifiedPlans = make(map[string]bool)
+	}
+	if character.PendingPlans == nil {
+		character.PendingPlans = make(map[string]bool)
+	}
+	if character.MissingSkills == nil {
+		character.MissingSkills = make(map[string]map[string]int32)
+	}
+	if character.PendingFinishDates == nil {
+		character.PendingFinishDates = make(map[string]*time.Time)
+	}
+
 	characterSkillStatus := model.CharacterSkillPlanStatus{
 		CharacterName:     character.CharacterName,
 		Status:            getStatus(res.Qualifies, res.Pending),
@@ -282,20 +294,17 @@ func (s *skillService) updatePlanAndCharacterStatus(
 		PendingFinishDate: res.LatestFinishDate,
 	}
 
-	// If qualifies and not pending, add to QualifiedCharacters
 	if res.Qualifies && !res.Pending {
 		plan.QualifiedCharacters = append(plan.QualifiedCharacters, character.CharacterName)
 		character.QualifiedPlans[planName] = true
 	}
 
-	// If pending, add to PendingCharacters
 	if res.Pending {
 		plan.PendingCharacters = append(plan.PendingCharacters, character.CharacterName)
 		character.PendingPlans[planName] = true
 		character.PendingFinishDates[planName] = res.LatestFinishDate
 	}
 
-	// If there are missing skills, store them in both plan and character
 	if len(res.MissingSkills) > 0 {
 		plan.MissingSkills[character.CharacterName] = res.MissingSkills
 		character.MissingSkills[planName] = res.MissingSkills
@@ -334,10 +343,10 @@ func (s *skillService) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return s.skillRepo.GetSkillTypeByID(id)
 }
 
-func (sk *skillService) GetSkillName(skillID int32) string {
-	skill, ok := sk.skillRepo.GetSkillTypeByID(strconv.FormatInt(int64(skillID), 10))
+func (s *skillService) GetSkillName(skillID int32) string {
+	skill, ok := s.skillRepo.GetSkillTypeByID(strconv.FormatInt(int64(skillID), 10))
 	if !ok {
-		sk.logger.Warnf("Skill ID %d not found", skillID)
+		s.logger.Warnf("Skill ID %d not found", skillID)
 		return ""
 	}
 	return skill.TypeName

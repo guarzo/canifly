@@ -6,8 +6,45 @@ on:
       - 'v*'  # Trigger only when a new tag is pushed
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      EVE_CLIENT_ID: ${{ secrets.EVE_CLIENT_ID }}
+      EVE_CLIENT_SECRET: ${{ secrets.EVE_CLIENT_SECRET }}
+      EVE_CALLBACK_URL: ${{ secrets.EVE_CALLBACK_URL }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22.3'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.2.0'
+
+      - name: Create .env file
+        run: |
+          mkdir -p internal/embed/config
+          echo "EVE_CLIENT_ID=${EVE_CLIENT_ID}" >> internal/embed/config/.env
+          echo "EVE_CLIENT_SECRET=${EVE_CLIENT_SECRET}" >> internal/embed/config/.env
+          echo "EVE_CALLBACK_URL=${EVE_CALLBACK_URL}" >> internal/embed/config/.env
+          echo "SECRET_KEY=${SECRET_KEY}" >> internal/embed/config/.env
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm test
+
   build:
     runs-on: ubuntu-latest
+    needs: test  # The build job will only run if the test job succeeds
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     permissions:
@@ -42,7 +79,6 @@ jobs:
           rm -rf dist release
           mkdir dist release
 
-      # Create the .env file dynamically using secrets
       - name: Create .env file
         run: |
           mkdir -p internal/embed/config
@@ -86,10 +122,10 @@ jobs:
 
       - name: List release directory files
         run: ls -l release
-  
+
       - name: Set Clean Version
         run: echo "CLEAN_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-      
+
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
@@ -99,14 +135,3 @@ jobs:
           asset_path: "release/CanIFly-Setup-${{ env.CLEAN_TAG }}.exe"
           asset_name: "CanIFly-Setup${{ env.CLEAN_TAG }}.exe"
           asset_content_type: application/x-msdownload
-      
-          
-      # - name: Upload Release Assets (Linux)
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #     asset_path: release/canifly-${{ github.ref_name }}.AppImage
-      #     asset_name: canifly-${{ github.ref_name }}.AppImage
-      #     asset_content_type: application/octet-stream

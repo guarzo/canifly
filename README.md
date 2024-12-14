@@ -1,33 +1,78 @@
 # Can I Fly
 
-## Description
+[![Latest Release](https://img.shields.io/github/v/release/guarzo/canifly)](https://github.com/guarzo/canifly/releases/latest)
+<!--[![Build & Test](https://github.com/guarzo/canifly/actions/workflows/test.yaml/badge.svg)](https://github.com/guarzo/canifly/actions/workflows/test.yaml) -->
 
-Provides a way to easily see which ships your characters can fly
+## Overview
+
+**Can I Fly** is an application that helps EVE Online players quickly determine which ships their characters can pilot. By integrating with EVE Online’s APIs, the tool provides an easy and intuitive interface to view skill plans, training statuses, and ship requirements.
+
+## Features
+
+- **Character Identity Processing:** Fetch and update character information including skills, training queue, and location.
+- **Skill Plan Integration:** Determine which skill plans a character has qualified for, is pending, or requires additional training.
+- **Mapping & Sync Tools:** Associate EVE accounts and characters with local profiles, syncing settings, and directories.
+- **User-Friendly Interface:** Easily select roles, add or remove characters, and adjust skill plans through a simple UI.
+
+## Prerequisites
+
+- **Go:** Version 1.22.3 or newer. [Download Go](https://golang.org/dl/)
+- **npm:** Version 22.2.0 or newer.
+- **EVE Developer Credentials:**  
+  Sign up at [EVE Online Developers](https://developers.eveonline.com/applications) to create an application and obtain:
+    - `EVE_CLIENT_ID`
+    - `EVE_CLIENT_SECRET`
+- **Callback & Secret Key:**  
+  Set `EVE_CALLBACK_URL` to the callback URL configured in your EVE developer application.  
+  Generate a secret key for encryption:
+  ```sh
+  openssl rand -base64 32
+  ```
+  Use this output as `SECRET_KEY`
+## Environment Setup
+
+Create a `.env` file at the project root with the following variables:
+
+```
+EVE_CLIENT_ID=<your_client_id>
+EVE_CLIENT_SECRET=<your_client_secret>
+EVE_CALLBACK_URL=<your_callback_url>
+SECRET_KEY=<your_generated_secret_key>
+```
 
 ## Installation
 
-To install and run the project, ensure you have the following prerequisites:
+1. **Clone the Repository:**
+   ```sh
+   git clone https://github.com/guarzo/canifly.git
+   cd canifly
+   ```
 
-- Go 1.22.3 or newer installed. You can download and install it from [the official Go website](https://golang.org/dl/).
-- Npm version 10.9.0 or newer installed
-- EVE Online Developer Application credentials. Set up an application and retrieve the `EVE_CLIENT_ID` and `EVE_CLIENT_SECRET` from [EVE Online Developers](https://developers.eveonline.com/applications).
-- Your own base64 encoded secret key for the application (if you lose this, you'll need to clear the data directory and all users will need to reauthenticate).  One option is to use the following command to generate a secret key:
+2. **Install Dependencies:**
+   ```sh
+   npm install
+   ```
 
-```sh
-openssl rand -base64 32 
-```
-
-Set the `EVE_CLIENT_ID`, `EVE_CLIENT_SECRET`, `EVE_CALLBACK_URL` and `SECRET_KEY` environment variables in an .env file at the project root
-
+3. **Build and Run:**
+   ```sh
+   npm start
+   ```
 
 ## Usage
 
-To run the application, use the following command:
+- Once running, open your browser and navigate to the URL specified by the application (usually `http://localhost:3000`).
+- Log in with your EVE Online credentials (through SSO) to view and manage your character data.
+- From the dashboard, you can review skill plans, check if you can fly certain ships, and manage account and character associations.
 
-```sh
-npm start
-```
+## Contributing
+
+Contributions are welcome! Please open an issue or create a pull request if you find a bug or want to propose a new feature.
 
 ## License
 
-This project is licensed under the ISC License. See the LICENSE file in the repository for more information.
+This project is licensed under the ISC License. For details, see the [LICENSE](./LICENSE) file.
+
+
+
+
+

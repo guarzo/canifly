@@ -16,7 +16,7 @@ import (
 func TestProcessIdentity_Success(t *testing.T) {
 	esi := &testutil.MockESIService{}
 	logger := &testutil.MockLogger{}
-	sys := &testutil.MockSystemRepository{} // We'll add a simple mock for SystemRepository below
+	sys := &testutil.MockSystemRepository{}
 	sk := &testutil.MockSkillService{}
 	as := &testutil.MockAccountService{}
 	cs := &testutil.MockConfigService{}
@@ -33,6 +33,26 @@ func TestProcessIdentity_Success(t *testing.T) {
 
 	user := &model.UserInfoResponse{CharacterID: charId, CharacterName: "TestChar"}
 	esi.On("GetUserInfo", &charIdentity.Token).Return(user, nil).Once()
+
+	// Mock GetCharacter call
+	charResp := &model.CharacterResponse{
+		CorporationID:  456,
+		Name:           "TestChar",
+		Birthday:       time.Now().AddDate(-1, 0, 0),
+		SecurityStatus: 5.0,
+	}
+	esi.On("GetCharacter", "12345").Return(charResp, nil).Once()
+
+	// Mock GetCorporation call
+	corpResp := &model.Corporation{
+		Name:       "TestCorp",
+		AllianceID: 789,
+	}
+	esi.On("GetCorporation", int64(456), &charIdentity.Token).Return(corpResp, nil).Once()
+
+	// Mock GetAlliance call
+	allianceResp := &model.Alliance{Name: "TestAlliance"}
+	esi.On("GetAlliance", int64(789), &charIdentity.Token).Return(allianceResp, nil).Once()
 
 	skills := &model.CharacterSkillsResponse{Skills: []model.SkillResponse{{SkillID: 1}}}
 	esi.On("GetCharacterSkills", charId, &charIdentity.Token).Return(skills, nil).Once()
@@ -63,6 +83,8 @@ func TestProcessIdentity_Success(t *testing.T) {
 	assert.Equal(t, "Jita", updated.Character.LocationName)
 	assert.True(t, updated.MCT)
 	assert.Equal(t, "Some Skill", updated.Training)
+	assert.Equal(t, "TestCorp", updated.CorporationName)
+	assert.Equal(t, "TestAlliance", updated.AllianceName)
 
 	esi.AssertExpectations(t)
 	sys.AssertExpectations(t)
@@ -136,6 +158,7 @@ func TestDoesCharacterExist_NotFound(t *testing.T) {
 
 	as.AssertExpectations(t)
 }
+
 func TestDoesCharacterExist_Error(t *testing.T) {
 	esi := &testutil.MockESIService{}
 	logger := &testutil.MockLogger{}
@@ -330,19 +353,4 @@ func TestRemoveCharacter_SaveError(t *testing.T) {
 // Helper to return a time pointer
 func timePtr(t time.Time) *time.Time {
 	return &t
-}
-
-// Mock for SystemRepository
-type MockSystemRepository struct {
-	mock.Mock
-}
-
-func (m *MockSystemRepository) GetSystemName(systemID int64) string {
-	args := m.Called(systemID)
-	return args.String(0)
-}
-
-func (m *MockSystemRepository) LoadSystems() error {
-	args := m.Called()
-	return args.Error(0)
 }

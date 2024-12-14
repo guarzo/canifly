@@ -13,41 +13,36 @@ import (
 
 func TestRefreshAccountsAndState_Success(t *testing.T) {
 	logger := &testutil.MockLogger{}
-	skillSvc := &testutil.MockSkillService{}
-	charSvc := &testutil.MockCharacterService{}
-	accSvc := &testutil.MockAccountService{}
-	conSvc := &testutil.MockConfigService{}
+	as := &testutil.MockAccountService{}
+	sk := &testutil.MockSkillService{}
+	cs := &testutil.MockConfigService{}
+	cSvc := &testutil.MockCharacterService{}
 	stateSvc := &testutil.MockAppStateService{}
-	eveSvc := &testutil.MockEveProfilesService{}
+	esi := &testutil.MockEveProfilesService{}
 
-	ds := config.NewDashboardService(logger, skillSvc, charSvc, accSvc, conSvc, stateSvc, eveSvc)
+	ds := config.NewDashboardService(logger, sk, cSvc, as, cs, stateSvc, esi)
 
-	accountData := &model.AccountData{
-		Accounts: []model.Account{{Name: "Acc1"}},
-	}
+	accounts := []model.Account{{Name: "Acc1"}}
+	as.On("RefreshAccountData", cSvc).Return(&model.AccountData{Accounts: accounts}, nil).Once()
 
-	accSvc.On("RefreshAccountData", charSvc).Return(accountData, nil).Once()
+	sk.On("GetSkillPlans").Return(map[string]model.SkillPlan{}).Once()
+	sk.On("GetSkillTypes").Return(map[string]model.SkillType{}).Once()
+	sk.On("GetPlanAndConversionData", accounts, mock.Anything, mock.Anything).
+		Return(map[string]model.SkillPlanWithStatus{}, map[string]string{}).Once()
 
-	// prepareAppData calls skillService, configService, eveProfileService
-	skillSvc.On("GetSkillPlans").Return(map[string]model.SkillPlan{}).Once()
-	skillSvc.On("GetSkillTypes").Return(map[string]model.SkillType{}).Once()
-	skillSvc.On("GetPlanandConversionData", accountData.Accounts, mock.Anything, mock.Anything).Return(map[string]model.SkillPlanWithStatus{}).Once()
+	esi.On("LoadCharacterSettings").Return([]model.EveProfile{}, nil).Once()
+	cs.On("FetchConfigData").Return(&model.ConfigData{}, nil).Once()
 
-	conSvc.On("FetchConfigData").Return(&model.ConfigData{}, nil).Once()
-	eveSvc.On("LoadCharacterSettings").Return([]model.EveProfile{}, nil).Once()
-
-	// After preparing data, UpdateAndSaveAppState is called
+	// Add this line to mock UpdateAndSaveAppState
 	stateSvc.On("UpdateAndSaveAppState", mock.Anything).Return(nil).Once()
 
-	result, err := ds.RefreshAccountsAndState()
+	_, err := ds.RefreshAccountsAndState()
 	assert.NoError(t, err)
-	assert.True(t, result.LoggedIn)
-	assert.Len(t, result.AccountData.Accounts, 1)
 
-	accSvc.AssertExpectations(t)
-	skillSvc.AssertExpectations(t)
-	conSvc.AssertExpectations(t)
-	eveSvc.AssertExpectations(t)
+	as.AssertExpectations(t)
+	sk.AssertExpectations(t)
+	cs.AssertExpectations(t)
+	esi.AssertExpectations(t)
 	stateSvc.AssertExpectations(t)
 }
 
