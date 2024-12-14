@@ -1,7 +1,7 @@
 # Can I Fly
 
 [![Latest Release](https://img.shields.io/github/v/release/guarzo/canifly)](https://github.com/guarzo/canifly/releases/latest)
-<!--[![Build & Test](https://github.com/guarzo/canifly/actions/workflows/test.yaml/badge.svg)](https://github.com/guarzo/canifly/actions/workflows/test.yaml) -->
+[![Build & Test](https://github.com/guarzo/canifly/actions/workflows/test.yaml/badge.svg)](https://github.com/guarzo/canifly/actions/workflows/test.yaml)
 
 ## Overview
 
