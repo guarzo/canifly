@@ -147,7 +147,7 @@ export async function syncSubdirectory(profile, userId, charId) {
 }
 
 export async function syncAllSubdirectories(profile, userId, charId) {
-    return apiRequest(`$/api/sync-all-subdirectories`, {
+    return apiRequest(`/api/sync-all-subdirectories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

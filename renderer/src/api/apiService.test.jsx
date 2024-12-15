@@ -46,16 +46,16 @@ describe('apiService', () => {
             apiRequest.mockResolvedValue(mockData);
             normalizeAppData.mockReturnValue(normalizedData);
 
-            const result = await getAppData(backEndURL);
+            const result = await getAppData();
             // Depending on isDev, errorMessage may be present or not. Let's assume isDev is true for testing.
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/app-data`, { credentials: 'include' }, { errorMessage: 'Failed to load app data.' });
+            expect(apiRequest).toHaveBeenCalledWith(`/api/app-data`, { credentials: 'include' }, { errorMessage: 'Failed to load app data.' });
             expect(normalizeAppData).toHaveBeenCalledWith(mockData);
             expect(result).toBe(normalizedData);
         });
 
         test('returns null if no response', async () => {
             apiRequest.mockResolvedValue(null);
-            const result = await getAppData(backEndURL);
+            const result = await getAppData();
             expect(result).toBeNull();
         });
     });
@@ -67,15 +67,15 @@ describe('apiService', () => {
             apiRequest.mockResolvedValue(mockData);
             normalizeAppData.mockReturnValue(normalizedData);
 
-            const result = await getAppDataNoCache(backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/app-data-no-cache`, { credentials: 'include' }, { errorMessage: 'Failed to load data.' });
+            const result = await getAppDataNoCache();
+            expect(apiRequest).toHaveBeenCalledWith(`/api/app-data-no-cache`, { credentials: 'include' }, { errorMessage: 'Failed to load data.' });
             expect(normalizeAppData).toHaveBeenCalledWith(mockData);
             expect(result).toBe(normalizedData);
         });
 
         test('returns null if no response', async () => {
             apiRequest.mockResolvedValue(null);
-            const result = await getAppDataNoCache(backEndURL);
+            const result = await getAppDataNoCache();
             expect(result).toBeNull();
         });
     });
@@ -234,8 +234,8 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('selections saved');
             const newSelections = { theme: 'dark' };
-            const result = await saveUserSelections(newSelections, backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/save-user-selections`, {
+            const result = await saveUserSelections(newSelections);
+            expect(apiRequest).toHaveBeenCalledWith(`/api/save-user-selections`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -250,8 +250,8 @@ describe('apiService', () => {
     describe('syncSubdirectory', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('synced');
-            const result = await syncSubdirectory('profile1', 'user123', 'char456', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/sync-subdirectory`, {
+            const result = await syncSubdirectory('profile1', 'user123', 'char456');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/sync-subdirectory`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -266,8 +266,8 @@ describe('apiService', () => {
     describe('syncAllSubdirectories', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('all synced');
-            const result = await syncAllSubdirectories('profile1', 'user123', 'char456', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/sync-all-subdirectories`, {
+            const result = await syncAllSubdirectories('profile1', 'user123', 'char456');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/sync-all-subdirectories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -282,8 +282,8 @@ describe('apiService', () => {
     describe('chooseSettingsDir', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('chosen');
-            const result = await chooseSettingsDir('/path/to/dir', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/choose-settings-dir`, {
+            const result = await chooseSettingsDir('/path/to/dir');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/choose-settings-dir`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -298,8 +298,8 @@ describe('apiService', () => {
     describe('backupDirectory', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('backed up');
-            const result = await backupDirectory('/target/dir', '/backup/dir', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/backup-directory`, {
+            const result = await backupDirectory('/target/dir', '/backup/dir');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/backup-directory`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -314,8 +314,8 @@ describe('apiService', () => {
     describe('resetToDefaultDirectory', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('reset');
-            const result = await resetToDefaultDirectory(backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/reset-to-default-directory`, {
+            const result = await resetToDefaultDirectory();
+            expect(apiRequest).toHaveBeenCalledWith(`/api/reset-to-default-directory`, {
                 method: 'POST',
                 credentials: 'include',
             }, {
@@ -328,8 +328,8 @@ describe('apiService', () => {
     describe('associateCharacter', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('associated');
-            const result = await associateCharacter('user1', 'char1', 'UserName', 'CharName', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/associate-character`, {
+            const result = await associateCharacter('user1', 'char1', 'UserName', 'CharName');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/associate-character`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -344,8 +344,8 @@ describe('apiService', () => {
     describe('unassociateCharacter', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('unassociated');
-            const result = await unassociateCharacter('user1', 'char1', 'UserName', 'CharName', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/unassociate-character`, {
+            const result = await unassociateCharacter('user1', 'char1', 'UserName', 'CharName');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/unassociate-character`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
@@ -360,8 +360,8 @@ describe('apiService', () => {
     describe('deleteSkillPlan', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('deleted');
-            const result = await deleteSkillPlan('MyPlan', backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/delete-skill-plan?planName=MyPlan`, {
+            const result = await deleteSkillPlan('MyPlan');
+            expect(apiRequest).toHaveBeenCalledWith(`/api/delete-skill-plan?planName=MyPlan`, {
                 method: 'DELETE',
                 credentials: 'include',
             }, {
@@ -375,8 +375,8 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('login started');
             const account = { Name: 'LoginAccount' };
-            const result = await initiateLogin(account, backEndURL);
-            expect(apiRequest).toHaveBeenCalledWith(`${backEndURL}/api/login`, {
+            const result = await initiateLogin(account);
+            expect(apiRequest).toHaveBeenCalledWith(`/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ account }),

@@ -163,8 +163,6 @@ const SkillPlanTable = ({ skillPlans, characters, conversions, onCopySkillPlan, 
                 })),
             ];
 
-            console.log(skillPlan)
-
             return {
                 id: skillPlan.Name,
                 planName: skillPlan.Name,

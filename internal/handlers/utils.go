@@ -15,7 +15,19 @@ import (
 // respondJSON sends a success response with JSON-encoded data.
 func respondJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		respondError(w, "Failed to encode data", http.StatusInternalServerError)
+	}
+}
+
+func respondEncodedData(w http.ResponseWriter, data interface{}) {
+	encodedData, err := json.Marshal(data)
+	if err != nil {
+		respondError(w, "Failed to encode data", http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, json.RawMessage(encodedData))
 }
 
 // respondError sends an error response in JSON format.

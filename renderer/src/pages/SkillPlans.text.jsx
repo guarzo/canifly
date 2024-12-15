@@ -48,6 +48,10 @@ describe('SkillPlans', () => {
 
     const mockSetAppData = vi.fn();
 
+    const mockOnCopy = vi.fn();
+
+    const mockOnDelete = vi.fn()
+
     beforeEach(() => {
         mockSetAppData.mockClear();
     });
@@ -58,7 +62,8 @@ describe('SkillPlans', () => {
                 characters={mockCharacters}
                 skillPlans={mockSkillPlans}
                 setAppData={mockSetAppData}
-                backEndURL="http://mock-backend"
+                onCopySkillPlan={mockOnCopy}
+                onDeleteSkillPlan={mockOnDelete}
                 conversions={mockConversions}
             />
         );
@@ -77,7 +82,8 @@ describe('SkillPlans', () => {
                 characters={mockCharacters}
                 skillPlans={mockSkillPlans}
                 setAppData={mockSetAppData}
-                backEndURL="http://mock-backend"
+                onCopySkillPlan={mockOnCopy}
+                onDeleteSkillPlan={mockOnDelete}
                 conversions={mockConversions}
             />
         );
@@ -90,19 +96,4 @@ describe('SkillPlans', () => {
         expect(screen.getByText('By Skill Plan')).toBeInTheDocument();
     });
 
-    test('window.copySkillPlan and window.deleteSkillPlan functions are defined', () => {
-        render(
-            <SkillPlans
-                characters={mockCharacters}
-                skillPlans={mockSkillPlans}
-                setAppData={mockSetAppData}
-                backEndURL="http://mock-backend"
-                conversions={mockConversions}
-            />
-        );
-
-        // After rendering, these functions should be set
-        expect(typeof window.copySkillPlan).toBe('function');
-        expect(typeof window.deleteSkillPlan).toBe('function');
-    });
 });

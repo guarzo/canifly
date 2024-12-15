@@ -135,7 +135,7 @@ describe('Sync component', () => {
             fireEvent.click(syncButton);
         });
 
-        expect(syncSubdirectory).toHaveBeenCalledWith('settings_profileA', 'userA', 'char1', 'http://localhost:8713');
+        expect(syncSubdirectory).toHaveBeenCalledWith('settings_profileA', 'userA', 'char1');
         expect(screen.getByText('Synced successfully!')).toBeInTheDocument();
     });
 
@@ -162,7 +162,7 @@ describe('Sync component', () => {
             fireEvent.click(syncAllButton);
         });
 
-        expect(syncAllSubdirectories).toHaveBeenCalledWith('settings_profileB', 'userB', 'char2', 'http://localhost:8713');
+        expect(syncAllSubdirectories).toHaveBeenCalledWith('settings_profileB', 'userB', 'char2');
         expect(screen.getByText('Sync-All complete: Sync-All successful!')).toBeInTheDocument();
     });
 
@@ -175,7 +175,7 @@ describe('Sync component', () => {
         });
 
         expect(window.electronAPI.chooseDirectory).toHaveBeenCalled();
-        expect(chooseSettingsDir).toHaveBeenCalledWith('/chosen/dir', 'http://localhost:8713');
+        expect(chooseSettingsDir).toHaveBeenCalledWith('/chosen/dir');
     });
 
     it('backup directory chosen', async () => {
@@ -187,7 +187,7 @@ describe('Sync component', () => {
         });
 
         expect(window.electronAPI.chooseDirectory).toHaveBeenCalledWith('');
-        expect(backupDirectory).toHaveBeenCalledWith('/current/dir', '/chosen/dir', 'http://localhost:8713');
+        expect(backupDirectory).toHaveBeenCalledWith('/current/dir', '/chosen/dir');
         expect(screen.getByText('Backup complete!')).toBeInTheDocument();
     });
 
@@ -199,7 +199,7 @@ describe('Sync component', () => {
             fireEvent.click(resetBtn);
         });
 
-        expect(resetToDefaultDirectory).toHaveBeenCalledWith('http://localhost:8713');
+        expect(resetToDefaultDirectory).toHaveBeenCalledWith();
         expect(screen.getByText('Directory reset to default: Tranquility')).toBeInTheDocument();
     });
 });

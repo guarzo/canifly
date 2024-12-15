@@ -41,7 +41,6 @@ describe('Mapping', () => {
             <Mapping
                 associations={[]}
                 subDirs={[]}
-                backEndURL="http://localhost:8713"
             />
         );
 
@@ -64,7 +63,6 @@ describe('Mapping', () => {
             <Mapping
                 associations={[]}
                 subDirs={subDirs}
-                backEndURL="http://localhost:8713"
             />
         );
 
@@ -90,7 +88,6 @@ describe('Mapping', () => {
             <Mapping
                 associations={[]}
                 subDirs={subDirs}
-                backEndURL="http://localhost:8713"
                 onRefreshData={mockOnRefreshData}
             />
         );
@@ -144,7 +141,6 @@ describe('Mapping', () => {
             <Mapping
                 associations={initialAssociations}
                 subDirs={subDirs}
-                backEndURL="http://localhost:8713"
                 onRefreshData={mockOnRefreshData}
             />
         );
@@ -158,7 +154,7 @@ describe('Mapping', () => {
             fireEvent.click(unassociateBtn);
         });
 
-        expect(unassociateCharacter).toHaveBeenCalledWith('user1', 'char1', 'User One', 'Char One', 'http://localhost:8713');
+        expect(unassociateCharacter).toHaveBeenCalledWith('user1', 'char1', 'User One', 'Char One');
         expect(screen.queryByText('Char One')).not.toBeInTheDocument(); // character should be removed after unassociation
         expect(mockOnRefreshData).toHaveBeenCalled();
     });

@@ -161,9 +161,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 
 		err = h.loginService.UpdateStateStatusAfterCallBack(state)
 		if err != nil {
-			h.logger.Errorf("%v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			respondError(w, err.Error(), http.StatusInternalServerError)
 		}
 		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
 
@@ -176,26 +174,25 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		_, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
 			h.logger.Error("unable to retrieve value from state")
-			http.Error(w, `{"error":"invalid state"}`, http.StatusUnauthorized)
+			respondError(w, "invalid state", http.StatusUnauthorized)
 			return
 		}
 		if !status {
 			h.logger.Error("call back not yet completed")
-			http.Error(w, `{"error":"call back not yet completed"}`, http.StatusUnauthorized)
+			respondError(w, "call back not yet completed", http.StatusUnauthorized)
 			return
 		}
 
 		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
 		session.Values[flyHttp.LoggedIn] = true
 		if err := session.Save(r, w); err != nil {
-			http.Error(w, `{"error":"failed to set session"}`, http.StatusInternalServerError)
+			respondError(w, "failed to set session", http.StatusInternalServerError)
 			return
 		}
 
-		//h.loginService.ClearState(state)
+		h.loginService.ClearState(state)
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true}`))
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 

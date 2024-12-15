@@ -34,6 +34,7 @@ describe('SkillPlanTable', () => {
             QualifiedCharacters: ["CharacterOne"],
             PendingCharacters: ["CharacterTwo"],
             MissingCharacters: ["CharacterThree"],
+            Skills: ["ABC"]
         },
         "Plan B": {
             Name: "Plan B",
@@ -65,9 +66,14 @@ describe('SkillPlanTable', () => {
     ];
 
     const mockConversions =  {}
+    const mockOnCopy = vi.fn();
+
+    const mockOnDelete = vi.fn()
+
 
     test('renders skill plans and allows expansion', async () => {
-        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} conversions={mockConversions}/>);
+        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters}
+                               conversions={mockConversions} onDeleteSkillPlan={mockOnDelete} onCopySkillPlan={mockOnCopy}/>);
 
         // Check if both plan names are rendered
         expect(screen.getByText('Plan A')).toBeInTheDocument();
@@ -87,7 +93,8 @@ describe('SkillPlanTable', () => {
     });
 
     test('copy and delete skill plan actions', async () => {
-        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} conversions={mockConversions}/>);
+        render(<SkillPlanTable skillPlans={mockSkillPlans} characters={mockCharacters} conversions={mockConversions}
+        onDeleteSkillPlan={mockOnDelete} onCopySkillPlan={mockOnCopy}/>);
         const user = userEvent.setup();
 
         // For Plan A
@@ -95,9 +102,9 @@ describe('SkillPlanTable', () => {
         const planADeleteButton = screen.getAllByRole('button', { name: /delete skill plan/i })[0];
 
         await user.click(planACopyButton);
-        expect(window.copySkillPlan).toHaveBeenCalledWith('Plan A');
-
+        expect(mockOnCopy).toHaveBeenCalledWith('Plan A', ['ABC']);
+        
         await user.click(planADeleteButton);
-        expect(window.deleteSkillPlan).toHaveBeenCalledWith('Plan A');
+        expect(mockOnDelete).toHaveBeenCalledWith('Plan A');
     });
 });

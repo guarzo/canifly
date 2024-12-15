@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -33,10 +32,9 @@ func NewDashboardHandler(
 func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache bool) {
 	appState := h.dashboardService.GetCurrentAppState()
 
-	// If we have cached data and we are allowed to use it (noCache == false):
+	// If we have cached data, and we are allowed to use it (noCache == false):
 	if !noCache && len(appState.AccountData.Accounts) > 0 {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(appState)
+		respondEncodedData(w, appState)
 
 		// Attempt a background refresh if it's been more than 5s since the last refresh
 		now := time.Now().UnixNano()
@@ -66,18 +64,19 @@ func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache 
 	updatedData, err := h.dashboardService.RefreshAccountsAndState()
 	if err != nil {
 		h.logger.Errorf("Failed to validate accounts: %v", err)
-		http.Error(w, `{"error":"Failed to validate accounts"}`, http.StatusInternalServerError)
+		respondError(w, "Failed to validate accounts", http.StatusInternalServerError)
 		return
 	}
 
 	// After a successful noCache (or initial) refresh, update the lastRefreshTime
 	atomic.StoreInt64(&h.lastRefreshTime, time.Now().UnixNano())
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(updatedData); err != nil {
-		http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
-		return
-	}
+	//w.Header().Set("Content-Type", "application/json")
+	//if err := json.NewEncoder(w).Encode(updatedData); err != nil {
+	//	http.Error(w, `{"error":"Failed to encode data"}`, http.StatusInternalServerError)
+	//	return
+	//}
+	respondEncodedData(w, updatedData)
 }
 
 func (h *DashboardHandler) GetDashboardData() http.HandlerFunc {
