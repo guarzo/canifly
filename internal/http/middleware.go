@@ -14,6 +14,7 @@ import (
 func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(r.URL.Path)
 			// Define public routes that don't require authentication
 			publicRoutes := map[string]bool{
 				"/static":             true,

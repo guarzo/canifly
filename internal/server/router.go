@@ -41,9 +41,9 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
 
-	r.HandleFunc("/api/get-eve-plan", skillPlanHandler.GetSkillPlanFile())
-	r.HandleFunc("/api/save-eve-plan", skillPlanHandler.SaveSkillPlan())
-	r.HandleFunc("/api/delete-eve-plan", skillPlanHandler.DeleteSkillPlan())
+	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
+	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
+	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
 
 	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
@@ -73,7 +73,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 func createCORSHandler(h http.Handler) http.Handler {
 	return handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:5173"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS", "DELETE"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"}),
 		handlers.AllowCredentials(),
 	)(h)

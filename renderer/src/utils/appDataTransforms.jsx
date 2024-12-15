@@ -127,3 +127,21 @@ export function removeAccountFromAppData(prev, accountName) {
         }
     };
 }
+
+export function removePlanFromSkillPlans(prev, planName) {
+    if (!prev) return prev;
+
+    console.log("planName: ", planName)
+    console.log(prev.EveData.SkillPlans)
+    const updatedSkillPlans = { ...prev.EveData.SkillPlans };
+    delete updatedSkillPlans[planName];
+    console.log(updatedSkillPlans)
+
+    return {
+        ...prev,
+        EveData: {
+            ...prev.EveData,
+            SkillPlans: updatedSkillPlans
+        }
+    };
+}

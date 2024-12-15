@@ -4,75 +4,16 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import CharacterTable from '../components/skillplan/CharacterTable.jsx';
 import SkillPlanTable from '../components/skillplan/SkillPlanTable.jsx';
-import { toast } from 'react-toastify';
 import {Typography, ToggleButtonGroup, ToggleButton, Box} from '@mui/material';
 import {
     People as PeopleIcon,
     ListAlt as SkillPlansIcon,
 } from '@mui/icons-material';
-import { deleteSkillPlan as deleteSkillPlanApi } from '../api/apiService.jsx';
 import {skillPlanInstructions} from "../utils/instructions.jsx";
 import PageHeader from "../components/common/SubPageHeader.jsx";
 
-const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversions }) => {
+const SkillPlans = ({ characters, skillPlans, conversions, onCopySkillPlan, onDeleteSkillPlan }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
-
-    useEffect(() => {
-        window.copySkillPlan = (planName) => {
-            const plan = skillPlans[planName];
-            if (!plan) {
-                console.error(`Skill plan not found: ${planName}`);
-                toast.warning(`Skill plan not found: ${planName}`, { autoClose: 1500 });
-                return;
-            }
-
-            const planSkills = plan.Skills || {};
-
-            if (Object.keys(planSkills).length === 0) {
-                console.warn(`No skills available to copy in the plan: ${planName}`);
-                toast.warning(`No skills available to copy in the plan: ${planName}.`, {
-                    autoClose: 1500,
-                });
-                return;
-            }
-
-            const skillText = Object.entries(planSkills)
-                .map(([skill, detail]) => `${skill} ${detail.Level}`)
-                .join('\n');
-
-            navigator.clipboard
-                .writeText(skillText)
-                .then(() => {
-                    toast.success(`Copied ${Object.keys(planSkills).length} skills from ${planName}.`, {
-                        autoClose: 1500,
-                    });
-                })
-                .catch((err) => {
-                    console.error('Copy to clipboard failed:', err);
-                    toast.error('Failed to copy skill plan.', { autoClose: 1500 });
-                });
-        };
-
-        window.deleteSkillPlan = async (planName) => {
-            const result = await deleteSkillPlanApi(planName, backEndURL);
-            if (result && result.success) {
-                toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
-                // Update the state to remove the deleted skill plan
-                setAppData((prevAppData) => {
-                    const updatedSkillPlans = { ...prevAppData.EveData.SkillPlans };
-                    delete updatedSkillPlans[planName];
-
-                    return {
-                        ...prevAppData,
-                        EveData: {
-                            ...prevAppData.EveData,
-                            SkillPlans: updatedSkillPlans
-                        }
-                    };
-                });
-            }
-        };
-    }, [skillPlans, setAppData, backEndURL]);
 
     const handleViewChange = (event, newValue) => {
         if (newValue) {
@@ -153,7 +94,8 @@ const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversion
                             >
                                 By Skill Plan
                             </Typography>
-                            <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions} />
+                            <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions}
+                                            onCopySkillPlan={onCopySkillPlan} onDeleteSkillPlan={onDeleteSkillPlan} />
                         </div>
                     )}
                 </div>
@@ -165,8 +107,8 @@ const SkillPlans = ({ characters, skillPlans, setAppData, backEndURL, conversion
 SkillPlans.propTypes = {
     characters: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
-    setAppData: PropTypes.func.isRequired,
-    backEndURL: PropTypes.string.isRequired,
+    onCopySkillPlan: PropTypes.func.isRequired,
+    onDeleteSkillPlan: PropTypes.func.isRequired,
     conversions: PropTypes.object.isRequired,
 };
 

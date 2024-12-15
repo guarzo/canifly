@@ -77,7 +77,7 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 
@@ -101,6 +101,6 @@ func (h *SkillPlanHandler) DeleteSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		respondJSON(w, map[string]bool{"success": true})
 	}
 }

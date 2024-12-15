@@ -1,6 +1,7 @@
 // src/api/apiRequest.js
 import { toast } from 'react-toastify';
 import { log, error as cerr } from '../utils/logger.jsx'
+import { backEndURL} from "../Config.jsx";
 
 export async function apiRequest(url, fetchOptions, {
     onSuccess,
@@ -9,7 +10,7 @@ export async function apiRequest(url, fetchOptions, {
     errorMessage
 } = {}) {
     try {
-        const response = await fetch(url, fetchOptions);
+        const response = await fetch(backEndURL+url, fetchOptions);
 
         let result;
         const contentType = response.headers.get('Content-Type');

@@ -2,10 +2,10 @@
 
 import { apiRequest } from './apiRequest';
 import { normalizeAppData } from '../utils/dataNormalizer';
-import { isDev } from '../Config';
+import {backEndURL, isDev} from '../Config';
 
-export async function getAppData(backEndURL) {
-    const response = await apiRequest(`${backEndURL}/api/app-data`, {
+export async function getAppData() {
+    const response = await apiRequest(`/api/app-data`, {
         credentials: 'include'
     }, {
         errorMessage: isDev ? 'Failed to load app data.' : undefined
@@ -13,8 +13,8 @@ export async function getAppData(backEndURL) {
     return response ? normalizeAppData(response) : null;
 }
 
-export async function getAppDataNoCache(backEndURL) {
-    const response = await apiRequest(`${backEndURL}/api/app-data-no-cache`, {
+export async function getAppDataNoCache() {
+    const response = await apiRequest(`/api/app-data-no-cache`, {
         credentials: 'include'
     }, {
         errorMessage: 'Failed to load data.'
@@ -124,8 +124,8 @@ export async function saveSkillPlan(planName, planContents) {
 }
 
 
-export async function saveUserSelections(newSelections, backEndURL) {
-    return apiRequest(`${backEndURL}/api/save-user-selections`, {
+export async function saveUserSelections(newSelections) {
+    return apiRequest(`/api/save-user-selections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -135,8 +135,8 @@ export async function saveUserSelections(newSelections, backEndURL) {
     });
 }
 
-export async function syncSubdirectory(profile, userId, charId, backEndURL) {
-    return apiRequest(`${backEndURL}/api/sync-subdirectory`, {
+export async function syncSubdirectory(profile, userId, charId) {
+    return apiRequest(`/api/sync-subdirectory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -146,8 +146,8 @@ export async function syncSubdirectory(profile, userId, charId, backEndURL) {
     });
 }
 
-export async function syncAllSubdirectories(profile, userId, charId, backEndURL) {
-    return apiRequest(`${backEndURL}/api/sync-all-subdirectories`, {
+export async function syncAllSubdirectories(profile, userId, charId) {
+    return apiRequest(`$/api/sync-all-subdirectories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -157,8 +157,8 @@ export async function syncAllSubdirectories(profile, userId, charId, backEndURL)
     });
 }
 
-export async function chooseSettingsDir(directory, backEndURL) {
-    return apiRequest(`${backEndURL}/api/choose-settings-dir`, {
+export async function chooseSettingsDir(directory) {
+    return apiRequest(`/api/choose-settings-dir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -168,8 +168,8 @@ export async function chooseSettingsDir(directory, backEndURL) {
     });
 }
 
-export async function backupDirectory(targetDir, backupDir, backEndURL) {
-    return apiRequest(`${backEndURL}/api/backup-directory`, {
+export async function backupDirectory(targetDir, backupDir) {
+    return apiRequest(`/api/backup-directory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -179,8 +179,8 @@ export async function backupDirectory(targetDir, backupDir, backEndURL) {
     });
 }
 
-export async function resetToDefaultDirectory(backEndURL) {
-    return apiRequest(`${backEndURL}/api/reset-to-default-directory`, {
+export async function resetToDefaultDirectory() {
+    return apiRequest(`/api/reset-to-default-directory`, {
         method: 'POST',
         credentials: 'include',
     }, {
@@ -188,8 +188,8 @@ export async function resetToDefaultDirectory(backEndURL) {
     });
 }
 
-export async function associateCharacter(userId, charId, userName, charName, backEndURL) {
-    return apiRequest(`${backEndURL}/api/associate-character`, {
+export async function associateCharacter(userId, charId, userName, charName) {
+    return apiRequest(`/api/associate-character`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -199,8 +199,8 @@ export async function associateCharacter(userId, charId, userName, charName, bac
     });
 }
 
-export async function unassociateCharacter(userId, charId, userName, charName, backEndURL) {
-    return apiRequest(`${backEndURL}/api/unassociate-character`, {
+export async function unassociateCharacter(userId, charId, userName, charName) {
+    return apiRequest(`/api/unassociate-character`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
@@ -210,8 +210,8 @@ export async function unassociateCharacter(userId, charId, userName, charName, b
     });
 }
 
-export async function deleteSkillPlan(planName, backEndURL) {
-    return apiRequest(`${backEndURL}/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
+export async function deleteSkillPlan(planName) {
+    return apiRequest(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
         method: 'DELETE',
         credentials: 'include',
     }, {
@@ -219,9 +219,9 @@ export async function deleteSkillPlan(planName, backEndURL) {
     });
 }
 
-export async function initiateLogin(account, backEndURL) {
+export async function initiateLogin(account) {
     // Removed isDev parameter; we can handle isDev in the component if needed
-    return apiRequest(`${backEndURL}/api/login`, {
+    return apiRequest(`/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account }),
@@ -230,3 +230,15 @@ export async function initiateLogin(account, backEndURL) {
         errorMessage: 'Failed to initiate login.'
     });
 }
+
+
+export async function finalizelogin(state) {
+    return apiRequest(`/api/finalize-login?state=${state}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+    }, {
+        errorMessage: 'Failed to initiate finalize login.'
+    });
+}
+

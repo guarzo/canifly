@@ -18,14 +18,15 @@ function AppRoutes({
                        handleUpdateAccountName,
                        handleRemoveCharacter,
                        handleRemoveAccount,
+                       handleDeleteSkillPlan,
+                       handleCopySkillPlan,
                        silentRefreshData,
                        setAppData,
                        characters,
-                       backEndURL,
                        logInCallBack
                    }) {
     if (!isAuthenticated || loggedOut) {
-        return <Landing backEndURL={backEndURL} logInCallBack={logInCallBack} />;
+        return <Landing logInCallBack={logInCallBack} />;
     } else if (!appData) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
@@ -68,8 +69,9 @@ function AppRoutes({
                             characters={characters}
                             skillPlans={skillPlans} // Using EveData.SkillPlans
                             setAppData={setAppData}
-                            backEndURL={backEndURL}
                             conversions={eveConversions}
+                            onDeleteSkillPlan={handleDeleteSkillPlan}
+                            onCopySkillPlan={handleCopySkillPlan}
                         />
                     }
                 />
@@ -82,7 +84,6 @@ function AppRoutes({
                             currentSettingsDir={currentSettingsDir}
                             userSelections={userSelections}
                             lastBackupDir={lastBackupDir}
-                            backEndURL={backEndURL}
                         />
                     }
                 />
@@ -93,7 +94,6 @@ function AppRoutes({
                             associations={associations}
                             subDirs={eveProfiles}
                             onRefreshData={silentRefreshData}
-                            backEndURL={backEndURL}
                         />
                     }
                 />
@@ -131,7 +131,6 @@ AppRoutes.propTypes = {
     silentRefreshData: PropTypes.func.isRequired,
     setAppData: PropTypes.func.isRequired,
     characters: PropTypes.array.isRequired,
-    backEndURL: PropTypes.string.isRequired,
     logInCallBack: PropTypes.func.isRequired
 };
 

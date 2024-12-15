@@ -1,5 +1,7 @@
 // src/hooks/useLoginCallback.js
 import { useCallback } from 'react';
+import { log } from "../utils/logger.jsx"
+import {finalizelogin} from "../api/apiService.jsx";
 
 /**
  * Custom hook to handle login callback logic.
@@ -9,19 +11,18 @@ import { useCallback } from 'react';
  * @param {Function} loginRefresh - Function to try fetching user data after finalization.
  * @param {Function} setLoggedOut - Setter for loggedOut state.
  * @param {Function} setIsAuthenticated - Setter for isAuthenticated state.
- * @param {string} backEndURL - Base URL for the backend.
  * @returns {Function} logInCallBack - A function that, when called with a state string, starts the login finalization polling.
  */
-export function useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL) {
+export function useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated) {
     // We define logInCallBack using the values currently in this closure.
     // When this hook is re-run (due to state changes), a new logInCallBack
     // will be created with updated references to isAuthenticated, loggedOut, etc.
     return useCallback((state) => {
-        console.log("logInCallBack called with state:", state);
+        log("logInCallBack called with state:", state);
         setLoggedOut(false); // Ensure we start in a non-logged-out state
 
         let attempts = 0;
-        const maxAttempts = 6;
+        const maxAttempts = 25;
         let finalized = false;
 
         const interval = setInterval(async () => {
@@ -29,10 +30,10 @@ export function useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLo
             // These values reflect the state at the time this hook last ran.
             // If isAuthenticated or loggedOut change, useLoginCallback is re-run,
             // recreating logInCallBack with updated values.
-            console.log(`Interval tick: attempts=${attempts}, isAuthenticated=${isAuthenticated}, finalized=${finalized}, loggedOut=${loggedOut}`);
+            log(`Interval tick: attempts=${attempts}, isAuthenticated=${isAuthenticated}, finalized=${finalized}, loggedOut=${loggedOut}`);
 
             if (isAuthenticated) {
-                console.log("User authenticated, clearing interval");
+                log("User authenticated, clearing interval");
                 clearInterval(interval);
                 return;
             }
@@ -45,41 +46,38 @@ export function useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLo
             }
 
             if (!finalized) {
-                console.log("Calling finalize-login endpoint...");
-                const finalizeResp = await fetch(`${backEndURL}/api/finalize-login?state=${state}`, {
-                    credentials: 'include'
-                });
-
+                log("Calling finalize-login endpoint...");
+                const finalizeResp = await finalizelogin(state)
                 if (finalizeResp.ok) {
                     finalized = true;
-                    console.log("Finalization succeeded, now trying to fetch data via loginRefresh...");
+                    log("Finalization succeeded, now trying to fetch data via loginRefresh...");
                     const success = await loginRefresh();
-                    console.log("loginRefresh returned:", success);
+                    log("loginRefresh returned:", success);
                     if (success) {
-                        console.log("Login finalized and data fetched! Setting isAuthenticated=true and clearing interval");
+                        log("Login finalized and data fetched! Setting isAuthenticated=true and clearing interval");
                         setIsAuthenticated(true);
                         clearInterval(interval);
                     } else {
-                        console.log("Session set but data fetch failed, will retry data fetch on next interval...");
+                        log("Session set but data fetch failed, will retry data fetch on next interval...");
                     }
                 } else {
-                    console.log("Not ready yet, retrying finalize-login...");
+                    log("Not ready yet, retrying finalize-login...");
                 }
             } else {
                 // Already finalized, just try loginRefresh again
-                console.log("Already finalized, retrying loginRefresh...");
+                log("Already finalized, retrying loginRefresh...");
                 const success = await loginRefresh();
-                console.log("loginRefresh returned:", success);
+                log("loginRefresh returned:", success);
                 if (success) {
-                    console.log("Data fetched after finalization! Setting isAuthenticated=true and clearing interval");
+                   log("Data fetched after finalization! Setting isAuthenticated=true and clearing interval");
                     setIsAuthenticated(true);
                     clearInterval(interval);
                 } else {
-                    console.log("Still no data after finalization, retrying data fetch on next interval...");
+                    log("Still no data after finalization, retrying data fetch on next interval...");
                 }
             }
         }, 5000);
 
-        console.log("logInCallBack: interval created");
-    }, [isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL]);
+        log("logInCallBack: interval created");
+    }, [isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated]);
 }

@@ -1,11 +1,11 @@
-import { useCallback } from 'react';
+import {useCallback, useEffect} from 'react';
 import { log } from '../utils/logger';
 import {
     removeCharacterFromAppData,
     updateCharacterInAppData,
     toggleAccountStatusInAppData,
     updateAccountNameInAppData,
-    removeAccountFromAppData
+    removeAccountFromAppData, removePlanFromSkillPlans
 } from '../utils/appDataTransforms';
 
 import {
@@ -16,8 +16,10 @@ import {
     updateAccountName as updateAccountNameApi,
     removeAccount as removeAccountApi,
     addCharacter as addCharacterApi,
-    saveSkillPlan as saveSkillPlanApi
+    saveSkillPlan as saveSkillPlanApi,
+    deleteSkillPlan as deleteSkillPlanApi,
 } from '../api/apiService.jsx';
+import {toast} from "react-toastify";
 
 /**
  * Custom hook that encapsulates all the handler functions used in App.
@@ -100,6 +102,49 @@ export function useAppHandlers({
         }
     }, [setIsSkillPlanModalOpen, fetchData]);
 
+    const handleDeleteSkillPlan = useCallback(async (planName) => {
+        log("handleDeleteSkillPlan called with planName:", planName);
+        const result = await deleteSkillPlanApi(planName);
+        console.log(result)
+        if (result && result.success) {
+            toast.success(`Deleted skill plan: ${planName}`, { autoClose: 1500 });
+            setAppData((prev) => removePlanFromSkillPlans(prev, planName));
+        }
+    }, [fetchData]);
+
+    const handleCopySkillPlan = useCallback(async (planName, skills) => {
+        log("handleCopySkillPlan called with planName:", planName);
+        if (!planName) {
+            console.error(`Skill plan not found: ${planName}`);
+            toast.warning(`Skill plan not found: ${planName}`, { autoClose: 1500 });
+            return;
+        }
+
+        if (Object.keys(skills).length === 0) {
+            console.warn(`No skills available to copy in the plan: ${planName}`);
+            toast.warning(`No skills available to copy in the plan: ${planName}.`, {
+                autoClose: 1500,
+            });
+            return;
+        }
+
+        const skillText = Object.entries(skills)
+            .map(([skill, detail]) => `${skill} ${detail.Level}`)
+            .join('\n');
+
+        navigator.clipboard
+            .writeText(skillText)
+            .then(() => {
+                toast.success(`Copied ${Object.keys(skills).length} skills from ${planName}.`, {
+                    autoClose: 1500,
+                });
+            })
+            .catch((err) => {
+                console.error('Copy to clipboard failed:', err);
+                toast.error('Failed to copy skill plan.', { autoClose: 1500 });
+            });
+    },[fetchData]);
+
     return {
         handleLogout,
         handleToggleAccountStatus,
@@ -108,6 +153,8 @@ export function useAppHandlers({
         handleUpdateAccountName,
         handleRemoveAccount,
         handleAddCharacter,
-        handleSaveSkillPlan
+        handleSaveSkillPlan,
+        handleDeleteSkillPlan,
+        handleCopySkillPlan,
     };
 }

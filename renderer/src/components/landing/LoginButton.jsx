@@ -8,7 +8,7 @@ import { initiateLogin } from '../../api/apiService';
 import { error as cError } from '../../utils/logger';
 import { isDev } from '../../Config';
 
-const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
+const LoginButton = ({ onModalOpenChange, logInCallBack }) => {
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleOpenModal = () => {
@@ -23,7 +23,7 @@ const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
 
     const handleLoginSubmit = async (account) => {
         try {
-            const data = await initiateLogin(account, backEndURL);
+            const data = await initiateLogin(account);
             console.log('Login response data:', data);
             // Data should have {redirectURL, state} on success
             if (data && data.redirectURL && data.state) {
@@ -73,7 +73,6 @@ const LoginButton = ({ onModalOpenChange, backEndURL, logInCallBack }) => {
 
 LoginButton.propTypes = {
     onModalOpenChange: PropTypes.func.isRequired,
-    backEndURL: PropTypes.string.isRequired,
     logInCallBack: PropTypes.func.isRequired,
 };
 

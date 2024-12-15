@@ -3,7 +3,7 @@ import LoginButton from '../components/landing/LoginButton.jsx';
 import { Container, Box } from '@mui/material';
 import PropTypes from "prop-types";
 
-const Landing = ({backEndURL, logInCallBack}) => {
+const Landing = ({logInCallBack}) => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const handleModalOpenChange = (isOpen) => {
@@ -24,7 +24,6 @@ const Landing = ({backEndURL, logInCallBack}) => {
             <Box textAlign="center" className={!isLoginModalOpen ? 'animate-pulse' : ''}>
                 <LoginButton
                     onModalOpenChange={handleModalOpenChange}
-                    backEndURL={backEndURL}
                     logInCallBack={logInCallBack}
                 />
             </Box>
@@ -33,7 +32,6 @@ const Landing = ({backEndURL, logInCallBack}) => {
 };
 
 Landing.propTypes = {
-    backEndURL: PropTypes.string.isRequired,
     logInCallBack: PropTypes.func.isRequired,
 };
 

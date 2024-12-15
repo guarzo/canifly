@@ -5,7 +5,6 @@ import { HashRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
-import { backEndURL } from './Config';
 import { useLoginCallback } from './hooks/useLoginCallback';
 import { log, trace } from './utils/logger';
 import { useAppHandlers } from './hooks/useAppHandlers';
@@ -28,6 +27,7 @@ const App = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [loggedOut, setLoggedOut] = useState(false);
 
+
     useEffect(() => {
         log("isAuthenticated changed:", isAuthenticated);
     }, [isAuthenticated]);
@@ -35,7 +35,7 @@ const App = () => {
     const fetchData = useCallback(async () => {
         log("fetchData called");
         setIsLoading(true);
-        const data = await getAppData(backEndURL);
+        const data = await getAppData();
         if (data) {
             setIsAuthenticated(data.LoggedIn);
             setAppData(data);
@@ -46,7 +46,7 @@ const App = () => {
     const loginRefresh = useCallback(async () => {
         log("loginRefresh called");
         setIsLoading(true);
-        const data = await getAppDataNoCache(backEndURL);
+        const data = await getAppDataNoCache();
         setIsLoading(false);
         if (!data) {
             return false;
@@ -60,7 +60,7 @@ const App = () => {
         log("silentRefreshData called");
         if (!isAuthenticated || loggedOut) return;
         setIsRefreshing(true);
-        const data = await getAppDataNoCache(backEndURL);
+        const data = await getAppDataNoCache();
         setIsRefreshing(false);
         if (data) {
             setIsAuthenticated(data.LoggedIn);
@@ -73,7 +73,7 @@ const App = () => {
         trace();
     }, [loggedOut]);
 
-    const loginCallbackFn = useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated, backEndURL);
+    const loginCallbackFn = useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated);
 
     const logInCallBack = (state) => {
         loginCallbackFn(state);
@@ -87,7 +87,9 @@ const App = () => {
         handleUpdateAccountName,
         handleRemoveAccount,
         handleAddCharacter,
-        handleSaveSkillPlan
+        handleSaveSkillPlan,
+        handleDeleteSkillPlan,
+        handleCopySkillPlan,
     } = useAppHandlers({
         setAppData,
         fetchData,
@@ -95,7 +97,7 @@ const App = () => {
         setLoggedOut,
         setIsSkillPlanModalOpen,
         isAuthenticated,
-        loggedOut
+        loggedOut,
     });
 
     const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
@@ -129,8 +131,6 @@ const App = () => {
     const accounts = appData?.AccountData?.Accounts || [];
     const characters = accounts.flatMap((account) => account.Characters) || [];
     const existingAccounts = accounts.map((account) => account.Name) || [];
-    log("appdata", appData);
-    log("identities", characters)
 
     return (
         <ErrorBoundary>
@@ -156,10 +156,11 @@ const App = () => {
                                 handleUpdateAccountName={handleUpdateAccountName}
                                 handleRemoveCharacter={handleRemoveCharacter}
                                 handleRemoveAccount={handleRemoveAccount}
+                                handleDeleteSkillPlan={handleDeleteSkillPlan}
+                                handleCopySkillPlan={handleCopySkillPlan}
                                 silentRefreshData={silentRefreshData}
                                 setAppData={setAppData}
                                 characters={characters}
-                                backEndURL={backEndURL}
                                 logInCallBack={logInCallBack}
                             />
                         </main>

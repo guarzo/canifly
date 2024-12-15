@@ -1,6 +1,7 @@
 // src/components/ErrorBoundary.jsx
 
 import React from 'react';
+import { error as cerr } from '../../utils/logger.jsx'
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -15,7 +16,7 @@ class ErrorBoundary extends React.Component {
 
     componentDidCatch(error, info) {
         // Log error details
-        console.error("ErrorBoundary caught an error:", error, info);
+        cerr("ErrorBoundary caught an error:", error, info);
     }
 
     render() {

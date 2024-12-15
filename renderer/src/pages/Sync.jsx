@@ -31,7 +31,6 @@ const Sync = ({
                   currentSettingsDir,
                   userSelections,
                   lastBackupDir,
-                  backEndURL,
               }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [selections, setSelections] = useState({});
@@ -58,11 +57,11 @@ const Sync = ({
     }, [settingsData, userSelections]);
 
     const saveSelectionsCallback = useCallback(async (newSelections) => {
-        const result = await saveUserSelections(newSelections, backEndURL);
+        const result = await saveUserSelections(newSelections);
         if (!result || !result.success) {
             // Errors handled by apiRequest/toast internally
         }
-    }, [backEndURL]);
+    }, []);
 
     const handleSelectionChange = (profile, field, value) => {
         setSelections(prev => {
@@ -104,7 +103,7 @@ const Sync = ({
         try {
             setIsLoading(true);
             toast.info('Syncing...', { autoClose: 1500 });
-            const result = await syncSubdirectory(profile, userId, charId, backEndURL);
+            const result = await syncSubdirectory(profile, userId, charId);
             if (result && result.success) {
                 toast.success(result.message);
                 setMessage('Synced successfully!');
@@ -132,7 +131,7 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const result = await syncAllSubdirectories(profile, userId, charId, backEndURL);
+            const result = await syncAllSubdirectories(profile, userId, charId);
             if (result && result.success) {
                 toast.success(`Sync-All complete: ${result.message}`);
                 setMessage(`Sync-All complete: ${result.message}`);
@@ -154,7 +153,7 @@ const Sync = ({
                 return;
             }
 
-            const result = await chooseSettingsDir(chosenDir, backEndURL);
+            const result = await chooseSettingsDir(chosenDir);
             if (result && result.success) {
                 setIsDefaultDir(false);
                 toast.success(`Settings directory chosen: ${chosenDir}`);
@@ -179,7 +178,7 @@ const Sync = ({
             }
 
             toast.info('Starting backup...');
-            const result = await backupDirectory(currentSettingsDir, chosenDir, backEndURL);
+            const result = await backupDirectory(currentSettingsDir, chosenDir);
             if (result && result.success) {
                 toast.success(result.message);
                 setMessage('Backup complete!');
@@ -201,7 +200,7 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            const result = await resetToDefaultDirectory(backEndURL);
+            const result = await resetToDefaultDirectory();
             if (result && result.success) {
                 setIsDefaultDir(true);
                 toast.success('Directory reset to default: Tranquility');
@@ -272,7 +271,6 @@ Sync.propTypes = {
     currentSettingsDir: PropTypes.string.isRequired,
     lastBackupDir: PropTypes.string.isRequired,
     userSelections: PropTypes.object.isRequired,
-    backEndURL: PropTypes.string.isRequired,
 };
 
 export default Sync;

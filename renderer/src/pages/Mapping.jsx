@@ -16,7 +16,7 @@ function roundToSeconds(mtime) {
     return date.toISOString();
 }
 
-const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, backEndURL }) => {
+const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) => {
     const [accounts, setAccounts] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [associations, setAssociations] = useState(initialAssociations);
@@ -99,7 +99,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
 
         if (!confirmAssoc.isConfirmed) return;
 
-        const result = await associateCharacter(userId, charId, userName, charName, backEndURL);
+        const result = await associateCharacter(userId, charId, userName, charName );
         if (result && result.success) {
             toast.success(result.message);
             setAvailableCharacters(prev => prev.filter(ch => ch.charId !== charId));
@@ -120,7 +120,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData, ba
 
         if (!confirmUnassoc.isConfirmed) return;
 
-        const result = await unassociateCharacter(userId, charId, userName, charName, backEndURL);
+        const result = await unassociateCharacter(userId, charId, userName, charName);
         if (result && result.success) {
             toast.success(result.message);
             setAssociations(prev => prev.filter(a => a.charId !== charId || a.userId !== userId));
@@ -202,7 +202,6 @@ Mapping.propTypes = {
         })
     ).isRequired,
     onRefreshData: PropTypes.func,
-    backEndURL: PropTypes.string.isRequired,
 };
 
 export default Mapping;

@@ -25,7 +25,7 @@ import {
 
 import { calculateDaysFromToday } from "../../utils/formatter.jsx";
 
-const SkillPlanRow = ({ row, conversions }) => {
+const SkillPlanRow = ({ row, conversions, contents, onCopySkillPlan, onDeleteSkillPlan }) => {
     const [open, setOpen] = React.useState(false);
 
     // Lookup typeID from conversions map
@@ -69,7 +69,7 @@ const SkillPlanRow = ({ row, conversions }) => {
                     <Tooltip title="Copy Skill Plan" arrow>
                         <IconButton
                             size="small"
-                            onClick={() => window.copySkillPlan(row.planName)}
+                            onClick={() => onCopySkillPlan(row.planName, row.contents)}
                             sx={{ color: '#14b8a6', '&:hover': { color: '#ffffff' }, mr: 1 }}
                         >
                             <ContentCopy fontSize="small" />
@@ -78,7 +78,7 @@ const SkillPlanRow = ({ row, conversions }) => {
                     <Tooltip title="Delete Skill Plan" arrow>
                         <IconButton
                             size="small"
-                            onClick={() => window.deleteSkillPlan(row.planName)}
+                            onClick={() => onDeleteSkillPlan(row.planName)}
                             sx={{ color: '#ef4444', '&:hover': { color: '#ffffff' } }}
                         >
                             <Delete fontSize="small" />
@@ -122,9 +122,11 @@ const SkillPlanRow = ({ row, conversions }) => {
 SkillPlanRow.propTypes = {
     row: PropTypes.object.isRequired,
     conversions: PropTypes.object.isRequired,
+    onCopySkillPlan: PropTypes.func.isRequired,
+    onDeleteSkillPlan: PropTypes.func.isRequired,
 };
 
-const SkillPlanTable = ({ skillPlans, characters, conversions }) => {
+const SkillPlanTable = ({ skillPlans, characters, conversions, onCopySkillPlan, onDeleteSkillPlan }) => {
     const skillPlanData = useMemo(() => {
         return Object.values(skillPlans).map((skillPlan) => {
             const qualifiedCharacters = skillPlan.QualifiedCharacters || [];
@@ -161,9 +163,12 @@ const SkillPlanTable = ({ skillPlans, characters, conversions }) => {
                 })),
             ];
 
+            console.log(skillPlan)
+
             return {
                 id: skillPlan.Name,
                 planName: skillPlan.Name,
+                contents: skillPlan.Skills,
                 children,
             };
         });
@@ -186,7 +191,7 @@ const SkillPlanTable = ({ skillPlans, characters, conversions }) => {
                     </TableHead>
                     <TableBody>
                         {skillPlanData.map((row) => (
-                            <SkillPlanRow key={row.id} row={row} conversions={conversions} />
+                            <SkillPlanRow key={row.id} row={row} conversions={conversions} contents={row.contents} onCopySkillPlan={onCopySkillPlan} onDeleteSkillPlan={onDeleteSkillPlan} />
                         ))}
                     </TableBody>
                 </Table>
@@ -199,6 +204,8 @@ SkillPlanTable.propTypes = {
     skillPlans: PropTypes.object.isRequired,
     characters: PropTypes.array.isRequired,
     conversions: PropTypes.object.isRequired,
+    onCopySkillPlan: PropTypes.func.isRequired,
+    onDeleteSkillPlan: PropTypes.func.isRequired,
 };
 
 export default SkillPlanTable;
