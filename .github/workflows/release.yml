@@ -37,7 +37,7 @@ jobs:
           echo "SECRET_KEY=${SECRET_KEY}" >> internal/embed/config/.env
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install && cd renderer && npm install
 
       - name: Run Tests
         run: npm test

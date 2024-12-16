@@ -10,9 +10,9 @@ import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx'
 import {mappingInstructions} from './../utils/instructions';
 import PageHeader from "../components/common/SubPageHeader.jsx"; // Imported from a separate file
 
-function roundToSeconds(mtime) {
+function roundToMinute(mtime) {
     const date = new Date(mtime);
-    date.setMilliseconds(0);
+    date.setSeconds(0);
     return date.toISOString();
 }
 
@@ -29,7 +29,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         const userMap = {};
         subDirs.forEach(mapping => {
             mapping.availableUserFiles.forEach(userFile => {
-                const roundedMtime = roundToSeconds(userFile.mtime);
+                const roundedMtime = roundToMinute(userFile.mtime);
                 if (!userMap[userFile.userId] || new Date(roundedMtime) > new Date(userMap[userFile.userId].mtime)) {
                     userMap[userFile.userId] = { ...userFile, mtime: roundedMtime };
                 }
@@ -42,7 +42,7 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         const charMap = {};
         subDirs.forEach(mapping => {
             mapping.availableCharFiles.forEach(charFile => {
-                const roundedMtime = roundToSeconds(charFile.mtime);
+                const roundedMtime = roundToMinute(charFile.mtime);
                 const { charId } = charFile;
                 if (!charMap[charId] || new Date(roundedMtime) > new Date(charMap[charId].mtime)) {
                     charMap[charId] = { ...charFile, mtime: roundedMtime, profile: mapping.profile };
@@ -76,6 +76,9 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
 
         setMtimeToColor(colorMapping);
     };
+
+    console.log(mtimeToColor)
+
 
     const handleDragStart = (event, charId) => {
         event.dataTransfer.setData('text/plain', charId);

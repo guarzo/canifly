@@ -18,10 +18,33 @@
 - **Mapping & Syncing:**  
   Associate character files with local user files for seamless syncing of in-game settings. Drag and drop characters to user files, and use the dashboard and mapping pages to ensure all accounts and characters have the right configuration.
 
-- **Integrated Instructions & Tooltips:**  
-  Each page (e.g., Character Overview, Skill Plans) includes a built-in instructions toggle. Simply click the help icon to show or hide guidance on how to use that page’s features.
 
-## Prerequisites
+## Usage Tips
+
+- **Character Overview:**
+  - Use the green plus icon to add new characters by account name.
+  - Toggle grouping by account, role, or location.
+  - Click on a character’s name for more information and skill queue.
+  - Sort order can be toggled to quickly find characters or accounts.
+
+- **Skill Plans:**
+  - Switch between "Character" and "Skill Plan" views using the toggle button.
+  - View missing skills or pending training time at a glance.
+  - Copy or delete skill plans via the action column icons.
+  - Add new skill plans using the yellow skill plan icon in the header.
+
+- **Mapping:**
+  - On the mapping page, you can associate the user and character files from your eve settings.   The files are color coded by last modified date.  The
+    data from the overview page will automatically update associations here once you've made the first user to character connection.
+
+- ** Syncing **
+  - On the sync page you can use the dropdowns to select the character and user file to sync settings for one profile, or all profiles.  The assocations from the mapping
+    page will automatically select the appropriate user file for each character file.
+
+    
+## Development
+
+### Prerequisites
 
 - **Go:** Version 1.22.3 or newer. [Download Go](https://golang.org/dl/)
 - **npm:** Version 22.2.0 or newer.
@@ -29,16 +52,16 @@
   Create an application via [EVE Online Developers](https://developers.eveonline.com/applications) to get:
     - `EVE_CLIENT_ID`
     - `EVE_CLIENT_SECRET`
+    - `EVE_CALLBACK_URL`
 
-- **Callback & Secret Key:**  
-  Set `EVE_CALLBACK_URL` to the callback URL configured in your EVE developer application.  
+- ** Secret Key:**  
   Generate a secret key for encryption:
   ```sh
   openssl rand -base64 32
   ```
   Use this output as `SECRET_KEY`.
 
-## Environment Setup
+### Environment Setup
 
 Create a `.env` file at the project root with the following variables:
 
@@ -48,8 +71,6 @@ EVE_CLIENT_SECRET=<your_client_secret>
 EVE_CALLBACK_URL=<your_callback_url>
 SECRET_KEY=<your_generated_secret_key>
 ```
-
-## Installation
 
 1. **Clone the Repository:**
    ```sh
@@ -67,28 +88,6 @@ SECRET_KEY=<your_generated_secret_key>
    npm start
    ```
 
-After the server starts, visit `http://localhost:3000` in your browser to access **Can I Fly**.
-
-## Usage Tips
-
-- **Character Overview Page:**
-    - Use the green plus icon to add new characters by account name.
-    - Toggle grouping by account, role, or location.
-    - Click on a character’s name for detailed skill and training info.
-    - Sort order can be toggled to quickly find characters or accounts.
-
-- **Skill Plans Page:**
-    - Switch between "Character" and "Skill Plan" views using the toggle button.
-    - View missing skills or pending training time at a glance.
-    - Copy or delete skill plans via the action column icons.
-    - Add new skill plans using the skill plan icon in the header.
-
-- **Mapping & Syncing:**
-    - On the mapping page, drag characters onto user files for easy association.
-    - On the sync page, align multiple profiles, backing up and restoring configurations across all characters and accounts.
-
-**Built-in Instructions:**  
-Each page has a "Help" icon to show/hide instructions. Keep the UI clutter-free when you know the workflows, or show guidance if you need a refresher.
 
 ## Contributing
 
