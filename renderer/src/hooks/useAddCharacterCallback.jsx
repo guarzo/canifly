@@ -1,67 +1,98 @@
 // src/hooks/useAddCharacterCallback.js
-
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { log } from "../utils/logger.jsx";
 import { finalizelogin } from "../api/apiService.jsx";
 
 /**
- * Custom hook to finalize the "Add Character" flow via OAuth.
- * This doesn't rely on isAuthenticated, because the user might
- * already be logged in. Instead, it keeps polling finalizelogin()
- * until that call succeeds and we can refresh data successfully.
+ * Custom hook to finalize the "Add Character" flow via OAuth polling.
  *
- * @param {Function} loginRefresh - Function to fetch updated user data (including the new character).
- * @returns {Function} addCharacterCallback - A function that starts the polling when invoked with a state.
+ * @param {Function} loginRefresh - Function to fetch updated user data
+ * (including the newly added character).
+ *
+ * @returns {Function} startAddCharacterPoll - A function that, when called
+ *          with an OAuth `state`, initiates polling to finalize the flow.
  */
 export function useAddCharacterCallback(loginRefresh) {
-    return useCallback((state) => {
-        log("useAddCharacterCallback invoked with state:", state);
+    // Tracks whether we're currently polling.
+    const [pollingActive, setPollingActive] = useState(false);
 
+    // Holds the OAuth state we want to finalize.
+    const [pollingState, setPollingState] = useState(null);
+
+    // We use a ref for the "finalized" flag, so it persists across re-renders in the same polling session.
+    const finalizedRef = useRef(false);
+
+    useEffect(() => {
+        // If we're not active or don't have a state to finalize, do nothing.
+        if (!pollingActive || !pollingState) return;
+
+        log(`useAddCharacterCallback: starting poll for state=${pollingState}`);
         let attempts = 0;
         const maxAttempts = 5;
-        let finalized = false;
+
+        // Reset the ref each time we start polling.
+        finalizedRef.current = false;
 
         const interval = setInterval(async () => {
             attempts++;
-            log(`AddChar interval #${attempts}, finalized=${finalized}`);
+            log(`AddChar polling attempt #${attempts}, finalized=${finalizedRef.current}`);
 
             if (attempts > maxAttempts) {
-                console.warn("Gave up waiting after multiple attempts. Clearing interval.");
-                loginRefresh()
+                console.warn("Gave up after multiple attempts. Clearing interval.");
+                // Even if we time out, do a final fetch to see if data came through anyway.
+                loginRefresh();
                 clearInterval(interval);
+                setPollingActive(false);
                 return;
             }
 
-            if (!finalized) {
-                log("Calling finalizelogin for add-character...state: ", state);
-                const resp = await finalizelogin(state);
-                if (resp.ok) {
-                    finalized = true;
-                    log("Finalization on server done, now let's try loginRefresh to load new data...");
+            if (!finalizedRef.current) {
+                log("Calling finalizelogin for add-character... state:", pollingState);
+                const resp = await finalizelogin(pollingState);
+                if (resp && resp.success) {
+                    finalizedRef.current = true;
+                    log("Finalization on server complete; fetching updated data...");
                     const success = await loginRefresh();
                     if (success) {
                         log("Data fetch success! Clearing interval; new character should be available now.");
                         clearInterval(interval);
+                        setPollingActive(false);
                     } else {
-                        log("Data fetch failed or not complete yet, continuing to poll...");
+                        log("Data fetch not complete yet, continuing to poll...");
                     }
                 } else {
                     log("Not ready yet, continuing to poll finalizelogin...");
                 }
             } else {
-                // Already finalized, so we just keep trying to refresh data
-                // until the new character is definitely loaded into the client.
+                // Already finalized => keep trying loginRefresh until new data is loaded
                 log("Already finalized, retrying loginRefresh...");
                 const success = await loginRefresh();
                 if (success) {
-                    log("Successfully fetched new data, clearing interval.");
+                    log("Fetched new data, clearing interval.");
                     clearInterval(interval);
+                    setPollingActive(false);
                 } else {
-                    log("Still no data, continuing to poll...");
+                    log("Still no new data, continuing to poll...");
                 }
             }
         }, 5000);
 
-        log("useAddCharacterCallback: interval created");
-    }, [loginRefresh]);
+        // Cleanup function to clear the interval if the component unmounts or we stop polling
+        return () => {
+            clearInterval(interval);
+        };
+    }, [pollingActive, pollingState, loginRefresh]);
+
+    /**
+     * startAddCharacterPoll is the function you call to begin the polling process.
+     * Example usage:
+     *   const addCharacter = useAddCharacterCallback(loginRefresh);
+     *   ...
+     *   addCharacter(state); // triggers the effect above
+     */
+    return useCallback((state) => {
+        log("useAddCharacterCallback -> startAddCharacterPoll called with state:", state);
+        setPollingState(state);
+        setPollingActive(true);
+    }, []);
 }

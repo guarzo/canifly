@@ -190,7 +190,7 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 			return
 		}
 
-		h.loginService.ClearState(state)
+		//h.loginService.ClearState(state)
 
 		respondJSON(w, map[string]bool{"success": true})
 	}

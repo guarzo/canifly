@@ -32,7 +32,9 @@ export async function apiRequest(url, fetchOptions, {
             return result;
         } else {
             const errorMsg = result?.error || errorMessage || 'An unexpected error occurred.';
-            toast.error(errorMsg);
+            if (response.status !== 401) {
+                toast.error(errorMsg);
+            }
             if (onError) {
                 onError(errorMsg);
             }
