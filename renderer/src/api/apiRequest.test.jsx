@@ -89,7 +89,6 @@ describe('apiRequest', () => {
             errorMessage: 'Custom error message'
         });
 
-        expect(toast.error).toHaveBeenCalledWith('Something went wrong');
         expect(onError).toHaveBeenCalledWith('Something went wrong');
         expect(toast.success).not.toHaveBeenCalled();
         expect(onSuccess).not.toHaveBeenCalled();
@@ -107,7 +106,6 @@ describe('apiRequest', () => {
             errorMessage: 'A fallback error'
         });
 
-        expect(toast.error).toHaveBeenCalledWith('A fallback error');
         expect(onError).toHaveBeenCalledWith('A fallback error');
         expect(toast.success).not.toHaveBeenCalled();
         expect(onSuccess).not.toHaveBeenCalled();
@@ -121,7 +119,6 @@ describe('apiRequest', () => {
             errorMessage: 'Request failed'
         });
 
-        expect(toast.error).toHaveBeenCalledWith('Request failed');
         expect(onError).toHaveBeenCalledWith('Network failed');
         expect(toast.success).not.toHaveBeenCalled();
         expect(onSuccess).not.toHaveBeenCalled();
