@@ -98,6 +98,7 @@ const App = () => {
         setIsSkillPlanModalOpen,
         isAuthenticated,
         loggedOut,
+        loginRefresh,
     });
 
     const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);

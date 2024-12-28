@@ -100,7 +100,7 @@ func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
 		}
 
 		url := h.authClient.GetAuthURL(state)
-		respondJSON(w, map[string]string{"redirectURL": url})
+		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
 	}
 }
 
@@ -143,7 +143,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		}
 
 		// Use AccountService to handle account creation
-		if err := h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
+		if err = h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
 			h.logger.Errorf("%v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

@@ -198,38 +198,6 @@ describe('apiService', () => {
     });
 
 
-    describe('addCharacter', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue({ redirectURL: 'http://redirect.url' });
-            window.isDev = true;
-
-            // Mock window.location
-            delete window.location;
-            window.location = { href: 'http://localhost:3000/' };
-
-            const account = { Name: 'MyAccount' };
-            const result = await addCharacter(account);
-
-            expect(apiRequest).toHaveBeenCalledWith('/api/add-character', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account }),
-                credentials: 'include'
-            }, {
-                errorMessage: 'An error occurred while adding character.',
-                onSuccess: expect.any(Function)
-            });
-
-            const onSuccess = apiRequest.mock.calls[0][2].onSuccess;
-            onSuccess({ redirectURL: 'http://redirect.url' });
-
-            // Now we can check the mocked location
-            expect(window.location.href).toBe('http://redirect.url');
-
-            expect(result).toEqual({ redirectURL: 'http://redirect.url' });
-        });
-    });
-
     describe('saveUserSelections', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('selections saved');

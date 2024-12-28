@@ -2,7 +2,7 @@
 
 import { apiRequest } from './apiRequest';
 import { normalizeAppData } from '../utils/dataNormalizer';
-import {backEndURL, isDev} from '../Config';
+import {isDev} from '../Config';
 
 export async function getAppData() {
     const response = await apiRequest(`/api/app-data`, {
@@ -88,27 +88,17 @@ export async function removeAccount(accountName) {
 }
 
 export async function addCharacter(account) {
-    return apiRequest('/api/add-character', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account }),
-        credentials: 'include'
-    }, {
-        errorMessage: 'An error occurred while adding character.',
-        onSuccess: (data) => {
-            if (data.redirectURL) {
-                // If running in dev mode, redirect internally; otherwise, open externally
-                if (isDev) {
-                    window.location.href = data.redirectURL;
-                } else {
-                    window.electronAPI.openExternal(data.redirectURL);
-                }
-            } else {
-                // If no redirect URL returned, consider showing a toast or handling the error
-            }
-        }
-    });
+    return await apiRequest(
+        '/api/add-character',
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account }),
+            credentials: 'include'
+        },
+    );
 }
+
 
 
 export async function saveSkillPlan(planName, planContents) {
@@ -237,8 +227,6 @@ export async function finalizelogin(state) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-    }, {
-        errorMessage: 'Failed to initiate finalize login.'
-    });
+    }, {});
 }
 

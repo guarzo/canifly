@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 import { log } from '../utils/logger';
 import {
     removeCharacterFromAppData,
@@ -7,6 +7,8 @@ import {
     updateAccountNameInAppData,
     removeAccountFromAppData, removePlanFromSkillPlans
 } from '../utils/appDataTransforms';
+import {isDev} from '../Config';
+
 
 import {
     logout,
@@ -20,6 +22,8 @@ import {
     deleteSkillPlan as deleteSkillPlanApi,
 } from '../api/apiService.jsx';
 import {toast} from "react-toastify";
+import {useLoginCallback} from "./useLoginCallback.jsx";
+import {useAddCharacterCallback} from "./useAddCharacterCallback.jsx";
 
 /**
  * Custom hook that encapsulates all the handler functions used in App.
@@ -28,6 +32,9 @@ import {toast} from "react-toastify";
  * @param {Function} setIsAuthenticated - Setter for isAuthenticated state.
  * @param {Function} setLoggedOut - Setter for loggedOut state.
  * @param {Function} setIsSkillPlanModalOpen - Setter for isSkillPlanModalOpen state.
+ * @param isAuthenticated
+ * @param loggedOut
+ * @param loginRefresh
  * @returns {Object} Handlers object.
  */
 export function useAppHandlers({
@@ -36,7 +43,20 @@ export function useAppHandlers({
                                    setIsAuthenticated,
                                    setLoggedOut,
                                    setIsSkillPlanModalOpen,
+                                   isAuthenticated,
+                                   loggedOut,
+                                   loginRefresh,
                                }) {
+
+    const logInCallBack = useLoginCallback(
+        isAuthenticated,
+        loggedOut,
+        loginRefresh,
+        setLoggedOut,
+        setIsAuthenticated
+    );
+
+    const addCharacterCallback = useAddCharacterCallback(fetchData);
 
     const handleLogout = useCallback(async () => {
         log("handleLogout called");
@@ -88,10 +108,31 @@ export function useAppHandlers({
         }
     }, [setAppData]);
 
+    // 2) The handleAddCharacter that calls the API, opens external link, and calls the new callback
     const handleAddCharacter = useCallback(async (account) => {
-        await addCharacterApi(account);
-        // If needed, handle state updates here
-    }, []);
+        log("handleAddCharacter called with account:", account);
+
+        const data = await addCharacterApi(account);
+
+        // Open the external URL if present
+        if (data?.redirectURL) {
+            if (isDev) {
+                window.location.href = data.redirectURL;
+            } else if (window.electronAPI?.openExternal) {
+                window.electronAPI.openExternal(data.redirectURL);
+            }
+        }
+
+        console.log(data)
+
+        // Start polling to finalize
+        if (data?.state) {
+            log("Starting addCharacterCallback with state:", data.state);
+            addCharacterCallback(data.state);
+        }
+        // No need to rely on isAuthenticated => user is already logged in
+    }, [addCharacterCallback]);
+
 
     const handleSaveSkillPlan = useCallback(async (planName, planContents) => {
         log("handleSaveSkillPlan called with planName:", planName);
