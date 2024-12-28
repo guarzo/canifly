@@ -7,9 +7,9 @@
 
 **Can I Fly** is an application that helps EVE Online players quickly determine which ships their characters can pilot and what training they need to reach their goals. By integrating directly with EVE's APIs, **Can I Fly** lets you manage characters, skill plans, and account mappings from a single, intuitive interface. The tool also helps you configure local EVE profiles, sync settings, and back up or restore them effortlessly.
 
-# Example
+## Demo Video
 
-[![Watch a demo](https://www.youtube.com/watch?v=9yTI2OQx6gk/0.jpg)](https://www.youtube.com/watch?v=9yTI2OQx6gk)
+[![Watch a demo](https://img.youtube.com/vi/9yTI2OQx6gk/maxresdefault.jpg)](https://www.youtube.com/watch?v=9yTI2OQx6gk)
 
 
 ## Key Features
