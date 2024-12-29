@@ -227,6 +227,8 @@ export async function finalizelogin(state) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-    }, {});
+    }, {
+        disableErrorToast: true,
+    });
 }
 

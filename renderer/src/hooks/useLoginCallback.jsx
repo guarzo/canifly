@@ -28,20 +28,20 @@ export function useLoginCallback(
     // Store the OAuth state we want to finalize
     const [pollingState, setPollingState] = useState(null);
 
+    const [finalized, setFinalized] = useState(false);
+
+
     useEffect(() => {
-        // If not active or we have no `state`, do nothing
         if (!pollingActive || !pollingState) return;
 
         log(`Starting finalize-login polling for state=${pollingState}`);
         let attempts = 0;
-        let finalized = false;
         const maxAttempts = 25;
 
         const intervalId = setInterval(async () => {
             attempts++;
             log(`Polling attempt ${attempts} for state=${pollingState}`);
 
-            // If user is already authenticated (defensive check), stop polling
             if (isAuthenticated) {
                 log("User isAuthenticated=true, stopping polling.");
                 clearInterval(intervalId);
@@ -49,7 +49,6 @@ export function useLoginCallback(
                 return;
             }
 
-            // If we exceeded max attempts, stop polling
             if (attempts > maxAttempts) {
                 console.warn("Failed to detect login after multiple attempts, stopping polling.");
                 clearInterval(intervalId);
@@ -60,16 +59,12 @@ export function useLoginCallback(
             if (!finalized) {
                 log("Calling finalize-login endpoint...");
                 const finalizeResp = await finalizelogin(pollingState);
-                console.log(finalizeResp)
                 if (finalizeResp && finalizeResp.success) {
-                    finalized = true;
+                    setFinalized(true); // <-- set state to true
+
                     log("Finalization succeeded, now trying to fetch data via loginRefresh...");
-
                     const success = await loginRefresh();
-                    log("loginRefresh returned:", success);
-
                     if (success) {
-                        log("Login finalized and data fetched! Setting isAuthenticated=true.");
                         setIsAuthenticated(true);
                         clearInterval(intervalId);
                         setPollingActive(false);
@@ -80,13 +75,10 @@ export function useLoginCallback(
                     log("Not ready yet, retrying finalize-login on next interval...");
                 }
             } else {
-                // Already finalized => keep trying loginRefresh
+                // If already finalized, keep retrying to fetch data
                 log("Already finalized, retrying loginRefresh...");
                 const success = await loginRefresh();
-                log("loginRefresh returned:", success);
-
                 if (success) {
-                    log("Data fetched after finalization! Setting isAuthenticated=true.");
                     setIsAuthenticated(true);
                     clearInterval(intervalId);
                     setPollingActive(false);
@@ -96,7 +88,6 @@ export function useLoginCallback(
             }
         }, 5000);
 
-        // Cleanup: clear the interval if the component unmounts
         return () => {
             clearInterval(intervalId);
         };
@@ -105,8 +96,10 @@ export function useLoginCallback(
         pollingState,
         isAuthenticated,
         loginRefresh,
+        finalized,
         setIsAuthenticated,
     ]);
+
 
     return useCallback(
         (state) => {

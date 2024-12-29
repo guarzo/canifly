@@ -19,7 +19,7 @@ export function useAddCharacterCallback(loginRefresh) {
     // Holds the OAuth state we want to finalize.
     const [pollingState, setPollingState] = useState(null);
 
-    // We use a ref for the "finalized" flag, so it persists across re-renders in the same polling session.
+    // A ref for the "finalized" flag, so it persists across re-renders in the same polling session.
     const finalizedRef = useRef(false);
 
     useEffect(() => {
@@ -30,8 +30,8 @@ export function useAddCharacterCallback(loginRefresh) {
         let attempts = 0;
         const maxAttempts = 5;
 
-        // Reset the ref each time we start polling.
-        finalizedRef.current = false;
+        // DO NOT reset finalizedRef.current here.
+        // We do that once in 'startAddCharacterPoll' below.
 
         const interval = setInterval(async () => {
             attempts++;
@@ -40,16 +40,18 @@ export function useAddCharacterCallback(loginRefresh) {
             if (attempts > maxAttempts) {
                 console.warn("Gave up after multiple attempts. Clearing interval.");
                 // Even if we time out, do a final fetch to see if data came through anyway.
-                loginRefresh();
+                await loginRefresh();
                 clearInterval(interval);
                 setPollingActive(false);
                 return;
             }
 
+            // If not finalized, attempt to finalize login
             if (!finalizedRef.current) {
                 log("Calling finalizelogin for add-character... state:", pollingState);
                 const resp = await finalizelogin(pollingState);
                 if (resp && resp.success) {
+                    // We've successfully finalized on the server, mark as finalized
                     finalizedRef.current = true;
                     log("Finalization on server complete; fetching updated data...");
                     const success = await loginRefresh();
@@ -83,15 +85,10 @@ export function useAddCharacterCallback(loginRefresh) {
         };
     }, [pollingActive, pollingState, loginRefresh]);
 
-    /**
-     * startAddCharacterPoll is the function you call to begin the polling process.
-     * Example usage:
-     *   const addCharacter = useAddCharacterCallback(loginRefresh);
-     *   ...
-     *   addCharacter(state); // triggers the effect above
-     */
     return useCallback((state) => {
         log("useAddCharacterCallback -> startAddCharacterPoll called with state:", state);
+        // Reset the ref only once when we begin polling
+        finalizedRef.current = false;
         setPollingState(state);
         setPollingActive(true);
     }, []);
