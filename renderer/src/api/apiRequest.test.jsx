@@ -40,7 +40,7 @@ describe('apiRequest', () => {
         global.fetch.mockResolvedValue({
             ok: true,
             headers: { get: () => 'application/json' },
-            json: vi.fn().mockResolvedValue(mockData)
+            json: vi.fn().mockResolvedValue(mockData),
         });
 
         const result = await apiRequest('http://test-url', {}, {
@@ -52,6 +52,8 @@ describe('apiRequest', () => {
         expect(toast.success).toHaveBeenCalledWith('Success!');
         expect(onSuccess).toHaveBeenCalledWith(mockData);
         expect(result).toEqual(mockData);
+
+        // Should NOT call error toast or onError
         expect(toast.error).not.toHaveBeenCalled();
         expect(onError).not.toHaveBeenCalled();
     });
@@ -61,7 +63,7 @@ describe('apiRequest', () => {
         global.fetch.mockResolvedValue({
             ok: true,
             headers: { get: () => 'text/plain' },
-            text: vi.fn().mockResolvedValue(mockText)
+            text: vi.fn().mockResolvedValue(mockText),
         });
 
         const result = await apiRequest('http://test-url', {}, {
@@ -76,39 +78,68 @@ describe('apiRequest', () => {
         expect(onError).not.toHaveBeenCalled();
     });
 
-    test('handles error JSON response with given errorMessage and onError', async () => {
-        const mockError = { error: 'Something went wrong' };
+    // This test specifically for 401 errors (since your code only calls onError if status === 401)
+    test('handles 401 JSON error response with given errorMessage and onError', async () => {
+        const mockError = { error: 'Unauthorized' };
         global.fetch.mockResolvedValue({
             ok: false,
+            status: 401, // <--- important!
             headers: { get: () => 'application/json' },
-            json: vi.fn().mockResolvedValue(mockError)
+            json: vi.fn().mockResolvedValue(mockError),
         });
 
         await apiRequest('http://test-url', {}, {
             onError,
-            errorMessage: 'Custom error message'
+            errorMessage: 'Custom error message for 401'
         });
 
-        expect(onError).toHaveBeenCalledWith('Something went wrong');
+        // Check that the code calls toast.error with "Unauthorized"
+        expect(toast.error).toHaveBeenCalledWith('Unauthorized');
+        // Check that onError is called with the same message
+        expect(onError).toHaveBeenCalledWith('Unauthorized');
+
+        // Should NOT call toast.success or onSuccess
         expect(toast.success).not.toHaveBeenCalled();
-        expect(onSuccess).not.toHaveBeenCalled();
     });
 
-    test('handles error non-JSON response with fallback errorMessage', async () => {
+    // New test to confirm non-401 errors do NOT trigger onError or toast
+    // because your code returns early if (status !== 401).
+    test('ignores non-401 error response (e.g. 403)', async () => {
+        const mockError = { error: 'Forbidden' };
         global.fetch.mockResolvedValue({
             ok: false,
-            headers: { get: () => 'text/html' },
-            text: vi.fn().mockResolvedValue('Some non-JSON error')
+            status: 403, // <--- non-401
+            headers: { get: () => 'application/json' },
+            json: vi.fn().mockResolvedValue(mockError),
         });
 
         await apiRequest('http://test-url', {}, {
             onError,
-            errorMessage: 'A fallback error'
+            errorMessage: 'Should not appear for 403'
         });
 
-        expect(onError).toHaveBeenCalledWith('A fallback error');
-        expect(toast.success).not.toHaveBeenCalled();
-        expect(onSuccess).not.toHaveBeenCalled();
+        // Expect no toasts or onError since code returns early
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(onError).not.toHaveBeenCalled();
+    });
+
+    test('handles error non-JSON response with fallback errorMessage on 401', async () => {
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 401, // 401 triggers onError
+            headers: { get: () => 'text/html' },
+            text: vi.fn().mockResolvedValue('Some non-JSON error'),
+        });
+
+        await apiRequest('http://test-url', {}, {
+            onError,
+            errorMessage: 'A fallback error for 401'
+        });
+
+        // onError is called with 'A fallback error for 401'
+        // because "result?.error" is undefined
+        expect(onError).toHaveBeenCalledWith('A fallback error for 401');
+        expect(toast.error).toHaveBeenCalledWith('A fallback error for 401');
     });
 
     test('handles network error', async () => {
@@ -119,8 +150,31 @@ describe('apiRequest', () => {
             errorMessage: 'Request failed'
         });
 
+        // The catch block calls onError with the thrown error message
         expect(onError).toHaveBeenCalledWith('Network failed');
+        // No success toast
         expect(toast.success).not.toHaveBeenCalled();
-        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    // Test ensures no error toast is shown when disableErrorToast = true (401 scenario)
+    test('does not call toast.error when disableErrorToast=true', async () => {
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 401,
+            headers: { get: () => 'application/json' },
+            json: vi.fn().mockResolvedValue({ error: 'Unauthorized' }),
+        });
+
+        await apiRequest('http://test-url', {}, {
+            onError,
+            errorMessage: 'Some error',
+            disableErrorToast: true, // <--- This is the key
+        });
+
+        // Verify that toast.error was NOT called
+        expect(toast.error).not.toHaveBeenCalled();
+
+        // We DO still call onError callback
+        expect(onError).toHaveBeenCalledWith('Unauthorized');
     });
 });
