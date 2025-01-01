@@ -102,3 +102,10 @@ We welcome contributions! If you find a bug, have a feature request, or want to 
 
 This project is licensed under the ISC License. For details, see the [LICENSE](./LICENSE) file.
 
+## TODO
+- block duplicates on mapping
+- check refresh on mapping too
+- enable cache???
+- sort by skillpoints in skill plan
+- clones, implants, corp sort
+- if all are mapped, spread mapping to two columns

@@ -28,6 +28,10 @@ func NewConfigService(
 	}
 }
 
+func (s *configService) BackupJSONFiles(backupDir string) error {
+	return s.configRepo.BackupJSONFiles(backupDir)
+}
+
 func (s *configService) UpdateSettingsDir(dir string) error {
 	configData, err := s.configRepo.FetchConfigData()
 	if err != nil {

@@ -1,15 +1,17 @@
 package testutil
 
 import (
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
+
+	"github.com/stretchr/testify/mock"
 
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/stretchr/testify/mock"
 )
 
 // MockAccountDataRepository mocks interfaces.AccountDataRepository
@@ -253,6 +255,10 @@ type MockConfigService struct {
 	mock.Mock
 }
 
+func (m *MockConfigService) BackupJSONFiles(backupDir string) error {
+	return nil
+}
+
 func (m *MockConfigService) UpdateSettingsDir(dir string) error {
 	args := m.Called(dir)
 	return args.Error(0)
@@ -367,6 +373,10 @@ func (m *MockLogger) WithFields(fields map[string]interface{}) interfaces.Logger
 // MockConfigRepository mocks interfaces.ConfigRepository
 type MockConfigRepository struct {
 	mock.Mock
+}
+
+func (m *MockConfigRepository) BackupJSONFiles(backupDir string) error {
+	return nil
 }
 
 func (m *MockConfigRepository) FetchConfigData() (*model.ConfigData, error) {

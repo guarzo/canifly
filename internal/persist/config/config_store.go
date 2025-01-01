@@ -1,13 +1,16 @@
 package config
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
@@ -27,7 +30,6 @@ type ConfigStore struct {
 	mut      sync.RWMutex
 
 	// cachedData holds an in-memory copy of the config.
-	// This avoids multiple disk reads for subsequent fetches.
 	cachedData *model.ConfigData
 }
 
@@ -111,6 +113,7 @@ func (c *ConfigStore) SaveRoles(roles []string) error {
 	return c.saveConfigDataLocked(configData)
 }
 
+// You already have code to get default settings dir...
 func (c *ConfigStore) GetDefaultSettingsDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -145,6 +148,7 @@ func (c *ConfigStore) GetDefaultSettingsDir() (string, error) {
 	return defaultDir, nil
 }
 
+// (unchanged) internal helpers
 func isWSL() bool {
 	if runtime.GOOS == "linux" {
 		data, err := os.ReadFile("/proc/version")
@@ -178,10 +182,8 @@ func runCommand(name string, args []string) (string, error) {
 	return string(output), err
 }
 
-// Internal methods assume lock is already held
-
+// Internal read/write methods assume lock is already held
 func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
-	// If we have cached data, return it directly
 	if c.cachedData != nil {
 		return c.cachedData, nil
 	}
@@ -192,7 +194,6 @@ func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	fileInfo, err := c.fs.Stat(filePath)
 	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
 		c.logger.Info("No config data file found, returning empty config")
-		// Update the cache with empty config
 		c.cachedData = &configData
 		return c.cachedData, nil
 	} else if err != nil {
@@ -205,7 +206,6 @@ func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	}
 
 	c.logger.Debugf("Loaded config: %v", configData)
-	// Cache the loaded data
 	c.cachedData = &configData
 	return c.cachedData, nil
 }
@@ -217,8 +217,88 @@ func (c *ConfigStore) saveConfigDataLocked(configData *model.ConfigData) error {
 		return err
 	}
 	c.logger.Debugf("Config data saved")
-
-	// Update the cache with the newly saved data
 	c.cachedData = configData
+	return nil
+}
+
+// -------------------------------------------------------------------
+// NEW METHOD: Zip up all *.json files from c.basePath into backupDir
+// -------------------------------------------------------------------
+func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
+	// We'll create a zip file named something like: config_json_backup_YYYY-MM-DD_HH-mm-ss.zip
+	now := time.Now()
+	timeStr := now.Format("2006-01-02_15-04-05")
+	zipFileName := fmt.Sprintf("canifly_backup_%s.zip", timeStr)
+	zipFilePath := filepath.Join(backupDir, zipFileName)
+
+	c.logger.Infof("Zipping all *.json from basePath=%s into %s", c.basePath, zipFilePath)
+
+	// 1) Gather all .json files in basePath
+	var jsonFiles []string
+	err := filepath.Walk(c.basePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err // stop walking on error
+		}
+		// If it's a file (not a dir) and ends with ".json"
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".json") {
+			jsonFiles = append(jsonFiles, path)
+		}
+		return nil
+	})
+	if err != nil {
+		c.logger.Errorf("Failed to walk basePath=%s: %v", c.basePath, err)
+		return err
+	}
+
+	if len(jsonFiles) == 0 {
+		c.logger.Warnf("No .json files found under %s", c.basePath)
+		return fmt.Errorf("no .json files to backup in %s", c.basePath)
+	}
+
+	// 2) Create the ZIP file
+	zipFile, err := os.Create(zipFilePath)
+	if err != nil {
+		c.logger.Errorf("Failed to create zip file %s: %v", zipFilePath, err)
+		return err
+	}
+	defer zipFile.Close()
+
+	// 3) Create a zip writer on top of that file
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	// 4) Add each .json file to the archive
+	for _, file := range jsonFiles {
+		// open
+		f, err := os.Open(file)
+		if err != nil {
+			c.logger.Errorf("Failed to open json file %s: %v", file, err)
+			return err
+		}
+
+		relPath, err := filepath.Rel(c.basePath, file)
+		if err != nil {
+			// fallback: just use the filename
+			relPath = filepath.Base(file)
+		}
+
+		// create a zip entry
+		w, err := zipWriter.Create(relPath)
+		if err != nil {
+			c.logger.Errorf("Failed to create zip entry for %s: %v", file, err)
+			f.Close()
+			return err
+		}
+
+		// copy file contents
+		_, err = io.Copy(w, f)
+		f.Close()
+		if err != nil {
+			c.logger.Errorf("Failed to copy file content for %s into zip: %v", file, err)
+			return err
+		}
+	}
+
+	c.logger.Infof("Successfully created zip of .json files: %s", zipFilePath)
 	return nil
 }

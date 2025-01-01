@@ -2,6 +2,7 @@ package eve
 
 import (
 	"fmt"
+
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -132,15 +133,28 @@ func (e *eveProfileService) SyncAllDir(baseSubDir, charId, userId string) (int, 
 	return e.eveRepo.SyncAllSubdirectories(baseSubDir, userId, charId, settingsDir)
 }
 
+// BackupDir backs up EVE “settings_” directories and then
+// also calls configService to zip up any .json files in its basePath.
 func (e *eveProfileService) BackupDir(targetDir, backupDir string) error {
+	// 1) Backup the EVE “settings_” directories as before
 	err := e.eveRepo.BackupDirectory(targetDir, backupDir)
 	if err != nil {
 		return err
 	}
 
+	// 2) Update config’s backupDir (same as your existing code)
 	err = e.configService.UpdateBackupDir(backupDir)
 	if err != nil {
-		e.logger.Infof("backup succeeded, but updating config failed: %v", err)
+		e.logger.Infof("Backup succeeded, but updating config backupDir failed: %v", err)
+	}
+
+	// 3) NEW: Also zip up all .json files from configStore’s basePath
+	err = e.configService.BackupJSONFiles(backupDir)
+	if err != nil {
+		// This error won't abort the entire backup; we just log it
+		e.logger.Warnf("Zipping JSON files failed: %v", err)
+	} else {
+		e.logger.Infof("Successfully zipped all canifly .json files into %s", backupDir)
 	}
 
 	return nil

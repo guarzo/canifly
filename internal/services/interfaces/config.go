@@ -70,6 +70,7 @@ type ConfigRepository interface {
 	SaveRoles(roles []string) error
 
 	GetDefaultSettingsDir() (string, error)
+	BackupJSONFiles(backupDir string) error
 }
 
 type ConfigService interface {
@@ -81,6 +82,6 @@ type ConfigService interface {
 	UpdateRoles(newRole string) error
 	GetRoles() ([]string, error)
 	UpdateBackupDir(dir string) error
-
+	BackupJSONFiles(backupDir string) error
 	FetchConfigData() (*model.ConfigData, error)
 }
