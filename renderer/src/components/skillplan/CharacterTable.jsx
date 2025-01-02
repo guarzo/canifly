@@ -1,4 +1,5 @@
-import React, {useMemo, useState} from 'react';
+// src/components/CharacterTable.jsx
+import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
     Table,
@@ -16,9 +17,15 @@ import {
     KeyboardArrowDown,
     KeyboardArrowUp
 } from '@mui/icons-material';
-import { CheckCircle, AccessTime, Error as ErrorIcon } from '@mui/icons-material';
-import {calculateDaysFromToday, formatNumberWithCommas} from "../../utils/formatter.jsx";
-import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
+import {
+    CheckCircle,
+    AccessTime,
+    Error as ErrorIcon,
+    ArrowUpward,
+    ArrowDownward
+} from '@mui/icons-material';
+import { calculateDaysFromToday, formatNumberWithCommas } from '../../utils/formatter.jsx';
+import CharacterDetailModal from '../common/CharacterDetailModal.jsx';
 
 const generatePlanStatus = (planName, characterDetails) => {
     const qualified = characterDetails.QualifiedPlans?.[planName];
@@ -29,24 +36,24 @@ const generatePlanStatus = (planName, characterDetails) => {
 
     let status = {
         statusIcon: null,
-        statusText: '',
+        statusText: ''
     };
 
     if (qualified) {
         status = {
             statusIcon: <CheckCircle style={{ color: 'green' }} fontSize="small" />,
-            statusText: 'Qualified',
+            statusText: 'Qualified'
         };
     } else if (pending) {
         const daysRemaining = calculateDaysFromToday(pendingFinishDate);
         status = {
             statusIcon: <AccessTime style={{ color: 'orange' }} fontSize="small" />,
-            statusText: `Pending ${daysRemaining ? `(${daysRemaining})` : ''}`,
+            statusText: `Pending ${daysRemaining ? `(${daysRemaining})` : ''}`
         };
     } else if (missingCount > 0) {
         status = {
             statusIcon: <ErrorIcon style={{ color: 'red' }} fontSize="small" />,
-            statusText: `${missingCount} skills missing`,
+            statusText: `${missingCount} skills missing`
         };
     }
 
@@ -54,7 +61,7 @@ const generatePlanStatus = (planName, characterDetails) => {
 };
 
 const CharacterRow = ({ row, conversions }) => {
-    const [open, setOpen] = React.useState(false);
+    const [open, setOpen] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
 
     return (
@@ -67,11 +74,14 @@ const CharacterRow = ({ row, conversions }) => {
             />
             <TableRow
                 className="hover:bg-gray-700 transition-colors duration-200"
-                sx={{ borderBottom: row.plans.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}
+                sx={{
+                    borderBottom:
+                        row.plans.length === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                }}
             >
                 <TableCell sx={{ width: '40px', paddingX: '0.5rem' }}>
                     {row.plans.length > 0 && (
-                        <Tooltip title={open ? "Collapse" : "Expand"} arrow>
+                        <Tooltip title={open ? 'Collapse' : 'Expand'} arrow>
                             <IconButton
                                 size="small"
                                 onClick={() => setOpen(!open)}
@@ -95,11 +105,14 @@ const CharacterRow = ({ row, conversions }) => {
                             marginRight: '0.5rem'
                         }}
                     />
-                    <span style={{verticalAlign: 'middle'}}  className="font-semibold text-sm text-teal-200 cursor-pointer underline" onClick={() => setDetailOpen(true)} >
+                    <span
+                        style={{ verticalAlign: 'middle' }}
+                        className="font-semibold text-sm text-teal-200 cursor-pointer underline"
+                        onClick={() => setDetailOpen(true)}
+                    >
                         {row.CharacterName}
                     </span>
                 </TableCell>
-
                 <TableCell className="whitespace-nowrap text-teal-100 px-2 py-2">
                     {row.TotalSP}
                 </TableCell>
@@ -109,7 +122,10 @@ const CharacterRow = ({ row, conversions }) => {
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                         <Collapse in={open} timeout="auto" unmountOnExit>
                             <Box margin={1}>
-                                <Table size="small" className="bg-gray-700 rounded-md overflow-hidden">
+                                <Table
+                                    size="small"
+                                    className="bg-gray-700 rounded-md overflow-hidden"
+                                >
                                     <TableBody>
                                         {row.plans.map((plan) => (
                                             <TableRow
@@ -118,7 +134,9 @@ const CharacterRow = ({ row, conversions }) => {
                                             >
                                                 <TableCell className="pl-8 text-gray-300 flex items-center border-b border-gray-600 py-2">
                                                     {plan.statusIcon}
-                                                    <span className="ml-2">↳ {plan.planName}</span>
+                                                    <span className="ml-2">
+                                                        ↳ {plan.planName}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-gray-300 border-b border-gray-600 py-2">
                                                     {plan.statusText}
@@ -139,14 +157,18 @@ const CharacterRow = ({ row, conversions }) => {
 
 CharacterRow.propTypes = {
     row: PropTypes.object.isRequired,
-    conversions: PropTypes.object.isRequired,
+    conversions: PropTypes.object.isRequired
 };
 
 const CharacterTable = ({ characters, skillPlans, conversions }) => {
+    const [sortDirection, setSortDirection] = useState('asc');
+
+    // Convert the raw characters into a shape convenient for rendering
     const characterData = useMemo(() => {
         return characters.map((character) => {
             const characterDetails = character.Character || {};
-            const TotalSP = formatNumberWithCommas(characterDetails.CharacterSkillsResponse?.total_sp || 0);
+            const totalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0;
+            const TotalSPFormatted = formatNumberWithCommas(totalSP);
 
             const plans = Object.keys(skillPlans).map((planName) => {
                 const status = generatePlanStatus(planName, characterDetails);
@@ -154,19 +176,40 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
                     id: `${characterDetails.CharacterID}-${planName}`,
                     planName,
                     statusIcon: status.statusIcon,
-                    statusText: status.statusText,
+                    statusText: status.statusText
                 };
             });
 
             return {
                 id: characterDetails.CharacterID,
                 CharacterName: characterDetails.CharacterName,
-                TotalSP,
+                // Keep the raw SP for sorting and a formatted version for display
+                rawSP: totalSP,
+                TotalSP: TotalSPFormatted,
                 plans,
                 fullCharacter: character
             };
         });
     }, [characters, skillPlans]);
+
+    // Sort the array when `sortDirection` or `characterData` changes
+    const sortedData = useMemo(() => {
+        // Create a shallow copy
+        const sorted = [...characterData];
+
+        // Sort by rawSP (numeric) ascending or descending
+        sorted.sort((a, b) => a.rawSP - b.rawSP);
+        if (sortDirection === 'desc') {
+            sorted.reverse();
+        }
+
+        return sorted;
+    }, [characterData, sortDirection]);
+
+    // Handle the click on the header to toggle ascending/descending
+    const handleSortClick = () => {
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    };
 
     return (
         <div className="mb-8 w-full">
@@ -175,16 +218,32 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
                     <TableHead>
                         <TableRow className="bg-gradient-to-r from-gray-900 to-gray-800">
                             <TableCell sx={{ width: '40px', paddingX: '0.5rem' }} />
+
                             <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
                                 Character Name
                             </TableCell>
-                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+
+                            <TableCell
+                                onClick={handleSortClick}
+                                className="text-teal-200 font-bold uppercase py-2 px-2 text-sm cursor-pointer select-none"
+                            >
                                 Total Skill Points
+                                {sortDirection === 'asc' ? (
+                                    <ArrowUpward
+                                        fontSize="small"
+                                        style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                    />
+                                ) : (
+                                    <ArrowDownward
+                                        fontSize="small"
+                                        style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                    />
+                                )}
                             </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {characterData.map((row) => (
+                        {sortedData.map((row) => (
                             <CharacterRow key={row.id} row={row} conversions={conversions} />
                         ))}
                     </TableBody>
@@ -197,7 +256,7 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
 CharacterTable.propTypes = {
     characters: PropTypes.array.isRequired,
     skillPlans: PropTypes.object.isRequired,
-    conversions: PropTypes.object.isRequired,
+    conversions: PropTypes.object.isRequired
 };
 
 export default CharacterTable;

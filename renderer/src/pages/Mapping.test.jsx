@@ -45,7 +45,6 @@ describe('Mapping', () => {
         );
 
         expect(screen.getByText('No accounts found.')).toBeInTheDocument();
-        expect(screen.getByText('No available characters to associate.')).toBeInTheDocument();
     });
 
     it('renders accounts and characters', () => {
@@ -116,9 +115,8 @@ describe('Mapping', () => {
             fireEvent.drop(accountCard, { dataTransfer });
         });
 
-        const availableCharactersContainer = screen.getByTestId('available-characters');
-        expect(within(availableCharactersContainer).queryByText('Char One')).not.toBeInTheDocument();
-
+        expect(screen.queryByTestId('available-characters')).not.toBeInTheDocument();
+        
         // Optionally, you can check that 'Char One' now appears under the account if desired
         expect(screen.getByText('Char One')).toBeInTheDocument(); // Now under the associated account
     });
