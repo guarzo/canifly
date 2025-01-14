@@ -8,16 +8,18 @@ import {
     Tooltip,
     ToggleButtonGroup,
     ToggleButton,
-    IconButton
+    IconButton,
 } from '@mui/material';
 import {
     ArrowUpward,
     ArrowDownward,
     AccountBalance,
     AccountCircle,
-    Place
+    Place,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-import { overviewInstructions} from "../utils/instructions.jsx";
+import { overviewInstructions } from '../utils/instructions.jsx';
 import PageHeader from '../components/common/SubPageHeader.jsx';
 
 const CharacterOverview = ({
@@ -29,25 +31,49 @@ const CharacterOverview = ({
                                onRemoveAccount,
                                roles,
                                skillConversions,
+                               onToggleAccountVisibility,
                            }) => {
     const [view, setView] = useState('account');
     const [sortOrder, setSortOrder] = useState('asc');
+    const [showHiddenAccounts, setShowHiddenAccounts] = useState(false);
 
     const toggleSortOrder = () => {
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     };
 
-    const sortIconColor = sortOrder === 'asc' ? '#14b8a6' : '#f59e0b';
-    const sortIcon =
-        sortOrder === 'asc' ? (
-            <ArrowUpward fontSize="small" sx={{ color: sortIconColor }} />
-        ) : (
-            <ArrowDownward fontSize="small" sx={{ color: sortIconColor }} />
-        );
+    // 1. Filter + sort the accounts for "account" view
+    const filteredAndSortedAccounts = useMemo(() => {
+        if (!accounts) return [];
 
+        const accountsCopy = [...accounts];
+        // Sort accounts by Name
+        accountsCopy.sort((a, b) => {
+            const nameA = a.Name || 'Unknown Account';
+            const nameB = b.Name || 'Unknown Account';
+            return sortOrder === 'asc'
+                ? nameA.localeCompare(nameB)
+                : nameB.localeCompare(nameA);
+        });
+
+        // Hide them if showHiddenAccounts is false
+        if (!showHiddenAccounts) {
+            return accountsCopy.filter((acct) => acct.Visible !== false);
+        }
+
+        return accountsCopy;
+    }, [accounts, sortOrder, showHiddenAccounts]);
+
+    // 2. For role/location grouping, build "allCharacters"
+    //    but skip hidden accounts if showHiddenAccounts === false
     const allCharacters = useMemo(() => {
         let chars = [];
         (accounts || []).forEach((account) => {
+            // If we are NOT showing hidden accounts, skip characters
+            // from an account that is hidden (Visible === false).
+            if (!showHiddenAccounts && account.Visible === false) {
+                return;
+            }
+
             const accountName = account.Name || 'Unknown Account';
             chars = chars.concat(
                 (account.Characters || []).map((char) => ({
@@ -59,8 +85,9 @@ const CharacterOverview = ({
             );
         });
         return chars;
-    }, [accounts]);
+    }, [accounts, showHiddenAccounts]);
 
+    // 3. Build the role map
     const roleMap = useMemo(() => {
         const map = { Unassigned: [] };
         roles.forEach((r) => {
@@ -76,6 +103,7 @@ const CharacterOverview = ({
         return map;
     }, [allCharacters, roles]);
 
+    // 4. Build the location map
     const locationMap = useMemo(() => {
         const map = {};
         allCharacters.forEach((character) => {
@@ -88,31 +116,34 @@ const CharacterOverview = ({
         return map;
     }, [allCharacters]);
 
-    const sortedAccounts = useMemo(() => {
-        if (!accounts) return [];
-        const accountsCopy = [...accounts];
-        accountsCopy.sort((a, b) => {
-            const nameA = a.Name || 'Unknown Account';
-            const nameB = b.Name || 'Unknown Account';
-            return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-        });
-        return accountsCopy;
-    }, [accounts, sortOrder]);
-
+    // Decide which map to display if user selects 'role' or 'location'
     const mapToDisplay = view === 'role' ? roleMap : locationMap;
 
+    // 5. Sort the group keys (role/location) for the GroupCard display
     const sortedGroups = useMemo(() => {
         if (view === 'account') return [];
         const keys = Object.keys(mapToDisplay);
-        keys.sort((a, b) => (sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a)));
+        keys.sort((a, b) =>
+            sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+        );
         return keys;
     }, [view, mapToDisplay, sortOrder]);
 
+    // Switch the "view" among account/role/location
     const handleViewChange = (event, newValue) => {
         if (newValue !== null) {
             setView(newValue);
         }
     };
+
+    // Determine icon color and direction
+    const sortIconColor = sortOrder === 'asc' ? '#14b8a6' : '#f59e0b';
+    const sortIcon =
+        sortOrder === 'asc' ? (
+            <ArrowUpward fontSize="small" sx={{ color: sortIconColor }} />
+        ) : (
+            <ArrowDownward fontSize="small" sx={{ color: sortIconColor }} />
+        );
 
     return (
         <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
@@ -121,6 +152,7 @@ const CharacterOverview = ({
                 instructions={overviewInstructions}
                 storageKey="showDashboardInstructions"
             />
+
             <Box
                 sx={{
                     display: 'flex',
@@ -129,6 +161,7 @@ const CharacterOverview = ({
                     mb: 3,
                 }}
             >
+                {/* Group By: Account, Role, Location */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography variant="body2" sx={{ color: '#99f6e4' }}>
                         Group by:
@@ -197,7 +230,9 @@ const CharacterOverview = ({
                         onClick={toggleSortOrder}
                         aria-label="Sort"
                         sx={{
-                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
+                            '&:hover': {
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                            },
                             padding: '4px',
                         }}
                         size="small"
@@ -205,18 +240,46 @@ const CharacterOverview = ({
                         {sortIcon}
                     </IconButton>
                 </Box>
+
+                {/* Show/Hide hidden accounts toggle (only in 'account' view) */}
+                {view === 'account' && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Tooltip
+                            title={
+                                showHiddenAccounts
+                                    ? 'Hide hidden accounts'
+                                    : 'Show hidden accounts'
+                            }
+                        >
+                            <IconButton
+                                onClick={() => setShowHiddenAccounts(!showHiddenAccounts)}
+                                sx={{
+                                    color: showHiddenAccounts ? '#10b981' : '#6b7280',
+                                }}
+                            >
+                                {showHiddenAccounts ? (
+                                    <VisibilityIcon />
+                                ) : (
+                                    <VisibilityOffIcon />
+                                )}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
             </Box>
 
+            {/* RENDER LOGIC */}
             {view === 'account' ? (
+                /* ------------- ACCOUNT VIEW ------------- */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sortedAccounts.length === 0 ? (
+                    {filteredAndSortedAccounts.length === 0 ? (
                         <Box textAlign="center" mt={4}>
                             <Typography variant="body1" sx={{ color: '#99f6e4' }}>
                                 No accounts found.
                             </Typography>
                         </Box>
                     ) : (
-                        sortedAccounts.map((account) => (
+                        filteredAndSortedAccounts.map((account) => (
                             <AccountCard
                                 key={account.ID}
                                 account={account}
@@ -227,11 +290,13 @@ const CharacterOverview = ({
                                 onRemoveAccount={onRemoveAccount}
                                 roles={roles}
                                 skillConversions={skillConversions}
+                                onToggleAccountVisibility={onToggleAccountVisibility}
                             />
                         ))
                     )}
                 </div>
             ) : (
+                /* ------------- GROUP VIEW (ROLE or LOCATION) ------------- */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sortedGroups.length === 0 ? (
                         <Box textAlign="center" mt={4}>
@@ -260,6 +325,7 @@ const CharacterOverview = ({
 CharacterOverview.propTypes = {
     accounts: PropTypes.array.isRequired,
     onToggleAccountStatus: PropTypes.func.isRequired,
+    onToggleAccountVisibility: PropTypes.func.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
     onUpdateAccountName: PropTypes.func.isRequired,
     onRemoveCharacter: PropTypes.func.isRequired,

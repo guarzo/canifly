@@ -47,6 +47,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 
 	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
+	r.HandleFunc("/api/toggle-account-visibility", accountHandler.ToggleAccountVisibility())
 	r.HandleFunc("/api/remove-account", accountHandler.RemoveAccount())
 
 	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter)

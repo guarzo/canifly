@@ -75,6 +75,34 @@ func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
 	}
 }
 
+func (h *AccountHandler) ToggleAccountVisibility() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			AccountID int64 `json:"accountID"`
+		}
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
+		if request.AccountID == 0 {
+			respondError(w, "UserId is required", http.StatusBadRequest)
+			return
+		}
+
+		err := h.accountService.ToggleAccountVisibility(request.AccountID)
+		if err != nil {
+			if err.Error() == "account not found" {
+				respondError(w, "Account not found", http.StatusNotFound)
+			} else {
+				respondError(w, fmt.Sprintf("Failed to toggle account visbility: %v", err), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		respondJSON(w, map[string]bool{"success": true})
+	}
+}
+
 func (h *AccountHandler) RemoveAccount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request struct {

@@ -161,9 +161,22 @@ CharacterRow.propTypes = {
 };
 
 const CharacterTable = ({ characters, skillPlans, conversions }) => {
+    // sortBy can be "name" or "sp"
+    const [sortBy, setSortBy] = useState('sp');
     const [sortDirection, setSortDirection] = useState('asc');
 
-    // Convert the raw characters into a shape convenient for rendering
+    const handleSort = (column) => {
+        // If we're already sorting by that column, flip direction
+        // Otherwise, switch to that column with ascending direction
+        if (sortBy === column) {
+            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortBy(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Prepare the raw data
     const characterData = useMemo(() => {
         return characters.map((character) => {
             const characterDetails = character.Character || {};
@@ -182,8 +195,7 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
 
             return {
                 id: characterDetails.CharacterID,
-                CharacterName: characterDetails.CharacterName,
-                // Keep the raw SP for sorting and a formatted version for display
+                CharacterName: characterDetails.CharacterName || '',
                 rawSP: totalSP,
                 TotalSP: TotalSPFormatted,
                 plans,
@@ -192,24 +204,29 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
         });
     }, [characters, skillPlans]);
 
-    // Sort the array when `sortDirection` or `characterData` changes
+    // Sort the data based on sortBy & sortDirection
     const sortedData = useMemo(() => {
-        // Create a shallow copy
         const sorted = [...characterData];
 
-        // Sort by rawSP (numeric) ascending or descending
-        sorted.sort((a, b) => a.rawSP - b.rawSP);
+        sorted.sort((a, b) => {
+            if (sortBy === 'name') {
+                // Compare by CharacterName (string)
+                const nameA = a.CharacterName.toLowerCase();
+                const nameB = b.CharacterName.toLowerCase();
+                return nameA.localeCompare(nameB);
+            } else {
+                // sortBy === 'sp'
+                // Compare by rawSP (numeric)
+                return a.rawSP - b.rawSP;
+            }
+        });
+
         if (sortDirection === 'desc') {
             sorted.reverse();
         }
 
         return sorted;
-    }, [characterData, sortDirection]);
-
-    // Handle the click on the header to toggle ascending/descending
-    const handleSortClick = () => {
-        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    };
+    }, [characterData, sortBy, sortDirection]);
 
     return (
         <div className="mb-8 w-full">
@@ -217,27 +234,48 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
                 <Table>
                     <TableHead>
                         <TableRow className="bg-gradient-to-r from-gray-900 to-gray-800">
+                            {/* Expand/Collapse Column */}
                             <TableCell sx={{ width: '40px', paddingX: '0.5rem' }} />
 
-                            <TableCell className="text-teal-200 font-bold uppercase py-2 px-2 text-sm">
+                            {/* Character Name Column */}
+                            <TableCell
+                                onClick={() => handleSort('name')}
+                                className="text-teal-200 font-bold uppercase py-2 px-2 text-sm cursor-pointer select-none"
+                            >
                                 Character Name
+                                {sortBy === 'name' && (
+                                    sortDirection === 'asc' ? (
+                                        <ArrowUpward
+                                            fontSize="small"
+                                            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                        />
+                                    ) : (
+                                        <ArrowDownward
+                                            fontSize="small"
+                                            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                        />
+                                    )
+                                )}
                             </TableCell>
 
+                            {/* Skill Points Column */}
                             <TableCell
-                                onClick={handleSortClick}
+                                onClick={() => handleSort('sp')}
                                 className="text-teal-200 font-bold uppercase py-2 px-2 text-sm cursor-pointer select-none"
                             >
                                 Total Skill Points
-                                {sortDirection === 'asc' ? (
-                                    <ArrowUpward
-                                        fontSize="small"
-                                        style={{ marginLeft: 4, verticalAlign: 'middle' }}
-                                    />
-                                ) : (
-                                    <ArrowDownward
-                                        fontSize="small"
-                                        style={{ marginLeft: 4, verticalAlign: 'middle' }}
-                                    />
+                                {sortBy === 'sp' && (
+                                    sortDirection === 'asc' ? (
+                                        <ArrowUpward
+                                            fontSize="small"
+                                            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                        />
+                                    ) : (
+                                        <ArrowDownward
+                                            fontSize="small"
+                                            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                        />
+                                    )
                                 )}
                             </TableCell>
                         </TableRow>

@@ -113,6 +113,25 @@ export function toggleAccountStatusInAppData(prev, accountID) {
     };
 }
 
+
+export function toggleAccountVisibilityInAppData(prev, accountID) {
+    if (!prev) return prev;
+
+    const updatedAccounts = prev.AccountData.Accounts.map((account) =>
+        account.ID === accountID
+            ? { ...account, Visible: !account.Visible }
+            : account
+    );
+
+    return {
+        ...prev,
+        AccountData: {
+            ...prev.AccountData,
+            Accounts: updatedAccounts
+        }
+    };
+}
+
 export function removeAccountFromAppData(prev, accountName) {
     if (!prev) return prev;
     const updatedAccounts = prev.AccountData.Accounts.filter(

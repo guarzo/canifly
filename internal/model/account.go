@@ -19,6 +19,7 @@ type Account struct {
 	Status     AccountStatus
 	Characters []CharacterIdentity
 	ID         int64 // userFile ID for this account, defaults to 0 until assigned
+	Visible    bool  // toggle visibility
 }
 
 type AccountData struct {

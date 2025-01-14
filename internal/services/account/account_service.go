@@ -203,6 +203,34 @@ func (a *accountService) ToggleAccountStatus(accountID int64) error {
 	return nil
 }
 
+func (a *accountService) ToggleAccountVisibility(accountID int64) error {
+	accountData, err := a.accountRepo.FetchAccountData()
+	if err != nil {
+		return fmt.Errorf("error fetching account data: %w", err)
+	}
+
+	accounts := accountData.Accounts
+	var accountFound bool
+	for i := range accounts {
+		if accounts[i].ID == accountID {
+			accounts[i].Visible = !accounts[i].Visible
+			accountFound = true
+			break
+		}
+	}
+
+	if !accountFound {
+		return fmt.Errorf("account not found")
+	}
+
+	accountData.Accounts = accounts
+	if err = a.accountRepo.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("failed to save account data: %w", err)
+	}
+
+	return nil
+}
+
 func (a *accountService) RemoveAccountByName(accountName string) error {
 	accountData, err := a.accountRepo.FetchAccountData()
 	if err != nil {

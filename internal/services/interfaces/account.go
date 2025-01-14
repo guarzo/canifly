@@ -2,9 +2,10 @@
 package interfaces
 
 import (
-	"github.com/gorilla/sessions"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/sessions"
 
 	"golang.org/x/oauth2"
 
@@ -15,6 +16,7 @@ type AccountService interface {
 	FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error
 	UpdateAccountName(accountID int64, accountName string) error
 	ToggleAccountStatus(accountID int64) error
+	ToggleAccountVisibility(accountID int64) error
 	RemoveAccountByName(accountName string) error
 	RefreshAccountData(characterService CharacterService) (*model.AccountData, error)
 	DeleteAllAccounts() error

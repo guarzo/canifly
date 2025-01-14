@@ -23,7 +23,8 @@ function AppRoutes({
                        silentRefreshData,
                        setAppData,
                        characters,
-                       logInCallBack
+                       logInCallBack,
+                       handleToggleAccountVisibility,
                    }) {
     if (!isAuthenticated || loggedOut) {
         return <Landing logInCallBack={logInCallBack} />;
@@ -59,6 +60,7 @@ function AppRoutes({
                             onRemoveAccount={handleRemoveAccount}
                             roles={roles}
                             skillConversions={eveConversions}
+                            onToggleAccountVisibility={handleToggleAccountVisibility}
                         />
                     }
                 />
@@ -131,7 +133,8 @@ AppRoutes.propTypes = {
     silentRefreshData: PropTypes.func.isRequired,
     setAppData: PropTypes.func.isRequired,
     characters: PropTypes.array.isRequired,
-    logInCallBack: PropTypes.func.isRequired
+    logInCallBack: PropTypes.func.isRequired,
+    handleToggleAccountVisibility: PropTypes.func.isRequired,
 };
 
 export default AppRoutes;

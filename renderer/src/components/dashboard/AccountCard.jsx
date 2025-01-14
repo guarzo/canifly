@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
-import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import {
+    IconButton,
+    Menu,
+    MenuItem,
+    Tooltip,
+} from '@mui/material';
+import {
+    MoreVert as MoreVertIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
+} from '@mui/icons-material';
 import CharacterItem from './CharacterItem.jsx';
 
 const AccountCard = ({
                          account,
                          onToggleAccountStatus,
+                         onToggleAccountVisibility,
                          onUpdateAccountName,
                          onUpdateCharacter,
                          onRemoveCharacter,
@@ -48,6 +58,13 @@ const AccountCard = ({
         onRemoveAccount(account.Name);
     };
 
+    // IMPORTANT:
+    // Make sure we pass the account.ID to the onToggleAccountVisibility callback.
+    // If we just passed onToggleAccountVisibility, it wouldn't have the account ID.
+    const handleVisibilityClick = () => {
+        onToggleAccountVisibility(account.ID);
+    };
+
     return (
         <div className="p-4 rounded-md shadow-md bg-gray-800 text-teal-200 max-w-sm">
             {/* Account Header */}
@@ -62,13 +79,16 @@ const AccountCard = ({
                         autoFocus
                     />
                 ) : (
-                    <span className="text-sm font-bold cursor-pointer" onClick={startEditingName}>
-                        {account.Name}
-                    </span>
+                    <span
+                        className="text-sm font-bold cursor-pointer"
+                        onClick={startEditingName}
+                    >
+            {account.Name}
+          </span>
                 )}
 
                 <div className="flex items-center space-x-2">
-                    <Tooltip title="Toggle Account Status">
+                    <Tooltip title="Toggle Account Status (Alpha/Omega)">
                         <button
                             onClick={() => onToggleAccountStatus(account.ID)}
                             className="text-xl font-bold text-white"
@@ -76,6 +96,21 @@ const AccountCard = ({
                             {account.Status === 'Alpha' ? 'α' : 'Ω'}
                         </button>
                     </Tooltip>
+
+                    {/* NEW: Icon-based visibility toggle */}
+                    <Tooltip
+                        title={account.Visible ? 'Hide Account' : 'Show Account'}
+                    >
+                        <IconButton
+                            onClick={handleVisibilityClick}
+                            // You can style color differently depending on whether it's visible or not
+                            sx={{ color: account.Visible ? '#10b981' : '#6b7280' }}
+                        >
+                            {account.Visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Existing More Options menu */}
                     <IconButton
                         onClick={handleMenuClick}
                         size="small"
@@ -125,6 +160,7 @@ const AccountCard = ({
 AccountCard.propTypes = {
     account: PropTypes.object.isRequired,
     onToggleAccountStatus: PropTypes.func.isRequired,
+    onToggleAccountVisibility: PropTypes.func.isRequired,
     onUpdateAccountName: PropTypes.func.isRequired,
     onUpdateCharacter: PropTypes.func.isRequired,
     onRemoveCharacter: PropTypes.func.isRequired,

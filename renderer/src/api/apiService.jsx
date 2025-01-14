@@ -42,6 +42,18 @@ export async function toggleAccountStatus(accountID) {
     });
 }
 
+export async function toggleAccountVisibility(accountID) {
+    return apiRequest('/api/toggle-account-visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ accountID })
+    }, {
+        errorMessage: 'Failed to toggle account visibility.'
+    });
+}
+
+
 export async function updateCharacter(characterID, updates) {
     return apiRequest('/api/update-character', {
         method: 'POST',

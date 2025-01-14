@@ -5,7 +5,7 @@ import {
     updateCharacterInAppData,
     toggleAccountStatusInAppData,
     updateAccountNameInAppData,
-    removeAccountFromAppData, removePlanFromSkillPlans
+    removeAccountFromAppData, removePlanFromSkillPlans, toggleAccountVisibilityInAppData
 } from '../utils/appDataTransforms';
 import {isDev} from '../Config';
 
@@ -19,7 +19,7 @@ import {
     removeAccount as removeAccountApi,
     addCharacter as addCharacterApi,
     saveSkillPlan as saveSkillPlanApi,
-    deleteSkillPlan as deleteSkillPlanApi,
+    deleteSkillPlan as deleteSkillPlanApi, toggleAccountVisibility,
 } from '../api/apiService.jsx';
 import {toast} from "react-toastify";
 import {useLoginCallback} from "./useLoginCallback.jsx";
@@ -73,6 +73,14 @@ export function useAppHandlers({
         const result = await toggleAccountStatusApi(accountID);
         if (result && result.success) {
             setAppData((prev) => toggleAccountStatusInAppData(prev, accountID));
+        }
+    }, [setAppData]);
+
+    const handleToggleAccountVisibility = useCallback(async (accountID) => {
+        log("handleToggleAccountVisibility called:", accountID);
+        const result = await toggleAccountVisibility(accountID);
+        if (result && result.success) {
+            setAppData((prev) => toggleAccountVisibilityInAppData(prev, accountID));
         }
     }, [setAppData]);
 
@@ -197,5 +205,6 @@ export function useAppHandlers({
         handleSaveSkillPlan,
         handleDeleteSkillPlan,
         handleCopySkillPlan,
+        handleToggleAccountVisibility,
     };
 }

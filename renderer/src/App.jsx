@@ -73,7 +73,7 @@ const App = () => {
         trace();
     }, [loggedOut]);
 
-    const loginCallbackFn = useLoginCallback(isAuthenticated, loggedOut, loginRefresh, setLoggedOut, setIsAuthenticated);
+    const loginCallbackFn = useLoginCallback(isAuthenticated, loginRefresh, setLoggedOut, setIsAuthenticated);
 
     const logInCallBack = (state) => {
         loginCallbackFn(state);
@@ -90,6 +90,7 @@ const App = () => {
         handleSaveSkillPlan,
         handleDeleteSkillPlan,
         handleCopySkillPlan,
+        handleToggleAccountVisibility,
     } = useAppHandlers({
         setAppData,
         fetchData,
@@ -130,7 +131,11 @@ const App = () => {
     }
 
     const accounts = appData?.AccountData?.Accounts || [];
-    const characters = accounts.flatMap((account) => account.Characters) || [];
+
+    const characters = (accounts || [])
+        .filter((account) => account.Visible !== false)
+        .flatMap((account) => account.Characters || []);
+
     const existingAccounts = accounts.map((account) => account.Name) || [];
 
     return (
@@ -163,7 +168,7 @@ const App = () => {
                                 setAppData={setAppData}
                                 characters={characters}
                                 logInCallBack={logInCallBack}
-                            />
+                                handleToggleAccountVisibility={handleToggleAccountVisibility}/>
                         </main>
                         <Footer />
                         {isSkillPlanModalOpen && (
