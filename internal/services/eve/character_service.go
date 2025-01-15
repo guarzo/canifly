@@ -192,6 +192,42 @@ func (c *characterService) UpdateCharacterFields(characterID int64, updates map[
 	return nil
 }
 
+func (a *characterService) removeUnusedRoles() error {
+	// 1) Get current roles
+	roles, err := a.configService.GetRoles()
+	if err != nil {
+		return fmt.Errorf("failed to fetch roles: %w", err)
+	}
+
+	// 2) Get all accounts to see which roles are in use
+	accounts, err := a.accountService.FetchAccounts()
+	if err != nil {
+		return fmt.Errorf("failed to fetch accounts: %w", err)
+	}
+
+	usedRoles := make(map[string]struct{})
+	for _, account := range accounts {
+		for _, character := range account.Characters {
+			if character.Role != "" {
+				usedRoles[character.Role] = struct{}{}
+			}
+		}
+	}
+
+	// 3) Filter out unused roles
+	var filtered []string
+	for _, role := range roles {
+		if _, ok := usedRoles[role]; ok {
+			filtered = append(filtered, role)
+		} else {
+			a.logger.Infof("Removing unused role: %s", role)
+		}
+	}
+
+	// 4) Save pruned list
+	return a.configService.SaveRoles(filtered)
+}
+
 func (c *characterService) RemoveCharacter(characterID int64) error {
 	accounts, err := c.accountService.FetchAccounts()
 	if err != nil {

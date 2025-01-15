@@ -84,4 +84,5 @@ type ConfigService interface {
 	UpdateBackupDir(dir string) error
 	BackupJSONFiles(backupDir string) error
 	FetchConfigData() (*model.ConfigData, error)
+	SaveRoles(roles []string) error
 }

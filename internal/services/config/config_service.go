@@ -154,6 +154,10 @@ func (s *configService) UpdateRoles(newRole string) error {
 	return s.configRepo.SaveRoles(roles)
 }
 
+func (s *configService) SaveRoles(roles []string) error {
+	return s.configRepo.SaveRoles(roles)
+}
+
 func (s *configService) GetRoles() ([]string, error) {
 	return s.configRepo.FetchRoles()
 }

@@ -205,6 +205,10 @@ type MockAccountService struct {
 	mock.Mock
 }
 
+func (m *MockAccountService) ToggleAccountVisibility(accountID int64) error {
+	return nil
+}
+
 func (m *MockAccountService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
 	args := m.Called(state, char, token)
 	return args.Error(0)
@@ -253,6 +257,10 @@ func (m *MockAccountService) GetAccountNameByID(id string) (string, bool) {
 // MockConfigService mocks interfaces.ConfigService
 type MockConfigService struct {
 	mock.Mock
+}
+
+func (m *MockConfigService) SaveRoles(roles []string) error {
+	return nil
 }
 
 func (m *MockConfigService) BackupJSONFiles(backupDir string) error {
