@@ -96,15 +96,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run package:app
 
-      # Automatically bump/tag on each push to main
       - name: Bump Tag
         id: increment_tag
         uses: anothrNick/github-tag-action@1.4.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # This ensures the action only bumps the tag for pushes on the main branch
           release_branches: main
-          # Options: major, minor, patch (default). Adjust to your preference.
           default_bump: patch
           tag_prefix: 'v'
 
@@ -139,15 +136,12 @@ jobs:
       - name: List release directory files
         run: ls -l release
 
-      - name: Set Clean Version
-        run: echo "CLEAN_TAG=${{ steps.increment_tag.outputs.new_tag#v }}" >> $GITHUB_ENV
-
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "release/CanIFly-Setup-${{ env.CLEAN_TAG }}.exe"
-          asset_name: "CanIFly-Setup${{ env.CLEAN_TAG }}.exe"
+          asset_path: "release/CanIFly-Setup-${{ steps.increment_tag.outputs.new_tag }}.exe"
+          asset_name: "CanIFly-Setup${{ steps.increment_tag.outputs.new_tag }}.exe"
           asset_content_type: application/x-msdownload
