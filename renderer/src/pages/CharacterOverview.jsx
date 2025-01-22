@@ -1,3 +1,5 @@
+// src/pages/CharacterOverview.jsx
+
 import PropTypes from 'prop-types';
 import React, { useState, useMemo } from 'react';
 import AccountCard from '../components/dashboard/AccountCard.jsx';
@@ -63,18 +65,16 @@ const CharacterOverview = ({
         return accountsCopy;
     }, [accounts, sortOrder, showHiddenAccounts]);
 
-    // 2. For role/location grouping, build "allCharacters"
-    //    but skip hidden accounts if showHiddenAccounts === false
+    // 2. Build "allCharacters" for role/location grouping
+    //    Skip hidden accounts if showHiddenAccounts === false
     const allCharacters = useMemo(() => {
         let chars = [];
         (accounts || []).forEach((account) => {
-            // If we are NOT showing hidden accounts, skip characters
-            // from an account that is hidden (Visible === false).
             if (!showHiddenAccounts && account.Visible === false) {
                 return;
             }
-
             const accountName = account.Name || 'Unknown Account';
+
             chars = chars.concat(
                 (account.Characters || []).map((char) => ({
                     ...char,
@@ -107,7 +107,8 @@ const CharacterOverview = ({
     const locationMap = useMemo(() => {
         const map = {};
         allCharacters.forEach((character) => {
-            const location = character.Character.LocationName || 'Unknown Location';
+            // Be sure character.Character exists
+            const location = character.Character?.LocationName || 'Unknown Location';
             if (!map[location]) {
                 map[location] = [];
             }
@@ -122,7 +123,16 @@ const CharacterOverview = ({
     // 5. Sort the group keys (role/location) for the GroupCard display
     const sortedGroups = useMemo(() => {
         if (view === 'account') return [];
-        const keys = Object.keys(mapToDisplay);
+
+        let keys = Object.keys(mapToDisplay);
+
+        // If grouping by role, omit roles that have no members:
+        if (view === 'role') {
+            keys = keys.filter((role) => (mapToDisplay[role] || []).length > 0);
+        }
+        // (If you wanted to hide empty locations too, do the same check here.)
+
+        // Then do the alphabetical (asc/desc) sort
         keys.sort((a, b) =>
             sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
         );
@@ -241,31 +251,26 @@ const CharacterOverview = ({
                     </IconButton>
                 </Box>
 
-                {/* Show/Hide hidden accounts toggle (only in 'account' view) */}
-                {view === 'account' && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Tooltip
-                            title={
-                                showHiddenAccounts
-                                    ? 'Hide hidden accounts'
-                                    : 'Show hidden accounts'
-                            }
+                {/* Show/Hide hidden accounts toggle
+                    (Removed the `view === 'account' &&` check, so it’s always visible) */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Tooltip
+                        title={
+                            showHiddenAccounts
+                                ? 'Hide hidden accounts'
+                                : 'Show hidden accounts'
+                        }
+                    >
+                        <IconButton
+                            onClick={() => setShowHiddenAccounts(!showHiddenAccounts)}
+                            sx={{
+                                color: showHiddenAccounts ? '#10b981' : '#6b7280',
+                            }}
                         >
-                            <IconButton
-                                onClick={() => setShowHiddenAccounts(!showHiddenAccounts)}
-                                sx={{
-                                    color: showHiddenAccounts ? '#10b981' : '#6b7280',
-                                }}
-                            >
-                                {showHiddenAccounts ? (
-                                    <VisibilityIcon />
-                                ) : (
-                                    <VisibilityOffIcon />
-                                )}
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                )}
+                            {showHiddenAccounts ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                        </IconButton>
+                    </Tooltip>
+                </Box>
             </Box>
 
             {/* RENDER LOGIC */}
