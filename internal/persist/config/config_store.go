@@ -113,7 +113,11 @@ func (c *ConfigStore) SaveRoles(roles []string) error {
 	return c.saveConfigDataLocked(configData)
 }
 
-// You already have code to get default settings dir...
+// GetDefaultSettingsDir returns the default settings directory.
+// It uses os.UserHomeDir() normally, but if running under WSL it retrieves the Windows home directory
+// (converted to WSL format) and then constructs candidate directories.
+// It then checks for the existence of these candidates and returns the first one that exists,
+// or, if none exist, returns the first candidate.
 func (c *ConfigStore) GetDefaultSettingsDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -121,9 +125,7 @@ func (c *ConfigStore) GetDefaultSettingsDir() (string, error) {
 	}
 
 	platform := runtime.GOOS
-	wslDetected := isWSL()
-
-	if wslDetected {
+	if isWSL() {
 		platform = "wsl"
 		homeDir, err = getWindowsHomeInWSL()
 		if err != nil {
@@ -131,38 +133,55 @@ func (c *ConfigStore) GetDefaultSettingsDir() (string, error) {
 		}
 	}
 
-	var defaultDir string
+	var candidates []string
 	switch platform {
 	case "windows":
-		defaultDir = filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility")
+		candidates = []string{
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_tq_tranquility"),
+		}
 	case "darwin":
-		defaultDir = filepath.Join(homeDir, "Library", "Application Support", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility")
+		candidates = []string{
+			filepath.Join(homeDir, "Library", "Application Support", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
 	case "linux":
-		defaultDir = filepath.Join(homeDir, ".local", "share", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility")
+		candidates = []string{
+			filepath.Join(homeDir, ".local", "share", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
 	case "wsl":
-		defaultDir = filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility")
+		// In WSL we prefer the Windows equivalent without "online"
+		candidates = []string{
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_tq_tranquility"),
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
 	default:
 		return "", fmt.Errorf("unsupported platform: %s", platform)
 	}
 
-	return defaultDir, nil
+	for _, dir := range candidates {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir, nil
+		}
+	}
+
+	// If none of the candidate directories exist, return the first candidate (even if it doesn't exist)
+	return candidates[0], nil
 }
 
-// (unchanged) internal helpers
+// Internal helper: isWSL returns true if running under Windows Subsystem for Linux.
 func isWSL() bool {
 	if runtime.GOOS == "linux" {
 		data, err := os.ReadFile("/proc/version")
-		if err == nil && strings.Contains(string(data), "microsoft") {
+		if err == nil && strings.Contains(strings.ToLower(string(data)), "microsoft") {
 			return true
 		}
 	}
 	return false
 }
 
+// Internal helper: getWindowsHomeInWSL retrieves the Windows home directory in WSL (converted to a Unix-style path).
 func getWindowsHomeInWSL() (string, error) {
-	cmd := "cmd.exe"
-	args := []string{"/C", "echo", "%USERPROFILE%"}
-	out, err := runCommand(cmd, args)
+	out, err := runCommand("cmd.exe", []string{"/C", "echo", "%USERPROFILE%"})
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve Windows home directory in WSL: %w", err)
 	}
@@ -182,7 +201,7 @@ func runCommand(name string, args []string) (string, error) {
 	return string(output), err
 }
 
-// Internal read/write methods assume lock is already held
+// Internal read/write methods assume lock is already held.
 func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	if c.cachedData != nil {
 		return c.cachedData, nil
@@ -225,7 +244,6 @@ func (c *ConfigStore) saveConfigDataLocked(configData *model.ConfigData) error {
 // NEW METHOD: Zip up all *.json files from c.basePath into backupDir
 // -------------------------------------------------------------------
 func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
-	// We'll create a zip file named something like: config_json_backup_YYYY-MM-DD_HH-mm-ss.zip
 	now := time.Now()
 	timeStr := now.Format("2006-01-02_15-04-05")
 	zipFileName := fmt.Sprintf("canifly_backup_%s.zip", timeStr)
@@ -233,13 +251,11 @@ func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
 
 	c.logger.Infof("Zipping all *.json from basePath=%s into %s", c.basePath, zipFilePath)
 
-	// 1) Gather all .json files in basePath
 	var jsonFiles []string
 	err := filepath.Walk(c.basePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err // stop walking on error
+			return err
 		}
-		// If it's a file (not a dir) and ends with ".json"
 		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".json") {
 			jsonFiles = append(jsonFiles, path)
 		}
@@ -255,7 +271,6 @@ func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
 		return fmt.Errorf("no .json files to backup in %s", c.basePath)
 	}
 
-	// 2) Create the ZIP file
 	zipFile, err := os.Create(zipFilePath)
 	if err != nil {
 		c.logger.Errorf("Failed to create zip file %s: %v", zipFilePath, err)
@@ -263,13 +278,10 @@ func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
 	}
 	defer zipFile.Close()
 
-	// 3) Create a zip writer on top of that file
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	// 4) Add each .json file to the archive
 	for _, file := range jsonFiles {
-		// open
 		f, err := os.Open(file)
 		if err != nil {
 			c.logger.Errorf("Failed to open json file %s: %v", file, err)
@@ -278,11 +290,9 @@ func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
 
 		relPath, err := filepath.Rel(c.basePath, file)
 		if err != nil {
-			// fallback: just use the filename
 			relPath = filepath.Base(file)
 		}
 
-		// create a zip entry
 		w, err := zipWriter.Create(relPath)
 		if err != nil {
 			c.logger.Errorf("Failed to create zip entry for %s: %v", file, err)
@@ -290,7 +300,6 @@ func (c *ConfigStore) BackupJSONFiles(backupDir string) error {
 			return err
 		}
 
-		// copy file contents
 		_, err = io.Copy(w, f)
 		f.Close()
 		if err != nil {

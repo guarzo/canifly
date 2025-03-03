@@ -86,7 +86,8 @@
     "@electron/remote": "^2.1.2",
     "axios": "^1.7.9",
     "dotenv": "^16.4.5",
-    "tar": "^7.4.3"
+    "tar": "^7.4.3",
+    "vite": "^6.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

@@ -101,7 +101,6 @@ func initAccountAndAssoc(l interfaces.Logger, e interfaces.ESIService, basePath 
 func initSkillService(logger interfaces.Logger, basePath string) (interfaces.SkillService, error) {
 	skillStore := eve.NewSkillStore(logger, persist.OSFileSystem{}, basePath)
 	if err := skillStore.LoadSkillPlans(); err != nil {
-
 		return nil, fmt.Errorf("failed to load eve plans %v", err)
 	}
 	if err := skillStore.LoadSkillTypes(); err != nil {
@@ -123,6 +122,7 @@ func initESIService(logger interfaces.Logger, cfg Config, authClient interfaces.
 	return eveSvc.NewESIService(httpClient, authClient, logger, cacheService, deletedStr)
 }
 
+// Modified initConfigService: if EnsureSettingsDir fails, log a warning and reset SettingsDir to empty.
 func initConfigService(l interfaces.Logger, basePath string) (interfaces.ConfigService, error) {
 	configStr := config.NewConfigStore(l, persist.OSFileSystem{}, basePath)
 	if err := embed.LoadStatic(); err != nil {
@@ -131,7 +131,16 @@ func initConfigService(l interfaces.Logger, basePath string) (interfaces.ConfigS
 
 	srv := configSvc.NewConfigService(l, configStr)
 	if err := srv.EnsureSettingsDir(); err != nil {
-		return nil, fmt.Errorf("unable to ensure settings dir %v", err)
+		l.Warnf("unable to ensure settings dir: %v; proceeding with empty SettingsDir", err)
+		configData, fetchErr := configStr.FetchConfigData()
+		if fetchErr != nil {
+			l.Warnf("failed to fetch config data: %v", fetchErr)
+		} else {
+			configData.SettingsDir = ""
+			if saveErr := configStr.SaveConfigData(configData); saveErr != nil {
+				l.Warnf("failed to save config data with empty SettingsDir: %v", saveErr)
+			}
+		}
 	}
 	return srv, nil
 }
