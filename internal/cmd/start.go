@@ -64,9 +64,9 @@ func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger
 	shutdownCh := make(chan error, 1)
 
 	// Determine startup timeout based on DEV_MODE.
-	timeoutDuration := 30 * time.Second
+	timeoutDuration := 300 * time.Second
 	if os.Getenv("DEV_MODE") == "true" {
-		timeoutDuration = 60 * time.Second
+		timeoutDuration = 600 * time.Second
 		logger.Warn("DEV_MODE is enabled; increasing server startup timeout to 60 seconds")
 	}
 
