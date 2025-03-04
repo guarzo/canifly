@@ -142,7 +142,7 @@ export async function syncSubdirectory(profile, userId, charId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ profile, userId, charId })
+        body: JSON.stringify({ subDir: profile, userId, charId })
     }, {
         errorMessage: 'Sync operation failed.'
     });
@@ -153,7 +153,7 @@ export async function syncAllSubdirectories(profile, userId, charId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ profile, userId, charId })
+        body: JSON.stringify({ subDir: profile, userId, charId })
     }, {
         errorMessage: 'Sync-All operation failed.'
     });

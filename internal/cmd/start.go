@@ -62,6 +62,7 @@ func createServerWithListener(r http.Handler, port string, logger interfaces.Log
 func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger) error {
 	startTime := time.Now()
 	shutdownCh := make(chan error, 1)
+	startupCh := make(chan struct{}, 1) // Channel to signal successful startup
 
 	// Determine startup timeout based on DEV_MODE.
 	timeoutDuration := 300 * time.Second
@@ -73,6 +74,9 @@ func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger
 	// Start the server in a separate goroutine.
 	go func() {
 		logger.Infof("Server starting to serve requests...")
+		// Signal that the server is ready to accept connections
+		startupCh <- struct{}{}
+		
 		err := srv.Serve(listener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.WithError(err).Error("Server encountered an error while serving")
@@ -86,18 +90,31 @@ func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	// Wait for a shutdown signal, an error from the server, or a startup timeout.
+	// First, wait for server to start or timeout
+	select {
+	case <-startupCh:
+		logger.Info("Server successfully started and is accepting connections")
+	case err := <-shutdownCh:
+		if err != nil {
+			logger.WithError(err).Error("Server error during startup")
+			return fmt.Errorf("server error: %w", err)
+		}
+		return nil
+	case <-time.After(timeoutDuration):
+		logger.Error("Server did not start within the expected timeout; startup timeout reached")
+		return fmt.Errorf("server startup timeout after %s", timeoutDuration)
+	}
+
+	// Now wait for shutdown signal or server error
 	select {
 	case <-quit:
 		logger.Info("Shutdown signal received")
 	case err := <-shutdownCh:
 		if err != nil {
-			logger.WithError(err).Error("Server error during startup or runtime")
+			logger.WithError(err).Error("Server error during runtime")
 			return fmt.Errorf("server error: %w", err)
 		}
-	case <-time.After(timeoutDuration):
-		logger.Error("Server did not start within the expected timeout; startup timeout reached")
-		return fmt.Errorf("server startup timeout after %s", timeoutDuration)
+		return nil
 	}
 
 	logger.Info("Initiating graceful shutdown")
