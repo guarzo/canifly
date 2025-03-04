@@ -223,7 +223,7 @@ describe('apiService', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ profile: 'profile1', userId: 'user123', charId: 'char456' })
+                body: JSON.stringify({ subDir: 'profile1', userId: 'user123', charId: 'char456' })
             }, {
                 errorMessage: 'Sync operation failed.'
             });
@@ -239,7 +239,7 @@ describe('apiService', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ profile: 'profile1', userId: 'user123', charId: 'char456' })
+                body: JSON.stringify({ subDir: 'profile1', userId: 'user123', charId: 'char456' })
             }, {
                 errorMessage: 'Sync-All operation failed.'
             });
