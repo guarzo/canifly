@@ -1,7 +1,6 @@
 // src/components/sync/Sync.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import {
@@ -265,14 +264,6 @@ const Sync = ({
             {confirmDialog}
         </div>
     );
-};
-
-Sync.propTypes = {
-    settingsData: PropTypes.array.isRequired,
-    associations: PropTypes.array.isRequired,
-    currentSettingsDir: PropTypes.string.isRequired,
-    lastBackupDir: PropTypes.string.isRequired,
-    userSelections: PropTypes.object.isRequired,
 };
 
 export default Sync;

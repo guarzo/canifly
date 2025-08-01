@@ -11,7 +11,7 @@ import (
 type DashboardHandler struct {
 	sessionService   interfaces.SessionService
 	logger           interfaces.Logger
-	dashboardService interfaces.DashboardService
+	configService    interfaces.ConfigurationService
 	// lastRefreshTime holds a Unix nano timestamp of the last time a refresh occurred
 	lastRefreshTime int64
 }
@@ -19,18 +19,18 @@ type DashboardHandler struct {
 func NewDashboardHandler(
 	s interfaces.SessionService,
 	logger interfaces.Logger,
-	dashboardService interfaces.DashboardService,
+	configService interfaces.ConfigurationService,
 ) *DashboardHandler {
 	return &DashboardHandler{
 		sessionService:   s,
 		logger:           logger,
-		dashboardService: dashboardService,
+		configService:    configService,
 		// lastRefreshTime is initially 0 indicating never refreshed
 	}
 }
 
 func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache bool) {
-	appState := h.dashboardService.GetCurrentAppState()
+	appState := h.configService.GetCurrentAppState()
 
 	// If we have cached data, and we are allowed to use it (noCache == false):
 	if !noCache && len(appState.AccountData.Accounts) > 0 {
@@ -43,7 +43,7 @@ func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache 
 			// Try to set the last refresh time optimistically. If CAS fails, someone else just did a refresh.
 			if atomic.CompareAndSwapInt64(&h.lastRefreshTime, old, now) {
 				go func() {
-					if err := h.dashboardService.RefreshDataInBackground(); err != nil {
+					if err := h.configService.RefreshDataInBackground(); err != nil {
 						h.logger.Errorf("background refresh failed: %v", err)
 					} else {
 						h.logger.Debug("Background refresh completed successfully.")
@@ -61,7 +61,7 @@ func (h *DashboardHandler) handleAppStateRefresh(w http.ResponseWriter, noCache 
 	}
 
 	// If noCache is true or we have no cached accounts, do a full refresh now (ignoring the last refresh time)
-	updatedData, err := h.dashboardService.RefreshAccountsAndState()
+	updatedData, err := h.configService.RefreshAccountsAndState()
 	if err != nil {
 		h.logger.Errorf("Failed to validate accounts: %v", err)
 		respondError(w, "Failed to validate accounts", http.StatusInternalServerError)

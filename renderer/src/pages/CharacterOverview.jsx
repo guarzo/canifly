@@ -1,6 +1,5 @@
 // src/pages/CharacterOverview.jsx
 
-import PropTypes from 'prop-types';
 import React, { useState, useMemo } from 'react';
 import AccountCard from '../components/dashboard/AccountCard.jsx';
 import GroupCard from '../components/dashboard/GroupCard.jsx';
@@ -23,24 +22,69 @@ import {
 } from '@mui/icons-material';
 import { overviewInstructions } from '../utils/instructions.jsx';
 import PageHeader from '../components/common/SubPageHeader.jsx';
+import { useAppData } from '../hooks/useAppData';
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import apiService from '../api/apiService';
 
-const CharacterOverview = ({
-                               accounts,
-                               onToggleAccountStatus,
-                               onUpdateCharacter,
-                               onUpdateAccountName,
-                               onRemoveCharacter,
-                               onRemoveAccount,
-                               roles,
-                               skillConversions,
-                               onToggleAccountVisibility,
-                           }) => {
+const CharacterOverview = ({ roles, skillConversions }) => {
+    const { accounts, updateAccount, deleteAccount } = useAppData();
+    const { execute } = useAsyncOperation();
+    
     const [view, setView] = useState('account');
     const [sortOrder, setSortOrder] = useState('asc');
     const [showHiddenAccounts, setShowHiddenAccounts] = useState(false);
 
     const toggleSortOrder = () => {
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    };
+    
+    // Handler functions to replace prop handlers
+    const handleToggleAccountStatus = async (accountId) => {
+        const account = accounts.find(acc => acc.Id === accountId);
+        if (account) {
+            await execute(
+                () => updateAccount(accountId, { Status: !account.Status }),
+                { successMessage: 'Account status updated' }
+            );
+        }
+    };
+    
+    const handleUpdateCharacter = async (characterId, updates) => {
+        await execute(
+            () => apiService.updateCharacter(characterId, updates),
+            { successMessage: 'Character updated' }
+        );
+    };
+    
+    const handleUpdateAccountName = async (accountId, name) => {
+        await execute(
+            () => updateAccount(accountId, { Name: name }),
+            { successMessage: 'Account name updated' }
+        );
+    };
+    
+    const handleRemoveCharacter = async (characterId) => {
+        await execute(
+            () => apiService.deleteCharacter(characterId),
+            { successMessage: 'Character removed' }
+        );
+    };
+    
+    const handleRemoveAccount = async (accountId) => {
+        await execute(
+            () => deleteAccount(accountId),
+            { successMessage: 'Account removed' }
+        );
+    };
+    
+    const handleToggleAccountVisibility = async (accountId) => {
+        const account = accounts.find(acc => acc.Id === accountId);
+        if (account) {
+            await execute(
+                () => updateAccount(accountId, { Visible: !account.Visible }),
+                { successMessage: 'Account visibility updated' }
+            );
+        }
     };
 
     // 1. Filter + sort the accounts for "account" view
@@ -288,14 +332,14 @@ const CharacterOverview = ({
                             <AccountCard
                                 key={account.ID}
                                 account={account}
-                                onToggleAccountStatus={onToggleAccountStatus}
-                                onUpdateAccountName={onUpdateAccountName}
-                                onUpdateCharacter={onUpdateCharacter}
-                                onRemoveCharacter={onRemoveCharacter}
-                                onRemoveAccount={onRemoveAccount}
+                                onToggleAccountStatus={handleToggleAccountStatus}
+                                onUpdateAccountName={handleUpdateAccountName}
+                                onUpdateCharacter={handleUpdateCharacter}
+                                onRemoveCharacter={handleRemoveCharacter}
+                                onRemoveAccount={handleRemoveAccount}
                                 roles={roles}
                                 skillConversions={skillConversions}
-                                onToggleAccountVisibility={onToggleAccountVisibility}
+                                onToggleAccountVisibility={handleToggleAccountVisibility}
                             />
                         ))
                     )}
@@ -315,7 +359,7 @@ const CharacterOverview = ({
                                 key={group}
                                 groupName={group}
                                 characters={mapToDisplay[group] || []}
-                                onUpdateCharacter={onUpdateCharacter}
+                                onUpdateCharacter={handleUpdateCharacter}
                                 roles={roles}
                                 skillConversions={skillConversions}
                             />
@@ -325,18 +369,6 @@ const CharacterOverview = ({
             )}
         </div>
     );
-};
-
-CharacterOverview.propTypes = {
-    accounts: PropTypes.array.isRequired,
-    onToggleAccountStatus: PropTypes.func.isRequired,
-    onToggleAccountVisibility: PropTypes.func.isRequired,
-    onUpdateCharacter: PropTypes.func.isRequired,
-    onUpdateAccountName: PropTypes.func.isRequired,
-    onRemoveCharacter: PropTypes.func.isRequired,
-    onRemoveAccount: PropTypes.func.isRequired,
-    roles: PropTypes.array.isRequired,
-    skillConversions: PropTypes.object.isRequired,
 };
 
 export default CharacterOverview;

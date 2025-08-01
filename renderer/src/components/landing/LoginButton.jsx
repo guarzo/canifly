@@ -2,13 +2,14 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import AccountPromptModal from '../common/AccountPromptModal.jsx';
-import PropTypes from 'prop-types';
 import eveSsoImage from '../../assets/images/eve-sso.jpg';
 import { initiateLogin } from '../../api/apiService';
 import { error as cError } from '../../utils/logger';
 import { isDev } from '../../Config';
+import { useAuth } from '../../hooks/useAuth';
 
-const LoginButton = ({ onModalOpenChange, logInCallBack }) => {
+const LoginButton = ({ onModalOpenChange }) => {
+    const { refreshAuth } = useAuth();
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleOpenModal = () => {
@@ -27,7 +28,9 @@ const LoginButton = ({ onModalOpenChange, logInCallBack }) => {
             console.log('Login response data:', data);
             // Data should have {redirectURL, state} on success
             if (data && data.redirectURL && data.state) {
-                logInCallBack(data.state);
+                // Store the state for the callback
+                sessionStorage.setItem('oauth_state', data.state);
+                
                 if (isDev) {
                     // In development, just redirect within Electron's internal browser
                     window.location.href = data.redirectURL;
@@ -36,6 +39,15 @@ const LoginButton = ({ onModalOpenChange, logInCallBack }) => {
                     window.electronAPI.openExternal(data.redirectURL);
                     toast.info("Please complete the login in your browser");
                 }
+                
+                // Start polling for auth status
+                const pollAuth = setInterval(async () => {
+                    const authenticated = await refreshAuth();
+                    if (authenticated) {
+                        clearInterval(pollAuth);
+                        sessionStorage.removeItem('oauth_state');
+                    }
+                }, 2000);
             } else {
                 toast.error("No redirect URL received from server.");
             }
@@ -69,11 +81,6 @@ const LoginButton = ({ onModalOpenChange, logInCallBack }) => {
             />
         </>
     );
-};
-
-LoginButton.propTypes = {
-    onModalOpenChange: PropTypes.func.isRequired,
-    logInCallBack: PropTypes.func.isRequired,
 };
 
 export default LoginButton;

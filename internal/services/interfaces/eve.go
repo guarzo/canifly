@@ -6,18 +6,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type SkillService interface {
-	GetSkillPlans() map[string]model.SkillPlan
-	GetSkillName(id int32) string
-	GetSkillTypes() map[string]model.SkillType
-	CheckIfDuplicatePlan(name string) bool
-	ParseAndSaveSkillPlan(contents, name string) error
-	GetSkillPlanFile(name string) ([]byte, error)
-	DeleteSkillPlan(name string) error
-	GetSkillTypeByID(id string) (model.SkillType, bool)
-	GetPlanAndConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
-}
-
 type SkillRepository interface {
 	GetSkillPlans() map[string]model.SkillPlan
 	GetSkillPlanFile(name string) ([]byte, error)
@@ -25,14 +13,6 @@ type SkillRepository interface {
 	SaveSkillPlan(planName string, skills map[string]model.Skill) error
 	DeleteSkillPlan(planName string) error
 	GetSkillTypeByID(id string) (model.SkillType, bool)
-}
-
-type EveProfilesService interface {
-	LoadCharacterSettings() ([]model.EveProfile, error)
-	BackupDir(targetDir, backupDir string) error
-
-	SyncDir(subDir, charId, userId string) (int, int, error)
-	SyncAllDir(baseSubDir, charId, userId string) (int, int, error)
 }
 
 type EveProfilesRepository interface {
@@ -68,3 +48,4 @@ type ESIService interface {
 	GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error)
 	GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error)
 }
+

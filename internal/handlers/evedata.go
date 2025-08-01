@@ -9,16 +9,16 @@ import (
 
 type EveDataHandler struct {
 	logger interfaces.Logger
-	eveSvc interfaces.EveProfilesService
+	syncService interfaces.SyncService
 }
 
 func NewEveDataHandler(
 	l interfaces.Logger,
-	s interfaces.EveProfilesService,
+	s interfaces.SyncService,
 ) *EveDataHandler {
 	return &EveDataHandler{
 		logger: l,
-		eveSvc: s,
+		syncService: s,
 	}
 }
 
@@ -35,7 +35,7 @@ func (h *EveDataHandler) SyncSubDirectory(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userFilesCopied, charFilesCopied, err := h.eveSvc.SyncDir(req.SubDir, req.CharId, req.UserId)
+	userFilesCopied, charFilesCopied, err := h.syncService.SyncDirectory(req.SubDir, req.CharId, req.UserId)
 	if err != nil {
 		respondJSON(w, map[string]interface{}{"success": false, "message": fmt.Sprintf("failed to sync %v", err)})
 		return
@@ -61,7 +61,7 @@ func (h *EveDataHandler) SyncAllSubdirectories(w http.ResponseWriter, r *http.Re
 	}
 
 	h.logger.Infof("SyncAllSubdirectories request: Profile=%s, UserId=%s, CharId=%s", req.SubDir, req.UserId, req.CharId)
-	userFilesCopied, charFilesCopied, err := h.eveSvc.SyncAllDir(req.SubDir, req.CharId, req.UserId)
+	userFilesCopied, charFilesCopied, err := h.syncService.SyncAllDirectories(req.SubDir, req.CharId, req.UserId)
 	if err != nil {
 		h.logger.Errorf("Failed to sync all subdirectories from base %s (UserId=%s, CharId=%s): %v", req.SubDir, req.UserId, req.CharId, err)
 		respondJSON(w, map[string]interface{}{"success": false, "message": fmt.Sprintf("failed to sync all: %v", err)})
@@ -87,7 +87,7 @@ func (h *EveDataHandler) BackupDirectory(w http.ResponseWriter, r *http.Request)
 
 	h.logger.Infof("Received backup request. TargetDir=%s, BackupDir=%s", req.TargetDir, req.BackupDir)
 
-	if err := h.eveSvc.BackupDir(req.TargetDir, req.BackupDir); err != nil {
+	if err := h.syncService.BackupDirectory(req.TargetDir, req.BackupDir); err != nil {
 		h.logger.Errorf("Failed to backup settings from %s to %s: %v", req.TargetDir, req.BackupDir, err)
 		respondError(w, fmt.Sprintf("Failed to backup settings: %v", err), http.StatusInternalServerError)
 		return

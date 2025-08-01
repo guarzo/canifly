@@ -1,9 +1,8 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import LoginButton from '../components/landing/LoginButton.jsx';
 import { Container, Box } from '@mui/material';
-import PropTypes from "prop-types";
 
-const Landing = ({logInCallBack}) => {
+const Landing = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const handleModalOpenChange = (isOpen) => {
@@ -24,15 +23,10 @@ const Landing = ({logInCallBack}) => {
             <Box textAlign="center" className={!isLoginModalOpen ? 'animate-pulse' : ''}>
                 <LoginButton
                     onModalOpenChange={handleModalOpenChange}
-                    logInCallBack={logInCallBack}
                 />
             </Box>
         </Container>
     );
-};
-
-Landing.propTypes = {
-    logInCallBack: PropTypes.func.isRequired,
 };
 
 export default Landing;

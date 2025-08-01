@@ -1,14 +1,13 @@
 // src/App.jsx
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { HashRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
-import { useLoginCallback } from './hooks/useLoginCallback';
-import { log, trace } from './utils/logger';
-import { useAppHandlers } from './hooks/useAppHandlers';
-import { getAppData, getAppDataNoCache } from './api/apiService';
+import { useAuth } from './hooks/useAuth';
+import { useAppData } from './hooks/useAppData';
+import { log } from './utils/logger';
 
 import Header from './components/common/Header.jsx';
 import Footer from './components/common/Footer.jsx';
@@ -20,102 +19,26 @@ import helloImg from './assets/images/hello.png';
 import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
-    const [appData, setAppData] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [loggedOut, setLoggedOut] = useState(false);
-
+    
+    const { 
+        isAuthenticated, 
+        authCheckComplete,
+        loading: authLoading 
+    } = useAuth();
+    
+    const { 
+        accounts,
+        config,
+        isLoading: dataLoading,
+        refreshData 
+    } = useAppData();
 
     useEffect(() => {
         log("isAuthenticated changed:", isAuthenticated);
     }, [isAuthenticated]);
 
-    const fetchData = useCallback(async () => {
-        log("fetchData called");
-        setIsLoading(true);
-        const data = await getAppData();
-        if (data) {
-            setIsAuthenticated(data.LoggedIn);
-            setAppData(data);
-        }
-        setIsLoading(false);
-    }, []);
-
-    const loginRefresh = useCallback(async () => {
-        log("loginRefresh called");
-        setIsLoading(true);
-        const data = await getAppDataNoCache();
-        setIsLoading(false);
-        if (!data) {
-            return false;
-        }
-        setIsAuthenticated(data.LoggedIn);
-        setAppData(data);
-        return true;
-    }, []);
-
-    const silentRefreshData = useCallback(async () => {
-        log("silentRefreshData called");
-        if (!isAuthenticated || loggedOut) return;
-        setIsRefreshing(true);
-        const data = await getAppDataNoCache();
-        setIsRefreshing(false);
-        if (data) {
-            setIsAuthenticated(data.LoggedIn);
-            setAppData(data);
-        }
-    }, [isAuthenticated, loggedOut]);
-
-    useEffect(() => {
-        log("loggedOut changed to:", loggedOut);
-        trace();
-    }, [loggedOut]);
-
-    const loginCallbackFn = useLoginCallback(isAuthenticated, loginRefresh, setLoggedOut, setIsAuthenticated);
-
-    const logInCallBack = (state) => {
-        loginCallbackFn(state);
-    };
-
-    const {
-        handleLogout,
-        handleToggleAccountStatus,
-        handleUpdateCharacter,
-        handleRemoveCharacter,
-        handleUpdateAccountName,
-        handleRemoveAccount,
-        handleAddCharacter,
-        handleSaveSkillPlan,
-        handleDeleteSkillPlan,
-        handleCopySkillPlan,
-        handleToggleAccountVisibility,
-    } = useAppHandlers({
-        setAppData,
-        fetchData,
-        setIsAuthenticated,
-        setLoggedOut,
-        setIsSkillPlanModalOpen,
-        isAuthenticated,
-        loggedOut,
-        loginRefresh,
-    });
-
-    const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
-    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
-
-    useEffect(() => {
-        log("App mounted, calling fetchData");
-        fetchData();
-    }, [fetchData]);
-
-    useEffect(() => {
-        log(`useEffect [isLoading, isAuthenticated]: isLoading=${isLoading}, isAuthenticated=${isAuthenticated}`);
-        if (!isLoading && isAuthenticated) {
-            silentRefreshData();
-        }
-    }, [isLoading, isAuthenticated, silentRefreshData]);
+    const isLoading = authLoading || !authCheckComplete || (isAuthenticated && dataLoading);
 
     if (isLoading) {
         return (
@@ -130,13 +53,12 @@ const App = () => {
         );
     }
 
-    const accounts = appData?.AccountData?.Accounts || [];
+    const visibleAccounts = accounts.filter(account => account.Visible !== false);
+    const characters = visibleAccounts.flatMap(account => account.Characters || []);
+    const existingAccounts = accounts.map(account => account.Name);
 
-    const characters = (accounts || [])
-        .filter((account) => account.Visible !== false)
-        .flatMap((account) => account.Characters || []);
-
-    const existingAccounts = accounts.map((account) => account.Name) || [];
+    const openSkillPlanModal = () => setIsSkillPlanModalOpen(true);
+    const closeSkillPlanModal = () => setIsSkillPlanModalOpen(false);
 
     return (
         <ErrorBoundary>
@@ -144,40 +66,32 @@ const App = () => {
                 <Router>
                     <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
                         <Header
-                            loggedIn={isAuthenticated}
-                            handleLogout={handleLogout}
                             openSkillPlanModal={openSkillPlanModal}
                             existingAccounts={existingAccounts}
-                            onSilentRefresh={silentRefreshData}
-                            onAddCharacter={handleAddCharacter}
-                            isRefreshing={isRefreshing}
                         />
                         <main className="flex-grow container mx-auto px-4 py-8 pb-16">
                             <AppRoutes
-                                isAuthenticated={isAuthenticated}
-                                loggedOut={loggedOut}
-                                appData={appData}
-                                handleToggleAccountStatus={handleToggleAccountStatus}
-                                handleUpdateCharacter={handleUpdateCharacter}
-                                handleUpdateAccountName={handleUpdateAccountName}
-                                handleRemoveCharacter={handleRemoveCharacter}
-                                handleRemoveAccount={handleRemoveAccount}
-                                handleDeleteSkillPlan={handleDeleteSkillPlan}
-                                handleCopySkillPlan={handleCopySkillPlan}
-                                silentRefreshData={silentRefreshData}
-                                setAppData={setAppData}
                                 characters={characters}
-                                logInCallBack={logInCallBack}
-                                handleToggleAccountVisibility={handleToggleAccountVisibility}/>
+                            />
                         </main>
                         <Footer />
                         {isSkillPlanModalOpen && (
                             <AddSkillPlanModal
                                 onClose={closeSkillPlanModal}
-                                onSave={handleSaveSkillPlan}
                             />
                         )}
-                        <ToastContainer />
+                        <ToastContainer 
+                            position="top-right"
+                            autoClose={3000}
+                            hideProgressBar={false}
+                            newestOnTop={false}
+                            closeOnClick
+                            rtl={false}
+                            pauseOnFocusLoss
+                            draggable
+                            pauseOnHover
+                            theme="dark"
+                        />
                     </div>
                 </Router>
             </ThemeProvider>

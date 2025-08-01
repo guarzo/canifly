@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import {
     Dialog,
     DialogTitle,
@@ -9,14 +8,23 @@ import {
     Button,
     Typography
 } from '@mui/material';
+import { useAsyncOperation } from '../../hooks/useAsyncOperation';
+import apiService from '../../api/apiService';
 
-const AddSkillPlanModal = ({ onClose, onSave }) => {
+const AddSkillPlanModal = ({ onClose }) => {
     const [planName, setPlanName] = useState('');
     const [planContents, setPlanContents] = useState('');
+    const { execute } = useAsyncOperation();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave(planName.trim(), planContents.trim());
+        await execute(
+            () => apiService.createSkillPlan(planName.trim(), planContents.trim()),
+            {
+                successMessage: 'Skill plan created successfully',
+                onSuccess: onClose
+            }
+        );
     };
 
     return (
@@ -93,11 +101,6 @@ const AddSkillPlanModal = ({ onClose, onSave }) => {
             </form>
         </Dialog>
     );
-};
-
-AddSkillPlanModal.propTypes = {
-    onClose: PropTypes.func.isRequired,
-    onSave: PropTypes.func.isRequired,
 };
 
 export default AddSkillPlanModal;

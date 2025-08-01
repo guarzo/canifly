@@ -27,6 +27,11 @@ func Start() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
+	// Validate startup paths
+	if err := server.ValidateStartupPaths(cfg, logger); err != nil {
+		return fmt.Errorf("startup path validation failed: %w", err)
+	}
+
 	services, err := server.GetServices(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to get services: %w", err)

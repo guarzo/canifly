@@ -12,26 +12,26 @@ import (
 
 type AuthHandler struct {
 	sessionService interfaces.SessionService
-	esiService     interfaces.ESIService
+	eveDataService interfaces.EVEDataService
 	logger         interfaces.Logger
-	accountService interfaces.AccountService
-	stateService   interfaces.AppStateService
+	accountService interfaces.AccountManagementService
+	stateService   interfaces.ConfigurationService
 	loginService   interfaces.LoginService
 	authClient     interfaces.AuthClient
 }
 
 func NewAuthHandler(
 	s interfaces.SessionService,
-	e interfaces.ESIService,
+	e interfaces.EVEDataService,
 	l interfaces.Logger,
-	accountSvc interfaces.AccountService,
-	stateSvc interfaces.AppStateService,
+	accountSvc interfaces.AccountManagementService,
+	stateSvc interfaces.ConfigurationService,
 	login interfaces.LoginService,
 	auth interfaces.AuthClient,
 ) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
-		esiService:     e,
+		eveDataService: e,
 		logger:         l,
 		accountService: accountSvc,
 		stateService:   stateSvc,
@@ -128,7 +128,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.esiService.GetUserInfo(token)
+		user, err := h.eveDataService.GetUserInfo(token)
 		if err != nil {
 			h.logger.Errorf("Failed to get user info: %v", err)
 			handleErrorWithRedirect(w, r, "/")
@@ -142,7 +142,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		// Use AccountService to handle account creation
+		// Use AccountManagementService to handle account creation
 		if err = h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
 			h.logger.Errorf("%v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,7 +156,11 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			if err = session.Save(r, w); err != nil {
 				h.logger.Errorf("Error saving session: %v", err)
 			}
-			http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
+			frontendPort := os.Getenv("FRONTEND_PORT")
+			if frontendPort == "" {
+				frontendPort = "3113" // Default to 3113 if not set
+			}
+			http.Redirect(w, r, "http://localhost:"+frontendPort, http.StatusFound)
 			return
 		}
 
@@ -165,7 +169,13 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
+		// Redirect to the frontend app root
+		frontendPort := os.Getenv("FRONTEND_PORT")
+		if frontendPort == "" {
+			frontendPort = "3113" // Default to 3113 if not set
+		}
+		redirectURL := "http://localhost:" + frontendPort + "/"
+		http.Redirect(w, r, redirectURL, http.StatusFound)
 
 	}
 }

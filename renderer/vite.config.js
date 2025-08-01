@@ -9,7 +9,8 @@ export default defineConfig({
   })],
   base: "./",
   server: {
-    port: 5173,
+    port: 3113, // Changed from 5173 to 3000
+    strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {
         target: 'http://localhost:8713',

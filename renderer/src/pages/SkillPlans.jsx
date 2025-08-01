@@ -1,7 +1,6 @@
 // src/components/skillplan/SkillPlans.jsx
 
 import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 import CharacterTable from '../components/skillplan/CharacterTable.jsx';
 import SkillPlanTable from '../components/skillplan/SkillPlanTable.jsx';
 import {Typography, ToggleButtonGroup, ToggleButton, Box} from '@mui/material';
@@ -11,9 +10,26 @@ import {
 } from '@mui/icons-material';
 import {skillPlanInstructions} from "../utils/instructions.jsx";
 import PageHeader from "../components/common/SubPageHeader.jsx";
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import apiService from '../api/apiService';
 
-const SkillPlans = ({ characters, skillPlans, conversions, onCopySkillPlan, onDeleteSkillPlan }) => {
+const SkillPlans = ({ characters, skillPlans, conversions }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
+    const { execute } = useAsyncOperation();
+    
+    const handleCopySkillPlan = async (planName, newPlanName) => {
+        return execute(
+            () => apiService.copySkillPlan(planName, newPlanName),
+            { successMessage: 'Skill plan copied successfully' }
+        );
+    };
+    
+    const handleDeleteSkillPlan = async (planName) => {
+        return execute(
+            () => apiService.deleteSkillPlan(planName),
+            { successMessage: 'Skill plan deleted successfully' }
+        );
+    };
 
     const handleViewChange = (event, newValue) => {
         if (newValue) {
@@ -95,21 +111,13 @@ const SkillPlans = ({ characters, skillPlans, conversions, onCopySkillPlan, onDe
                                 By Skill Plan
                             </Typography>
                             <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions}
-                                            onCopySkillPlan={onCopySkillPlan} onDeleteSkillPlan={onDeleteSkillPlan} />
+                                            onCopySkillPlan={handleCopySkillPlan} onDeleteSkillPlan={handleDeleteSkillPlan} />
                         </div>
                     )}
                 </div>
             </div>
         </div>
     );
-};
-
-SkillPlans.propTypes = {
-    characters: PropTypes.array.isRequired,
-    skillPlans: PropTypes.object.isRequired,
-    onCopySkillPlan: PropTypes.func.isRequired,
-    onDeleteSkillPlan: PropTypes.func.isRequired,
-    conversions: PropTypes.object.isRequired,
 };
 
 export default SkillPlans;

@@ -1,58 +1,115 @@
-// handlers/crypto.go
 package handlers
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-
-	"github.com/gorilla/sessions"
-
-	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// respondJSON sends a success response with JSON-encoded data.
+// HandleServiceError handles service errors with consistent logging and response
+func HandleServiceError(w http.ResponseWriter, logger interfaces.Logger, err error, action string) {
+	logger.Errorf("Failed to %s: %v", action, err)
+	respondError(w, fmt.Sprintf("Failed to %s", action), http.StatusInternalServerError)
+}
+
+// DecodeAndValidate decodes JSON request body and returns typed result
+func DecodeAndValidate[T any](r *http.Request, w http.ResponseWriter) (*T, bool) {
+	var req T
+	if err := decodeJSONBody(r, &req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return nil, false
+	}
+	return &req, true
+}
+
+// HandleNotFound sends a standardized not found response
+func HandleNotFound(w http.ResponseWriter, logger interfaces.Logger, resource string) {
+	logger.Debugf("%s not found", resource)
+	respondError(w, fmt.Sprintf("%s not found", resource), http.StatusNotFound)
+}
+
+// HandleUnauthorized sends a standardized unauthorized response
+func HandleUnauthorized(w http.ResponseWriter, logger interfaces.Logger, reason string) {
+	logger.Warnf("Unauthorized access: %s", reason)
+	respondError(w, "Unauthorized", http.StatusUnauthorized)
+}
+
+// HandleBadRequest sends a standardized bad request response
+func HandleBadRequest(w http.ResponseWriter, logger interfaces.Logger, message string) {
+	logger.Debugf("Bad request: %s", message)
+	respondError(w, message, http.StatusBadRequest)
+}
+
+// Basic utility functions used across handlers
+
+// respondError sends a JSON error response
+func respondError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+// respondJSON sends a JSON success response
 func respondJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		respondError(w, "Failed to encode data", http.StatusInternalServerError)
-	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
 }
 
-func respondEncodedData(w http.ResponseWriter, data interface{}) {
-	encodedData, err := json.Marshal(data)
+// decodeJSONBody decodes the JSON request body into the provided interface
+func decodeJSONBody(r *http.Request, v interface{}) error {
+	if r.Body == nil {
+		return fmt.Errorf("request body is nil")
+	}
+	defer r.Body.Close()
+	
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		respondError(w, "Failed to encode data", http.StatusInternalServerError)
+		return fmt.Errorf("failed to read body: %w", err)
+	}
+	
+	if len(body) == 0 {
+		return fmt.Errorf("request body is empty")
+	}
+	
+	if err := json.Unmarshal(body, v); err != nil {
+		return fmt.Errorf("failed to decode JSON: %w", err)
+	}
+	
+	return nil
+}
+
+// handleErrorWithRedirect handles errors by redirecting to a given path
+func handleErrorWithRedirect(w http.ResponseWriter, r *http.Request, redirectPath string) {
+	http.Redirect(w, r, redirectPath, http.StatusSeeOther)
+}
+
+// clearSession clears the session data
+func clearSession(sessionService interfaces.SessionService, w http.ResponseWriter, r *http.Request, logger interfaces.Logger) {
+	session, err := sessionService.Get(r, "canifly-session")
+	if err != nil {
+		logger.WithError(err).Error("Failed to get session for clearing")
 		return
 	}
-
-	respondJSON(w, json.RawMessage(encodedData))
-}
-
-// respondError sends an error response in JSON format.
-func respondError(w http.ResponseWriter, msg string, code int) {
-	http.Error(w, fmt.Sprintf(`{"error":"%s"}`, msg), code)
-}
-
-// decodeJSONBody decodes the JSON body into the provided dst.
-func decodeJSONBody(r *http.Request, dst interface{}) error {
-	return json.NewDecoder(r.Body).Decode(dst)
-}
-
-func clearSession(s interfaces.SessionService, w http.ResponseWriter, r *http.Request, logger interfaces.Logger) {
-	session, err := s.Get(r, flyHttp.SessionName)
-	if err != nil {
-		logger.Errorf("Failed to get session to clear: %v", err)
+	
+	// Clear session values
+	for key := range session.Values {
+		delete(session.Values, key)
 	}
-
-	session.Values = make(map[interface{}]interface{})
-
-	err = sessions.Save(r, w)
-	if err != nil {
-		logger.Errorf("Failed to save session to clear: %v", err)
+	
+	// Set MaxAge to -1 to delete the cookie
+	session.Options.MaxAge = -1
+	
+	if err := session.Save(r, w); err != nil {
+		logger.WithError(err).Error("Failed to save cleared session")
 	}
 }
-func handleErrorWithRedirect(w http.ResponseWriter, r *http.Request, redirectURL string) {
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+
+// respondEncodedData sends encoded data as JSON response
+func respondEncodedData(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
 }

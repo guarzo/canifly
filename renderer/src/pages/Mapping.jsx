@@ -1,6 +1,5 @@
 // src/components/mapping/Mapping.jsx
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { Grid, Box } from '@mui/material';
 import AccountCard from '../components/mapping/MapAccountCard.jsx';
@@ -9,6 +8,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
 import { mappingInstructions } from './../utils/instructions';
 import PageHeader from '../components/common/SubPageHeader.jsx';
+import { useAppData } from '../hooks/useAppData';
 
 function roundToMinute(mtime) {
     const date = new Date(mtime);
@@ -16,7 +16,8 @@ function roundToMinute(mtime) {
     return date.toISOString();
 }
 
-const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) => {
+const Mapping = ({ associations: initialAssociations, subDirs }) => {
+    const { refreshData } = useAppData();
     const [accounts, setAccounts] = useState([]);
     const [availableCharacters, setAvailableCharacters] = useState([]);
     const [associations, setAssociations] = useState(initialAssociations);
@@ -121,8 +122,8 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
             const newAssoc = { userId, charId, charName, mtime: char.mtime };
             setAssociations((prev) => [...prev, newAssoc]);
 
-            if (onRefreshData) {
-                await onRefreshData();
+            if (refreshData) {
+                await refreshData();
             }
         }
     };
@@ -139,8 +140,8 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
         if (result && result.success) {
             toast.success(result.message);
             setAssociations((prev) => prev.filter((a) => a.charId !== charId || a.userId !== userId));
-            if (onRefreshData) {
-                await onRefreshData();
+            if (refreshData) {
+                await refreshData();
             }
         }
     };
@@ -205,25 +206,6 @@ const Mapping = ({ associations: initialAssociations, subDirs, onRefreshData }) 
             {confirmDialog}
         </div>
     );
-};
-
-Mapping.propTypes = {
-    associations: PropTypes.arrayOf(
-        PropTypes.shape({
-            userId: PropTypes.string.isRequired,
-            charId: PropTypes.string.isRequired,
-            charName: PropTypes.string.isRequired,
-            mtime: PropTypes.string,
-        })
-    ).isRequired,
-    subDirs: PropTypes.arrayOf(
-        PropTypes.shape({
-            profile: PropTypes.string.isRequired,
-            availableCharFiles: PropTypes.array.isRequired,
-            availableUserFiles: PropTypes.array.isRequired,
-        })
-    ).isRequired,
-    onRefreshData: PropTypes.func,
 };
 
 export default Mapping;

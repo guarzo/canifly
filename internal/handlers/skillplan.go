@@ -11,13 +11,13 @@ import (
 
 type SkillPlanHandler struct {
 	logger       interfaces.Logger
-	skillService interfaces.SkillService
+	eveDataService interfaces.EVEDataService
 }
 
-func NewSkillPlanHandler(l interfaces.Logger, s interfaces.SkillService) *SkillPlanHandler {
+func NewSkillPlanHandler(l interfaces.Logger, e interfaces.EVEDataService) *SkillPlanHandler {
 	return &SkillPlanHandler{
 		logger:       l,
-		skillService: s,
+		eveDataService: e,
 	}
 }
 
@@ -29,7 +29,7 @@ func (h *SkillPlanHandler) GetSkillPlanFile() http.HandlerFunc {
 			return
 		}
 
-		content, err := h.skillService.GetSkillPlanFile(planName)
+		content, err := h.eveDataService.GetSkillPlanFile(planName)
 		if err != nil {
 			if os.IsNotExist(err) {
 				respondError(w, fmt.Sprintf("skill plan %s not found", planName), http.StatusNotFound)
@@ -62,13 +62,13 @@ func (h *SkillPlanHandler) SaveSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		if h.skillService.CheckIfDuplicatePlan(requestData.PlanName) {
+		if h.eveDataService.CheckIfDuplicatePlan(requestData.PlanName) {
 			h.logger.Errorf("duplicate plan name %s", requestData.PlanName)
 			respondError(w, fmt.Sprintf("%s is already used as a plan name", requestData.PlanName), http.StatusBadRequest)
 			return
 		}
 
-		if err := h.skillService.ParseAndSaveSkillPlan(requestData.Contents, requestData.PlanName); err != nil {
+		if err := h.eveDataService.ParseAndSaveSkillPlan(requestData.Contents, requestData.PlanName); err != nil {
 			h.logger.Errorf("Failed to save eve plan: %v", err)
 			respondError(w, "Failed to save eve plan", http.StatusInternalServerError)
 			return
@@ -92,7 +92,7 @@ func (h *SkillPlanHandler) DeleteSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		if err := h.skillService.DeleteSkillPlan(planName); err != nil {
+		if err := h.eveDataService.DeleteSkillPlan(planName); err != nil {
 			h.logger.Errorf("Failed to delete eve plan: %v", err)
 			respondError(w, "Failed to delete eve plan", http.StatusInternalServerError)
 			return

@@ -4,23 +4,23 @@
   "description": "Can I Fly?",
   "main": "main.js",
   "scripts": {
-    "go:build:mac": "GOOS=darwin GOARCH=amd64 go build -o ./dist/mac/canifly-backend",
-    "go:build:win": "GOOS=windows GOARCH=amd64 go build -o ./dist/win/canifly-backend.exe",
-    "go:build:linux": "GOOS=linux GOARCH=amd64 go build -o ./dist/linux/canifly-backend",
-    "go:build": "npm run go:build:mac && npm run go:build:win && npm run go:build:linux",
-    "start": "concurrently \"npm run dev:go\" \"npm run dev:react\" \"npm run dev:electron\"",
+    "start": "concurrently \"make dev-go\" \"make dev-react\" \"make dev-electron\"",
+    "dev": "make dev",
+    "build": "make build",
+    "test": "make test",
+    "lint": "make lint",
+    "clean": "make clean",
+    "dist": "make package",
+    "dist:mac": "make package-mac",
+    "dist:win": "make package-win",
+    "dist:linux": "make package-linux",
+    "bump": "make bump",
+    "// Legacy scripts (use make commands instead)": "",
     "dev:react": "cd renderer && npm run dev",
-    "dev:electron": "wait-on http://localhost:5173 && electron . --no-sandbox && npm run shutdown",
+    "dev:electron": "wait-on http://localhost:3113 && electron . --no-sandbox",
     "dev:go": "DEV_MODE=true go run .",
-    "shutdown": "echo 'Shutting down processes' && pkill -f 'electron'",
-    "build": "npm run go:build && cd renderer && npm run build",
-    "bump": "bash scripts/bump.sh",
-    "dist": "npm run build && electron-builder --win --x64",
-    "package:renderer": "cd renderer && npm install && npm run build",
-    "package:app": "npm run package:renderer && npm run dist",
     "test:go": "go test ./...",
-    "test:react": "cd renderer && npm test",
-    "test": "npm run test:go && npm run test:react"
+    "test:react": "cd renderer && npm test"
   },
   "build": {
     "productName": "CanIFly",
@@ -87,7 +87,8 @@
     "axios": "^1.7.9",
     "dotenv": "^16.4.5",
     "tar": "^7.4.3",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

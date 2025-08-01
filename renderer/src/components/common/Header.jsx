@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { useLocation, Link } from 'react-router-dom';
 import {
     AppBar,
@@ -29,6 +28,9 @@ import {
     Cached as RefreshIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { useAuth } from '../../hooks/useAuth';
+import { useAppData } from '../../hooks/useAppData';
+import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import AccountPromptModal from './AccountPromptModal.jsx';
 import nav_img1 from '../../assets/images/nav-logo.png';
 import nav_img2 from '../../assets/images/nav-logo2.webp';
@@ -52,12 +54,16 @@ const StyledDrawer = styled(Drawer)(() => ({
     }
 }));
 
-const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, onSilentRefresh, onAddCharacter, isRefreshing }) => {
+const Header = ({ openSkillPlanModal, existingAccounts }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    // State to toggle between two images each time the nav is opened
     const [useAlternateImage, setUseAlternateImage] = useState(false);
+    
+    const { isAuthenticated, logout } = useAuth();
+    const { refreshData } = useAppData();
+    const { execute: executeRefresh, isLoading: isRefreshing } = useAsyncOperation();
+    const { execute: executeAddCharacter } = useAsyncOperation();
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
@@ -90,13 +96,19 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
     };
 
     const handleAddCharacterSubmit = async (account) => {
-        await onAddCharacter(account);
+        await executeAddCharacter(async () => {
+            const { addCharacter } = await import('../../api/apiService');
+            return addCharacter(account);
+        }, {
+            successMessage: 'Character added successfully'
+        });
         setModalOpen(false);
     };
 
     const handleRefreshClick = async () => {
-        if (!onSilentRefresh) return;
-        await onSilentRefresh();
+        await executeRefresh(() => refreshData(), {
+            showToast: false
+        });
     };
 
     const chosenImage = useAlternateImage ? nav_img2 : nav_img1;
@@ -105,7 +117,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
         <>
             <StyledAppBar position="fixed">
                 <Toolbar style={{ WebkitAppRegion: 'drag', display: 'flex', alignItems: 'center' }}>
-                    {loggedIn && (
+                    {isAuthenticated && (
                         <>
                             <IconButton
                                 edge="start"
@@ -139,7 +151,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' }}>
-                        {loggedIn && (
+                        {isAuthenticated && (
                             <>
                                 <Tooltip title="Refresh Data">
                                     <IconButton onClick={handleRefreshClick}>
@@ -151,7 +163,7 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
                                     </IconButton>
                                 </Tooltip>
                                 <Tooltip title="Logout">
-                                    <IconButton onClick={handleLogout}>
+                                    <IconButton onClick={logout}>
                                         <ExitToApp sx={{ color: '#ef4444' }} />
                                     </IconButton>
                                 </Tooltip>
@@ -250,16 +262,6 @@ const Header = ({ loggedIn, handleLogout, openSkillPlanModal, existingAccounts, 
             />
         </>
     );
-};
-
-Header.propTypes = {
-    loggedIn: PropTypes.bool.isRequired,
-    handleLogout: PropTypes.func.isRequired,
-    openSkillPlanModal: PropTypes.func.isRequired,
-    existingAccounts: PropTypes.array.isRequired,
-    onSilentRefresh: PropTypes.func,
-    onAddCharacter: PropTypes.func.isRequired,
-    isRefreshing: PropTypes.bool.isRequired
 };
 
 export default Header;

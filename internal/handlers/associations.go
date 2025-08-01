@@ -9,12 +9,12 @@ import (
 
 type AssociationHandler struct {
 	logger       interfaces.Logger
-	assocService interfaces.AssociationService
+	assocService interfaces.AccountManagementService
 }
 
 func NewAssociationHandler(
 	l interfaces.Logger,
-	a interfaces.AssociationService,
+	a interfaces.AccountManagementService,
 ) *AssociationHandler {
 	return &AssociationHandler{
 		logger:       l,

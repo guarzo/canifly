@@ -1,26 +1,145 @@
 // src/api/apiService.jsx
 
+/**
+ * API Service - Frontend API interface for CanIFly
+ * 
+ * This file contains both new RESTful API functions and legacy functions.
+ * The backend supports both patterns during the transition period.
+ * 
+ * NEW RESTful Endpoints:
+ * - GET    /api/accounts         - List all accounts
+ * - GET    /api/accounts/:id     - Get specific account
+ * - PATCH  /api/accounts/:id     - Update account (name, status, visibility)
+ * - DELETE /api/accounts/:id     - Delete account
+ * - GET    /api/characters/:id   - Get character details
+ * - PATCH  /api/characters/:id   - Update character
+ * - DELETE /api/characters/:id   - Remove character
+ * - GET    /api/config           - Get configuration
+ * - PATCH  /api/config           - Update configuration
+ * 
+ * Legacy endpoints are maintained for backward compatibility.
+ */
+
 import { apiRequest } from './apiRequest';
 import { normalizeAppData } from '../utils/dataNormalizer';
 import {isDev} from '../Config';
 
-export async function getAppData() {
-    const response = await apiRequest(`/api/app-data`, {
+// New RESTful API functions
+export async function getAccounts() {
+    return apiRequest(`/api/accounts`, {
+        method: 'GET',
         credentials: 'include'
     }, {
-        errorMessage: isDev ? 'Failed to load app data.' : undefined
+        errorMessage: 'Failed to fetch accounts.'
     });
-    return response ? normalizeAppData(response) : null;
 }
 
-export async function getAppDataNoCache() {
-    const response = await apiRequest(`/api/app-data-no-cache`, {
+export async function getAccount(accountID) {
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'GET',
         credentials: 'include'
     }, {
-        errorMessage: 'Failed to load data.'
+        errorMessage: 'Failed to fetch account.'
     });
-    return response ? normalizeAppData(response) : null;
 }
+
+export async function deleteAccount(accountID) {
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'DELETE',
+        credentials: 'include'
+    }, {
+        successMessage: 'Account removed successfully!',
+        errorMessage: 'Failed to remove account.'
+    });
+}
+
+export async function getCharacter(characterID) {
+    return apiRequest(`/api/characters/${characterID}`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch character.'
+    });
+}
+
+export async function getConfig() {
+    return apiRequest(`/api/config`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch configuration.'
+    });
+}
+
+// Update configuration
+export async function updateConfig(updates) {
+    return apiRequest(`/api/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+    }, {
+        errorMessage: 'Failed to update configuration.'
+    });
+}
+
+// Get dashboards
+export async function getDashboards() {
+    return apiRequest(`/api/dashboards`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to get dashboards.'
+    });
+}
+
+// Get session status
+export async function getSession() {
+    return apiRequest(`/api/session`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to get session status.'
+    });
+}
+
+// Update account (general purpose)
+export async function updateAccount(accountID, updates) {
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+    }, {
+        errorMessage: 'Failed to update account.'
+    });
+}
+
+// Create skill plan
+export async function createSkillPlan(planName, planContents) {
+    return apiRequest(`/api/skill-plans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ planName, planContents })
+    }, {
+        errorMessage: 'Failed to create skill plan.'
+    });
+}
+
+// Copy skill plan
+export async function copySkillPlan(sourcePlanName, targetPlanName) {
+    return apiRequest(`/api/skill-plans/copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sourcePlanName, targetPlanName })
+    }, {
+        errorMessage: 'Failed to copy skill plan.'
+    });
+}
+
+// Additional API functions
 
 export async function logout() {
     return apiRequest('/api/logout', {
@@ -32,22 +151,24 @@ export async function logout() {
 }
 
 export async function toggleAccountStatus(accountID) {
-    return apiRequest('/api/toggle-account-status', {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ accountID })
+        body: JSON.stringify({ isActive: true }) // Toggle active status
     }, {
         errorMessage: 'Failed to toggle account status.'
     });
 }
 
 export async function toggleAccountVisibility(accountID) {
-    return apiRequest('/api/toggle-account-visibility', {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ accountID })
+        body: JSON.stringify({ isVisible: true }) // Toggle visibility
     }, {
         errorMessage: 'Failed to toggle account visibility.'
     });
@@ -55,10 +176,11 @@ export async function toggleAccountVisibility(accountID) {
 
 
 export async function updateCharacter(characterID, updates) {
-    return apiRequest('/api/update-character', {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/characters/${characterID}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterID, updates }),
+        body: JSON.stringify(updates),
         credentials: 'include'
     }, {
         errorMessage: 'Failed to update character.'
@@ -66,28 +188,37 @@ export async function updateCharacter(characterID, updates) {
 }
 
 export async function removeCharacter(characterID) {
-    return apiRequest('/api/remove-character', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterID }),
+    // Use new RESTful endpoint
+    return apiRequest(`/api/characters/${characterID}`, {
+        method: 'DELETE',
         credentials: 'include'
     }, {
         errorMessage: 'Failed to remove character.'
     });
 }
 
+// Alias for removeCharacter to match RESTful naming
+export const deleteCharacter = removeCharacter;
+
 export async function updateAccountName(accountID, newName) {
-    return apiRequest('/api/update-account-name', {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/accounts/${accountID}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountID, accountName: newName }),
+        body: JSON.stringify({ name: newName }),
         credentials: 'include'
     }, {
         errorMessage: 'Failed to update account name.'
     });
 }
 
-export async function removeAccount(accountName) {
+export async function removeAccount(accountName, accountID = null) {
+    // If accountID is provided, use new RESTful endpoint
+    if (accountID) {
+        return deleteAccount(accountID);
+    }
+    
+    // Otherwise, use legacy endpoint
     return apiRequest('/api/remove-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,11 +258,12 @@ export async function saveSkillPlan(planName, planContents) {
 
 
 export async function saveUserSelections(newSelections) {
-    return apiRequest(`/api/save-user-selections`, {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/config`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(newSelections),
+        body: JSON.stringify({ userSelections: newSelections }),
     }, {
         errorMessage: 'Failed to save user selections.',
     });
@@ -160,13 +292,28 @@ export async function syncAllSubdirectories(profile, userId, charId) {
 }
 
 export async function chooseSettingsDir(directory) {
-    return apiRequest(`/api/choose-settings-dir`, {
-        method: 'POST',
+    // Use new RESTful endpoint
+    return apiRequest(`/api/config`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ directory }),
+        body: JSON.stringify({ settingsDir: directory }),
     }, {
         errorMessage: 'Failed to choose settings directory.'
+    });
+}
+
+// Alias for backward compatibility
+export const chooseSettingsDirectory = chooseSettingsDir;
+
+export async function chooseDefaultDirectory(directory) {
+    return apiRequest(`/api/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ defaultDir: directory }),
+    }, {
+        errorMessage: 'Failed to choose default directory.'
     });
 }
 
@@ -182,9 +329,12 @@ export async function backupDirectory(targetDir, backupDir) {
 }
 
 export async function resetToDefaultDirectory() {
-    return apiRequest(`/api/reset-to-default-directory`, {
-        method: 'POST',
+    // Use new RESTful endpoint to set empty string (will use default)
+    return apiRequest(`/api/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ settingsDir: '' }),
     }, {
         errorMessage: 'Failed to reset directory.'
     });
@@ -243,4 +393,40 @@ export async function finalizelogin(state) {
         disableErrorToast: true,
     });
 }
+
+// Default export for backward compatibility
+export default {
+    // New RESTful functions
+    getAccounts,
+    getAccount,
+    updateAccount,
+    deleteAccount,
+    getCharacter,
+    updateCharacter,
+    deleteCharacter,
+    getConfig,
+    updateConfig,
+    getDashboards,
+    
+    // Authentication
+    getSession,
+    logout,
+    initiateLogin,
+    finalizelogin,
+    
+    // Other functions
+    addCharacter,
+    createSkillPlan,
+    copySkillPlan,
+    deleteSkillPlan,
+    chooseDefaultDirectory,
+    chooseSettingsDirectory,
+    backupDirectory,
+    resetToDefaultDirectory,
+    associateCharacter,
+    unassociateCharacter,
+    
+    // Utility
+    normalizeAppData
+};
 

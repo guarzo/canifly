@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -19,14 +20,15 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
-	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.DashBoardService)
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EsiService, logger, appServices.AccountService, appServices.StateService, appServices.LoginService, appServices.AuthClient)
-	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountService)
-	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService)
-	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillService)
-	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigService)
-	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.EveProfileService)
-	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AssocService)
+
+	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.ConfigurationService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EVEDataService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService)
+	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.EVEDataService)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.EVEDataService)
+	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigurationService)
+	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService)
+	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AccountManagementService)
 
 	// Public routes
 	r.HandleFunc("/callback/", authHandler.CallBack())
@@ -45,14 +47,32 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
 	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
 
+	// RESTful account endpoints
+	r.HandleFunc("/api/accounts", accountHandler.ListAccounts()).Methods("GET")
+	r.HandleFunc("/api/accounts/{id}", accountHandler.GetAccount()).Methods("GET")
+	r.HandleFunc("/api/accounts/{id}", accountHandler.UpdateAccount()).Methods("PATCH")
+	r.HandleFunc("/api/accounts/{id}", accountHandler.DeleteAccount()).Methods("DELETE")
+	
+	// Legacy account endpoints (to be deprecated)
 	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
 	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
 	r.HandleFunc("/api/toggle-account-visibility", accountHandler.ToggleAccountVisibility())
 	r.HandleFunc("/api/remove-account", accountHandler.RemoveAccount())
 
+	// RESTful character endpoints
+	r.HandleFunc("/api/characters/{id}", characterHandler.GetCharacter()).Methods("GET")
+	r.HandleFunc("/api/characters/{id}", characterHandler.UpdateCharacterRESTful()).Methods("PATCH")
+	r.HandleFunc("/api/characters/{id}", characterHandler.DeleteCharacter()).Methods("DELETE")
+	
+	// Legacy character endpoints (to be deprecated)
 	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter)
 	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
+	// RESTful config endpoints
+	r.HandleFunc("/api/config", configHandler.GetConfig()).Methods("GET")
+	r.HandleFunc("/api/config", configHandler.UpdateConfig()).Methods("PATCH")
+	
+	// Legacy config endpoints (to be deprecated)
 	r.HandleFunc("/api/choose-settings-dir", configHandler.ChooseSettingsDir)
 	r.HandleFunc("/api/reset-to-default-directory", configHandler.ResetToDefaultDir)
 	r.HandleFunc("/api/save-user-selections", configHandler.SaveUserSelections)
@@ -72,9 +92,15 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 }
 
 func createCORSHandler(h http.Handler) http.Handler {
+	frontendPort := os.Getenv("FRONTEND_PORT")
+	if frontendPort == "" {
+		frontendPort = "3113" // Default to 3113 if not set
+	}
+	allowedOrigin := "http://localhost:" + frontendPort
+	
 	return handlers.CORS(
-		handlers.AllowedOrigins([]string{"http://localhost:5173"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS", "DELETE"}),
+		handlers.AllowedOrigins([]string{allowedOrigin}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"}),
 		handlers.AllowCredentials(),
 	)(h)
