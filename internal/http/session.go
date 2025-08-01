@@ -18,8 +18,19 @@ type sessionService struct {
 }
 
 func NewSessionService(secret string) interfaces.SessionService {
+	store := sessions.NewCookieStore([]byte(secret))
+	
+	// Configure cookie settings for CORS
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   false, // Set to false for localhost development
+		SameSite: http.SameSiteLaxMode,
+	}
+	
 	return &sessionService{
-		store: sessions.NewCookieStore([]byte(secret)),
+		store: store,
 	}
 }
 

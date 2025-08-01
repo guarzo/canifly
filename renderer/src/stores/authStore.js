@@ -37,12 +37,16 @@ const useAuthStore = create(
           }
         },
 
-        login: async () => {
+        login: async (account) => {
           set({ loading: true, error: null });
           try {
-            await apiService.startAuth();
-            const authenticated = await get().checkAuth();
-            return authenticated;
+            const response = await apiService.initiateLogin(account);
+            if (response?.redirectURL) {
+              // Redirect to EVE SSO login
+              window.location.href = response.redirectURL;
+              return true;
+            }
+            return false;
           } catch (error) {
             console.error('Login failed:', error);
             set({ loading: false, error: error.message });
@@ -82,6 +86,7 @@ const useAuthStore = create(
         name: 'auth-storage',
         partialize: (state) => ({ 
           isAuthenticated: state.isAuthenticated,
+          authCheckComplete: state.authCheckComplete,
           user: state.user 
         })
       }

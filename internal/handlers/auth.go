@@ -149,13 +149,15 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
+		// Set session cookie for both dev and production
+		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+		session.Values[flyHttp.LoggedIn] = true
+		if err = session.Save(r, w); err != nil {
+			h.logger.Errorf("Error saving session: %v", err)
+		}
+
 		if devMode {
-			// In dev, redirect back to dev server so the internal flow works as before
-			session, _ := h.sessionService.Get(r, flyHttp.SessionName)
-			session.Values[flyHttp.LoggedIn] = true
-			if err = session.Save(r, w); err != nil {
-				h.logger.Errorf("Error saving session: %v", err)
-			}
+			// In dev, redirect back to dev server
 			frontendPort := os.Getenv("FRONTEND_PORT")
 			if frontendPort == "" {
 				frontendPort = "3113" // Default to 3113 if not set
@@ -205,6 +207,31 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		//h.loginService.ClearState(state)
 
 		respondJSON(w, map[string]bool{"success": true})
+	}
+}
+
+func (h *AuthHandler) GetSession() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, err := h.sessionService.Get(r, flyHttp.SessionName)
+		if err != nil {
+			h.logger.Errorf("Failed to get session: %v", err)
+			respondError(w, "Failed to get session", http.StatusInternalServerError)
+			return
+		}
+
+		loggedIn, ok := session.Values[flyHttp.LoggedIn].(bool)
+		if !ok {
+			loggedIn = false
+		}
+
+		appState := h.stateService.GetAppState()
+		
+		h.logger.Infof("Session check - Cookie LoggedIn: %v, AppState LoggedIn: %v", loggedIn, appState.LoggedIn)
+		
+		respondJSON(w, map[string]interface{}{
+			"status": "ok",
+			"authenticated": loggedIn && appState.LoggedIn,
+		})
 	}
 }
 

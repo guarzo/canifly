@@ -25,9 +25,9 @@ export function useAuth() {
     }
   }, [authCheckComplete, checkAuth, executeCheckAuth]);
 
-  const handleLogin = async () => {
-    return executeLogin(login, {
-      successMessage: 'Successfully logged in',
+  const handleLogin = async (account) => {
+    return executeLogin(() => login(account), {
+      successMessage: 'Login initiated',
       errorMessage: 'Login failed'
     });
   };

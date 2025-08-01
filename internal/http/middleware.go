@@ -21,6 +21,7 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 				"/landing":            true,
 				"/api/login":          true,
 				"/api/logout":         true,
+				"/api/session":        true,
 				"/callback":           true,
 				"/api/add-character":  true,
 				"/api/finalize-login": true,

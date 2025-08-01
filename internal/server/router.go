@@ -39,6 +39,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/app-data", dashboardHandler.GetDashboardData()).Methods("GET")
 	r.HandleFunc("/api/app-data-no-cache", dashboardHandler.GetDashboardDataNoCache()).Methods("GET")
 
+	r.HandleFunc("/api/session", authHandler.GetSession()).Methods("GET")
 	r.HandleFunc("/api/logout", authHandler.Logout())
 	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
