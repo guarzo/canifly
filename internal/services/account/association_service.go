@@ -260,7 +260,9 @@ func (assoc *associationService) syncAccountWithUserFileAndAssociations(
 ) ([]model.Association, error) {
 	foundUserID, err := assoc.getUserIdWithCharId(associations, strconv.FormatInt(charID, 10))
 	if err != nil {
-		return nil, err
+		// This is a new character with no existing associations - this is OK for first-time logins
+		assoc.logger.Infof("No existing association found for character %d - this is expected for new characters", charID)
+		return associations, nil
 	}
 
 	if err = assoc.updateAccountId(account, foundUserID); err != nil {

@@ -61,8 +61,10 @@ func (a *accountService) FindOrCreateAccount(state string, char *model.UserInfoR
 
 	account := a.FindAccountByName(state, accounts)
 	if account == nil {
-		account = createNewAccountWithCharacter(state, token, char)
-		accounts = append(accounts, *account)
+		newAccount := createNewAccountWithCharacter(state, token, char)
+		accounts = append(accounts, *newAccount)
+		// Get pointer to the newly added account in the slice
+		account = &accounts[len(accounts)-1]
 	} else {
 		// Check if character already exists in this account
 		var characterAssigned bool

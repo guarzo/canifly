@@ -93,7 +93,6 @@ SECRET_KEY=<your_generated_secret_key>
    npm start
    ```
 
-
 ## Contributing
 
 We welcome contributions! If you find a bug, have a feature request, or want to improve documentation, feel free to open an issue or submit a pull request.

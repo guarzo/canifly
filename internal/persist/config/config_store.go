@@ -213,6 +213,8 @@ func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	fileInfo, err := c.fs.Stat(filePath)
 	if os.IsNotExist(err) || (err == nil && fileInfo.Size() == 0) {
 		c.logger.Info("No config data file found, returning empty config")
+		configData.Roles = []string{}
+		configData.DropDownSelections = make(model.DropDownSelections)
 		c.cachedData = &configData
 		return c.cachedData, nil
 	} else if err != nil {
@@ -222,6 +224,14 @@ func (c *ConfigStore) fetchConfigDataLocked() (*model.ConfigData, error) {
 	if err := persist.ReadJsonFromFile(c.fs, filePath, &configData); err != nil {
 		c.logger.WithError(err).Error("Error loading config data")
 		return nil, err
+	}
+
+	// Ensure fields are initialized even if not present in JSON
+	if configData.Roles == nil {
+		configData.Roles = []string{}
+	}
+	if configData.DropDownSelections == nil {
+		configData.DropDownSelections = make(model.DropDownSelections)
 	}
 
 	c.logger.Debugf("Loaded config: %v", configData)

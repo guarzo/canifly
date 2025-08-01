@@ -71,7 +71,10 @@ func (d *dashboardService) prepareAppData(accountData *model.AccountData) model.
 	configData, err := d.configService.FetchConfigData()
 	if err != nil {
 		d.logger.Errorf("Failed to fetch config data: %v", err)
-		configData = &model.ConfigData{}
+		configData = &model.ConfigData{
+			Roles:              []string{},
+			DropDownSelections: make(model.DropDownSelections),
+		}
 	}
 
 	subDirData, err := d.eveProfileService.LoadCharacterSettings()

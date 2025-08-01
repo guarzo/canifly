@@ -157,11 +157,13 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 				h.logger.Errorf("Error saving session: %v", err)
 			}
 			http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
+			return
 		}
 
 		err = h.loginService.UpdateStateStatusAfterCallBack(state)
 		if err != nil {
 			respondError(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		http.Redirect(w, r, "http://localhost:8713/static/success.html", http.StatusFound)
 
