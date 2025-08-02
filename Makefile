@@ -41,7 +41,7 @@ dev-react: ## Start React frontend development server
 
 .PHONY: dev-electron
 dev-electron: ## Start Electron in development mode
-	$(NPM_CMD) run dev:electron
+	wait-on http://localhost:3113 && $(ELECTRON_CMD) . --no-sandbox
 
 # Build targets
 .PHONY: build

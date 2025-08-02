@@ -23,6 +23,9 @@ type ConfigData struct {
 	LastBackupDir      string   `json:"LastBackupDir"` // directory used for the previous backup
 	DropDownSelections          // dropdown selections within the app
 	AutoUpdateFuzzworks *bool   `json:"AutoUpdateFuzzworks,omitempty"` // auto-update Fuzzworks data on startup (defaults to true)
+	EVEClientID        string   `json:"EVEClientID,omitempty"`        // EVE Online application client ID
+	EVEClientSecret    string   `json:"EVEClientSecret,omitempty"`    // EVE Online application client secret
+	EVECallbackURL     string   `json:"EVECallbackURL,omitempty"`     // EVE Online callback URL
 }
 
 func init() {

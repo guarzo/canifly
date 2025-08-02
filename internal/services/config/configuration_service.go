@@ -203,6 +203,39 @@ func (s *ConfigurationService) SaveRoles(roles []string) error {
 	return s.storage.SaveConfigData(configData)
 }
 
+// EVE Credentials methods
+
+func (s *ConfigurationService) NeedsEVEConfiguration() (bool, error) {
+	configData, err := s.storage.LoadConfigData()
+	if err != nil {
+		return true, err
+	}
+	
+	return configData.EVEClientID == "" || configData.EVEClientSecret == "", nil
+}
+
+func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string) error {
+	configData, err := s.storage.LoadConfigData()
+	if err != nil {
+		return err
+	}
+	
+	configData.EVEClientID = clientID
+	configData.EVEClientSecret = clientSecret
+	configData.EVECallbackURL = "http://localhost:42423/callback"
+	
+	return s.storage.SaveConfigData(configData)
+}
+
+func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, callbackURL string, err error) {
+	configData, err := s.storage.LoadConfigData()
+	if err != nil {
+		return "", "", "", err
+	}
+	
+	return configData.EVEClientID, configData.EVEClientSecret, configData.EVECallbackURL, nil
+}
+
 // Helper methods
 
 func (s *ConfigurationService) getDefaultSettingsDir() string {

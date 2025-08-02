@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
 import { useEveData } from './hooks/useEveData';
+import { logger } from './utils/logger';
 
 import CharacterOverview from './pages/CharacterOverview.jsx';
 import SkillPlans from './pages/SkillPlans.jsx';
@@ -23,8 +24,8 @@ function AppRoutes({ characters }) {
     
     // Debug logging
     React.useEffect(() => {
-        console.log('Routes - associations:', associations);
-        console.log('Routes - eveProfiles:', eveProfiles);
+        logger.debug('Routes - associations:', associations);
+        logger.debug('Routes - eveProfiles:', eveProfiles);
     }, [associations, eveProfiles]);
     
     if (!isAuthenticated) {

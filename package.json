@@ -14,13 +14,7 @@
     "dist:mac": "make package-mac",
     "dist:win": "make package-win",
     "dist:linux": "make package-linux",
-    "bump": "make bump",
-    "// Legacy scripts (use make commands instead)": "",
-    "dev:react": "cd renderer && npm run dev",
-    "dev:electron": "wait-on http://localhost:3113 && electron . --no-sandbox",
-    "dev:go": "DEV_MODE=true go run .",
-    "test:go": "go test ./...",
-    "test:react": "cd renderer && npm test"
+    "bump": "make bump"
   },
   "build": {
     "productName": "CanIFly",

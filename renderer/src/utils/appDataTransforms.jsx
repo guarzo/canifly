@@ -21,6 +21,8 @@
  * }
  */
 
+import { logger } from './logger';
+
 export function updateAccountNameInAppData(prev, accountID, newName) {
     if (!prev) return prev;
 
@@ -150,11 +152,11 @@ export function removeAccountFromAppData(prev, accountName) {
 export function removePlanFromSkillPlans(prev, planName) {
     if (!prev) return prev;
 
-    console.log("planName: ", planName)
-    console.log(prev.EveData.SkillPlans)
+    logger.debug("planName: ", planName)
+    logger.debug(prev.EveData.SkillPlans)
     const updatedSkillPlans = { ...prev.EveData.SkillPlans };
     delete updatedSkillPlans[planName];
-    console.log(updatedSkillPlans)
+    logger.debug(updatedSkillPlans)
 
     return {
         ...prev,

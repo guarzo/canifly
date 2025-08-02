@@ -27,6 +27,7 @@ import PageHeader from '../components/common/SubPageHeader.jsx';
 import { useAppData } from '../hooks/useAppData';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import * as apiService from '../api/apiService';
+import { logger } from '../utils/logger';
 
 const CharacterOverview = ({ roles, skillConversions }) => {
     const { accounts, updateAccount, deleteAccount, refreshData } = useAppData();
@@ -39,13 +40,13 @@ const CharacterOverview = ({ roles, skillConversions }) => {
     
     // Debug: Log the accounts data
     React.useEffect(() => {
-        console.log('CharacterOverview - accounts:', accounts);
+        logger.debug('CharacterOverview - accounts:', accounts);
         if (accounts && accounts.length > 0) {
-            console.log('First account:', accounts[0]);
+            logger.debug('First account:', accounts[0]);
             if (accounts[0].Characters && accounts[0].Characters.length > 0) {
-                console.log('First character:', accounts[0].Characters[0]);
-                console.log('Character skills response:', accounts[0].Characters[0].Character?.CharacterSkillsResponse);
-                console.log('Total SP:', accounts[0].Characters[0].Character?.CharacterSkillsResponse?.total_sp);
+                logger.debug('First character:', accounts[0].Characters[0]);
+                logger.debug('Character skills response:', accounts[0].Characters[0].Character?.CharacterSkillsResponse);
+                logger.debug('Total SP:', accounts[0].Characters[0].Character?.CharacterSkillsResponse?.total_sp);
             }
         }
     }, [accounts]);
@@ -90,29 +91,29 @@ const CharacterOverview = ({ roles, skillConversions }) => {
         setIsRefreshing(true);
         try {
             let successCount = 0;
-            console.log('Starting refresh for all characters...');
-            console.log('Accounts:', accounts);
+            logger.debug('Starting refresh for all characters...');
+            logger.debug('Accounts:', accounts);
             
             for (const account of accounts) {
                 for (const character of account.Characters) {
                     try {
-                        console.log(`Refreshing character ${character.Character.CharacterName} (ID: ${character.Character.CharacterID})`);
+                        logger.debug(`Refreshing character ${character.Character.CharacterName} (ID: ${character.Character.CharacterID})`);
                         const result = await apiService.refreshCharacter(character.Character.CharacterID);
-                        console.log(`Refresh result for ${character.Character.CharacterName}:`, result);
+                        logger.debug(`Refresh result for ${character.Character.CharacterName}:`, result);
                         successCount++;
                     } catch (error) {
-                        console.error(`Failed to refresh character ${character.Character.CharacterName}:`, error);
+                        logger.error(`Failed to refresh character ${character.Character.CharacterName}:`, error);
                     }
                 }
             }
             
-            console.log(`Refreshed ${successCount} characters successfully`);
+            logger.debug(`Refreshed ${successCount} characters successfully`);
             
             if (successCount > 0) {
                 // Refresh the accounts data to show updated skills
-                console.log('Refreshing account data...');
+                logger.debug('Refreshing account data...');
                 await refreshData();
-                console.log('Account data refreshed');
+                logger.debug('Account data refreshed');
             }
         } finally {
             setIsRefreshing(false);

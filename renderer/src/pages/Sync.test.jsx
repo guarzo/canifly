@@ -47,7 +47,7 @@ describe('Sync component', () => {
         currentSettingsDir: '/current/dir',
         userSelections: {},
         lastBackupDir: '',
-        backEndURL: 'http://localhost:8713',
+        backEndURL: 'http://localhost:42423',
     };
 
     beforeEach(() => {

@@ -107,6 +107,7 @@ type SkillPlan struct {
 	Skills              map[string]Skill `json:"Skills"`
 	QualifiedCharacters []string         `json:"QualifiedCharacters"`
 	PendingCharacters   []string         `json:"PendingCharacters"`
+	Icon                string           `json:"icon,omitempty"` // Optional icon identifier
 }
 
 // SkillType represents a eve with typeID, typeName, and description.

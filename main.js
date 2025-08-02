@@ -146,7 +146,7 @@ function checkBackendReady(retries) {
         return;
     }
 
-    http.get('http://localhost:8713/static/', (res) => {
+    http.get('http://localhost:42423/static/', (res) => {
         if (res.statusCode === 200) {
             const totalDelay = Date.now() - startTime;
             console.log(`Go backend is ready, launching Electron window after ${totalDelay / 1000} seconds.`);

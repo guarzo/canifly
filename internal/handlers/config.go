@@ -99,3 +99,49 @@ func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 		respondJSON(w, map[string]bool{"success": true})
 	}
 }
+
+// RESTful endpoint: GET /api/config/eve/status
+func (h *ConfigHandler) GetEVEConfigStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		needsConfig, err := h.configService.NeedsEVEConfiguration()
+		if err != nil {
+			respondError(w, fmt.Sprintf("Failed to check EVE configuration: %v", err), http.StatusInternalServerError)
+			return
+		}
+		
+		respondJSON(w, map[string]interface{}{
+			"needsConfiguration": needsConfig,
+			"callbackURL": "http://localhost:42423/callback",
+		})
+	}
+}
+
+// RESTful endpoint: POST /api/config/eve/credentials
+func (h *ConfigHandler) SaveEVECredentials() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			ClientID     string `json:"clientId"`
+			ClientSecret string `json:"clientSecret"`
+		}
+		
+		if err := decodeJSONBody(r, &request); err != nil {
+			respondError(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		
+		if request.ClientID == "" || request.ClientSecret == "" {
+			respondError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
+			return
+		}
+		
+		if err := h.configService.SaveEVECredentials(request.ClientID, request.ClientSecret); err != nil {
+			respondError(w, fmt.Sprintf("Failed to save EVE credentials: %v", err), http.StatusInternalServerError)
+			return
+		}
+		
+		// Invalidate config cache after successful update
+		InvalidateCache(h.cache, "config:")
+		
+		respondJSON(w, map[string]bool{"success": true})
+	}
+}

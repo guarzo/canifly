@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from './useAuth';
+import { logger } from '../utils/logger';
 
 // Use relative URL for WebSocket to work with proxy
 const WS_URL = window.location.protocol === 'https:' 
@@ -25,7 +26,7 @@ export function useWebSocket(onMessage) {
       wsRef.current = new WebSocket(WS_URL);
 
       wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
+        logger.debug('WebSocket connected');
         setConnectionState('connected');
         
         // Start ping interval
@@ -43,17 +44,17 @@ export function useWebSocket(onMessage) {
             onMessage(data);
           }
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+          logger.error('Failed to parse WebSocket message:', error);
         }
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket error:', error);
         setConnectionState('error');
       };
 
       wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
+        logger.debug('WebSocket disconnected');
         setConnectionState('disconnected');
         
         // Clear ping interval
@@ -70,7 +71,7 @@ export function useWebSocket(onMessage) {
         }
       };
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+      logger.error('Failed to create WebSocket connection:', error);
       setConnectionState('error');
     }
   }, [isAuthenticated, onMessage, connectionState]);
@@ -114,7 +115,7 @@ export function useWebSocket(onMessage) {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
-      console.warn('WebSocket is not connected');
+      logger.warn('WebSocket is not connected');
     }
   }, []);
 

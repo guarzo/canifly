@@ -1,36 +1,29 @@
 // src/utils/logger.jsx
 import { isDev } from '../Config';
 
-// export function log(...args) {
-//     if (isDev) console.log(...args);
-// }
-//
-// export function warn(...args) {
-//     if (isDev) console.warn(...args);
-// }
-//
-// export function error(...args) {
-//     if (isDev) console.error(...args);
-// }
-//
-// export function trace(...args) {
-//     if (isDev) console.trace(...args);
-// }
-
-
+// Logger functions that respect development/production modes
 export function log(...args) {
-    console.log(...args);
+    if (isDev) console.log(...args);
 }
 
 export function warn(...args) {
-    console.warn(...args);
+    console.warn(...args); // Warnings shown in all environments
 }
 
 export function error(...args) {
-    console.error(...args);
+    console.error(...args); // Errors shown in all environments
 }
 
 export function trace(...args) {
-    console.trace(...args);
+    if (isDev) console.trace(...args);
 }
+
+// Main logger object for consistency
+export const logger = {
+    debug: log,
+    info: log,
+    warn,
+    error,
+    trace
+};
 

@@ -15,6 +15,7 @@ import Header from './components/common/Header.jsx';
 import Footer from './components/common/Footer.jsx';
 import AddSkillPlanModal from './components/skillplan/AddSkillPlanModal.jsx';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
+import FirstRunDialog from './components/setup/FirstRunDialog.jsx';
 import AppRoutes from './Routes';
 import theme from './Theme.jsx';
 import LoadingScreen from './components/ui/LoadingScreen.jsx';
@@ -22,6 +23,8 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
     const [isSkillPlanModalOpen, setIsSkillPlanModalOpen] = useState(false);
+    const [needsEVEConfig, setNeedsEVEConfig] = useState(false);
+    const [configCheckComplete, setConfigCheckComplete] = useState(false);
     
     const { 
         isAuthenticated, 
@@ -69,14 +72,49 @@ const App = () => {
         }
     }, []); // Empty deps = run once on mount
 
+    // Check EVE configuration on startup
+    useEffect(() => {
+        const checkConfig = async () => {
+            try {
+                const { checkEVEConfiguration } = await import('./api/apiService');
+                const result = await checkEVEConfiguration();
+                setNeedsEVEConfig(result.needsConfiguration);
+            } catch (error) {
+                log('Failed to check EVE configuration:', error);
+                // Assume config is needed if check fails
+                setNeedsEVEConfig(true);
+            } finally {
+                setConfigCheckComplete(true);
+            }
+        };
+        
+        checkConfig();
+    }, []);
+
     useEffect(() => {
         log("isAuthenticated changed:", isAuthenticated);
     }, [isAuthenticated]);
 
-    const isLoading = authLoading || !authCheckComplete || (isAuthenticated && dataLoading);
+    const isLoading = authLoading || !authCheckComplete || !configCheckComplete || (isAuthenticated && dataLoading);
 
     if (isLoading) {
         return <LoadingScreen message="Initializing..." />;
+    }
+
+    // Show first-run dialog if EVE configuration is needed
+    if (needsEVEConfig) {
+        return (
+            <ThemeProvider theme={theme}>
+                <FirstRunDialog 
+                    open={true} 
+                    onComplete={() => {
+                        setNeedsEVEConfig(false);
+                        // Reload the page to reinitialize with new credentials
+                        window.location.reload();
+                    }} 
+                />
+            </ThemeProvider>
+        );
     }
 
     const visibleAccounts = accounts.filter(account => account.Visible !== false);

@@ -24,6 +24,7 @@ import {
     resetToDefaultDirectory
 } from '../api/apiService.jsx';
 import PageHeader from "../components/common/SubPageHeader.jsx";
+import { logger } from '../utils/logger';
 
 const Sync = ({
                   settingsData,
@@ -103,7 +104,7 @@ const Sync = ({
         try {
             setIsLoading(true);
             toast.info('Syncing...', { autoClose: 1500 });
-            console.log("Sync", profile, userId, charId);
+            logger.debug("Sync", profile, userId, charId);
             const result = await syncSubdirectory(profile, userId, charId);
             if (result && result.success) {
                 toast.success(result.message);
@@ -132,7 +133,7 @@ const Sync = ({
 
         try {
             setIsLoading(true);
-            console.log("Sync all", profile, userId, charId);
+            logger.debug("Sync all", profile, userId, charId);
             const result = await syncAllSubdirectories(profile, userId, charId);
             if (result && result.success) {
                 toast.success(`Sync-All complete: ${result.message}`);

@@ -68,6 +68,8 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	// RESTful config endpoints
 	r.HandleFunc("/api/config", configHandler.GetConfig()).Methods("GET")
 	r.HandleFunc("/api/config", configHandler.UpdateConfig()).Methods("PATCH")
+	r.HandleFunc("/api/config/eve/status", configHandler.GetEVEConfigStatus()).Methods("GET")
+	r.HandleFunc("/api/config/eve/credentials", configHandler.SaveEVECredentials()).Methods("POST")
 	
 
 	// EVE data endpoints

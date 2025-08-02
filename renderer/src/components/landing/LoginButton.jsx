@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import AccountPromptModal from '../common/AccountPromptModal.jsx';
 import eveSsoImage from '../../assets/images/eve-sso.jpg';
 import { initiateLogin } from '../../api/apiService';
-import { error as cError } from '../../utils/logger';
+import { error as cError, logger } from '../../utils/logger';
 import { isDev } from '../../Config';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -25,7 +25,7 @@ const LoginButton = ({ onModalOpenChange }) => {
     const handleLoginSubmit = async (account) => {
         try {
             const data = await initiateLogin(account);
-            console.log('Login response data:', data);
+            logger.debug('Login response data:', data);
             // Data should have {redirectURL, state} on success
             if (data && data.redirectURL && data.state) {
                 // Store the state for the callback

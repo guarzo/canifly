@@ -3,10 +3,7 @@
 /**
  * API Service - Frontend API interface for CanIFly
  * 
- * This file contains both new RESTful API functions and legacy functions.
- * The backend supports both patterns during the transition period.
- * 
- * NEW RESTful Endpoints:
+ * RESTful Endpoints:
  * - GET    /api/accounts         - List all accounts
  * - GET    /api/accounts/:id     - Get specific account
  * - PATCH  /api/accounts/:id     - Update account (name, status, visibility)
@@ -16,8 +13,6 @@
  * - DELETE /api/characters/:id   - Remove character
  * - GET    /api/config           - Get configuration
  * - PATCH  /api/config           - Update configuration
- * 
- * Legacy endpoints are maintained for backward compatibility.
  */
 
 import { apiRequest } from './apiRequest';
@@ -92,6 +87,29 @@ export async function getSession() {
         credentials: 'include'
     }, {
         errorMessage: 'Failed to get session status.'
+    });
+}
+
+// Check EVE configuration status
+export async function checkEVEConfiguration() {
+    return apiRequest(`/api/config/eve/status`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to check EVE configuration.'
+    });
+}
+
+// Save EVE credentials
+export async function saveEVECredentials(clientId, clientSecret) {
+    return apiRequest(`/api/config/eve/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ clientId, clientSecret })
+    }, {
+        successMessage: 'EVE credentials saved successfully!',
+        errorMessage: 'Failed to save EVE credentials.'
     });
 }
 
@@ -332,8 +350,6 @@ export async function chooseSettingsDir(directory) {
     });
 }
 
-// Alias for backward compatibility
-export const chooseSettingsDirectory = chooseSettingsDir;
 
 export async function chooseDefaultDirectory(directory) {
     return apiRequest(`/api/config`, {
@@ -494,7 +510,7 @@ export default {
     // Other functions
     addCharacter,
     chooseDefaultDirectory,
-    chooseSettingsDirectory,
+    chooseSettingsDir,
     backupDirectory,
     resetToDefaultDirectory,
     syncSubdirectory,

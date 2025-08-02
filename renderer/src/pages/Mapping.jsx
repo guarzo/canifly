@@ -10,6 +10,7 @@ import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx'
 import { mappingInstructions } from './../utils/instructions';
 import PageHeader from '../components/common/SubPageHeader.jsx';
 import { useAppData } from '../hooks/useAppData';
+import { log } from '../utils/logger';
 
 function roundToMinute(mtime) {
     const date = new Date(mtime);
@@ -27,8 +28,8 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     
     // Debug: Log the props
     React.useEffect(() => {
-        console.log('Mapping - associations:', associations);
-        console.log('Mapping - subDirs:', subDirs);
+        log('Mapping - associations:', associations);
+        log('Mapping - subDirs:', subDirs);
     }, [associations, subDirs]);
 
     useEffect(() => {
@@ -91,7 +92,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
         setMtimeToColor(colorMapping);
     };
 
-    console.log(mtimeToColor);
+    log(mtimeToColor);
 
     const handleDragStart = (event, charId) => {
         event.dataTransfer.setData('text/plain', charId);

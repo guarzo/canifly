@@ -47,6 +47,17 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Create configuration service first (no dependencies)
 	configurationService := configSvc.NewConfigurationService(storageService, logger, cfg.BasePath)
 	
+	// Load EVE credentials from storage if not set in environment
+	if cfg.ClientID == "" || cfg.ClientSecret == "" {
+		storedClientID, storedClientSecret, storedCallbackURL, err := configurationService.GetEVECredentials()
+		if err == nil && storedClientID != "" && storedClientSecret != "" {
+			cfg.ClientID = storedClientID
+			cfg.ClientSecret = storedClientSecret
+			cfg.CallbackURL = storedCallbackURL
+			logger.Info("Loaded EVE credentials from storage")
+		}
+	}
+	
 	// Check if Fuzzworks auto-update is enabled
 	configData, err := configurationService.FetchConfigData()
 	if err != nil {

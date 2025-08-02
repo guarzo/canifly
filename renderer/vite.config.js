@@ -13,7 +13,7 @@ export default defineConfig({
     strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {
-        target: 'http://localhost:8713',
+        target: 'http://localhost:42423',
         changeOrigin: true,
         secure: false,
         ws: true, // Enable WebSocket proxy

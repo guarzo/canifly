@@ -13,6 +13,7 @@ import {skillPlanInstructions} from "../utils/instructions.jsx";
 import PageHeader from "../components/common/SubPageHeader.jsx";
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import apiService from '../api/apiService';
+import { logger } from '../utils/logger';
 
 const SkillPlans = ({ characters, skillPlans, conversions }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
@@ -20,9 +21,9 @@ const SkillPlans = ({ characters, skillPlans, conversions }) => {
     
     // Debug: Log the props
     React.useEffect(() => {
-        console.log('SkillPlans - characters:', characters);
-        console.log('SkillPlans - skillPlans:', skillPlans);
-        console.log('SkillPlans - conversions:', conversions);
+        logger.debug('SkillPlans - characters:', characters);
+        logger.debug('SkillPlans - skillPlans:', skillPlans);
+        logger.debug('SkillPlans - conversions:', conversions);
     }, [characters, skillPlans, conversions]);
     
     const handleCopySkillPlan = async (planName, newPlanName) => {
