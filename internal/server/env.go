@@ -1,50 +1,36 @@
 package server
 
 import (
-	"encoding/base64"
 	"fmt"
-	"github.com/guarzo/canifly/internal/persist"
-	"github.com/guarzo/canifly/internal/services/interfaces"
-	"github.com/joho/godotenv"
 	"os"
 	"path/filepath"
+	
+	"github.com/guarzo/canifly/internal/persist"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type Config struct {
-	Port         string
-	SecretKey    string
-	ClientID     string
-	ClientSecret string
-	CallbackURL  string
-	PathSuffix   string
-	BasePath     string
+	Port              string
+	SecretKey         string
+	ClientID          string
+	ClientSecret      string
+	CallbackURL       string
+	PathSuffix        string
+	BasePath          string
+	SkillPlansRepoURL string
 }
 
+// LoadConfig loads the application configuration.
+// Configuration priority:
+// 1. Environment variables (for development/override)
+// 2. Stored configuration (loaded later by services)
+// 3. Default values
 func LoadConfig(logger interfaces.Logger) (Config, error) {
-	// Try local .env first (for development)
-	if err := godotenv.Load(); err != nil {
-		logger.Debug("No local .env file found")
-	}
-
 	cfg := Config{}
 
 	cfg.Port = getPort()
 	
-	secretKey, err := getSecretKey(logger)
-	if err != nil {
-		return cfg, err
-	}
-	cfg.SecretKey = secretKey
-
-	// Get EVE credentials from environment first (takes precedence)
-	cfg.ClientID = os.Getenv("EVE_CLIENT_ID")
-	cfg.ClientSecret = os.Getenv("EVE_CLIENT_SECRET")
-	cfg.CallbackURL = os.Getenv("EVE_CALLBACK_URL")
-
-	// Note: We'll check stored credentials later after services are initialized
-	// For now, we'll allow empty credentials and handle them in the handlers
-
-	cfg.PathSuffix = os.Getenv("PATH_SUFFIX")
+	// Get base path first so we can use it for secret key storage
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return cfg, fmt.Errorf("unable to get user config dir: %v", err)
@@ -60,21 +46,51 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 			return cfg, fmt.Errorf("failed to create base directory: %w", err)
 		}
 	}
+	
+	// Get or create persistent secret key
+	secretKey, err := getSecretKey(cfg.BasePath, logger)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.SecretKey = secretKey
+
+	// EVE OAuth2 credentials - environment variables take precedence over stored config
+	// This allows developers to override stored credentials during development
+	cfg.ClientID = os.Getenv("EVE_CLIENT_ID")
+	cfg.ClientSecret = os.Getenv("EVE_CLIENT_SECRET")
+	cfg.CallbackURL = os.Getenv("EVE_CALLBACK_URL")
+
+	// Optional: Custom skill plans repository URL (defaults to guarzo/eve-skills)
+	cfg.SkillPlansRepoURL = os.Getenv("SKILLPLANS_REPO_URL")
+
+	// Note: If EVE credentials are not set via environment variables,
+	// the config service will check for stored credentials and prompt
+	// for first-run configuration if needed
+
+	cfg.PathSuffix = os.Getenv("PATH_SUFFIX")
 
 	return cfg, nil
 }
 
 // getSecretKey retrieves or generates the encryption secret key
-func getSecretKey(logger interfaces.Logger) (string, error) {
+func getSecretKey(basePath string, logger interfaces.Logger) (string, error) {
+	// First check environment variable (for development/override)
 	secret := os.Getenv("SECRET_KEY")
-	if secret == "" {
-		key, err := persist.GenerateSecret()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate secret key: %w", err)
-		}
-		secret = base64.StdEncoding.EncodeToString(key)
-		logger.Warn("Using a generated key for testing only.")
+	if secret != "" {
+		logger.Debug("Using SECRET_KEY from environment variable")
+		return secret, nil
 	}
+	
+	// Use persistent secret store
+	fs := persist.NewOSFileSystem()
+	secretStore := persist.NewSecretStore(basePath, fs)
+	
+	secret, err := secretStore.GetOrCreateSecret()
+	if err != nil {
+		return "", fmt.Errorf("failed to get or create secret key: %w", err)
+	}
+	
+	logger.Info("Using persistent secret key from config directory")
 	return secret, nil
 }
 
@@ -98,8 +114,10 @@ func ValidateStartupPaths(cfg Config, logger interfaces.Logger) error {
 	
 	// Create subdirectories that services will need
 	requiredDirs := []string{
-		filepath.Join(cfg.BasePath, "plans"),
-		filepath.Join(cfg.BasePath, "eve"),
+		filepath.Join(cfg.BasePath, "plans"),        // Skill plans
+		filepath.Join(cfg.BasePath, "eve"),          // EVE character data
+		filepath.Join(cfg.BasePath, "config"),       // Application config
+		filepath.Join(cfg.BasePath, "config", "fuzzworks"), // Fuzzworks static data
 	}
 	
 	for _, dir := range requiredDirs {

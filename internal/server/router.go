@@ -3,11 +3,11 @@ package server
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
-	"github.com/guarzo/canifly/internal/embed"
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -45,6 +45,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	// RESTful skill plan endpoints
 	r.HandleFunc("/api/skill-plans", skillPlanHandler.ListSkillPlans()).Methods("GET")
 	r.HandleFunc("/api/skill-plans", skillPlanHandler.CreateSkillPlan()).Methods("POST")
+	r.HandleFunc("/api/skill-plans/refresh", skillPlanHandler.RefreshSkillPlans()).Methods("POST")
 	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.GetSkillPlan()).Methods("GET")
 	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.UpdateSkillPlan()).Methods("PUT")
 	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.DeleteSkillPlanRESTful()).Methods("DELETE")
@@ -93,8 +94,15 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/fuzzworks/update", fuzzworksHandler.UpdateData()).Methods("POST")
 	r.HandleFunc("/api/fuzzworks/status", fuzzworksHandler.GetStatus()).Methods("GET")
 
-	// Serve static files
-	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))
+	// Serve static files from filesystem
+	staticDir := "./static"
+	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
+		// Try relative to executable location
+		if ex, err := os.Executable(); err == nil {
+			staticDir = filepath.Join(filepath.Dir(ex), "static")
+		}
+	}
+	staticFileServer := http.FileServer(http.Dir(staticDir))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
 	return createCORSHandler(r)

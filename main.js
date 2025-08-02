@@ -5,6 +5,24 @@ const { spawn } = require('child_process'); // Import spawn
 
 const isDev = !app.isPackaged;
 
+// Simple logger for main process
+const logger = {
+    info: (...args) => {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] [INFO]`, ...args);
+    },
+    error: (...args) => {
+        const timestamp = new Date().toISOString();
+        console.error(`[${timestamp}] [ERROR]`, ...args);
+    },
+    debug: (...args) => {
+        if (isDev) {
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] [DEBUG]`, ...args);
+        }
+    }
+};
+
 let goProcess;
 const maxRetries = 5;
 const retryDelay = 1000;
@@ -21,22 +39,22 @@ function startGoBackend() {
         });
 
         goProcess.stdout.on('data', (data) => {
-            console.log(`Go backend: ${data}`);
+            logger.info(`Go backend: ${data}`);
         });
 
         goProcess.stderr.on('data', (data) => {
-            console.error(`Go backend error: ${data}`);
+            logger.error(`Go backend error: ${data}`);
         });
 
         goProcess.on('close', (code) => {
-            console.log(`Go backend exited with code ${code}`);
+            logger.info(`Go backend exited with code ${code}`);
         });
     }
 
 }
 
 function createWindow() {
-    console.log("Creating Electron window...");
+    logger.info("Creating Electron window...");
     const mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
@@ -51,7 +69,7 @@ function createWindow() {
 
     mainWindow.setMenuBarVisibility(false);
 
-    console.log("User data path:", app.getPath('userData'));
+    logger.info("User data path:", app.getPath('userData'));
 
 
     if (isDev) {
@@ -127,7 +145,7 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => {
     // Ensure goProcess is killed here before quit
     if (goProcess) {
-        console.log("Killing goProcess before quit");
+        logger.info("Killing goProcess before quit");
         goProcess.kill();
     }
 });
@@ -138,7 +156,7 @@ app.on('window-all-closed', () => {
 
 function checkBackendReady(retries) {
     if (retries === 0) {
-        console.error("Go backend did not start in time. Shutting down.");
+        logger.error("Go backend did not start in time. Shutting down.");
         if (goProcess) {
             goProcess.kill();
         }
@@ -149,14 +167,14 @@ function checkBackendReady(retries) {
     http.get('http://localhost:42423/static/', (res) => {
         if (res.statusCode === 200) {
             const totalDelay = Date.now() - startTime;
-            console.log(`Go backend is ready, launching Electron window after ${totalDelay / 1000} seconds.`);
+            logger.info(`Go backend is ready, launching Electron window after ${totalDelay / 1000} seconds.`);
             createWindow();
         } else {
-            console.log(res.statusCode);
+            logger.debug(`Backend returned status code: ${res.statusCode}`);
             retryCheck(retries);
         }
     }).on('error', () => {
-        console.log("retrying...............................")
+        logger.debug("Retrying backend connection...")
         retryCheck(retries);
     });
 }

@@ -37,6 +37,7 @@ type EVEDataService interface {
 	GetSkillTypeByID(id string) (model.SkillType, bool)
 	GetPlanAndConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
 	ListSkillPlans() ([]string, error)
+	RefreshRemotePlans() error
 
 	// Eve Profile Management (from EveProfilesService)
 	LoadCharacterSettings() ([]model.EveProfile, error)

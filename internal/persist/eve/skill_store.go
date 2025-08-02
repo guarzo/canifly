@@ -2,19 +2,17 @@ package eve
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/skillplans"
 )
 
 var _ interfaces.SkillRepository = (*SkillStore)(nil)
@@ -25,23 +23,40 @@ const (
 
 // SkillStore implements interfaces.SkillRepository
 type SkillStore struct {
-	logger        interfaces.Logger
-	fs            persist.FileSystem
-	basePath      string
-	skillPlans    map[string]model.SkillPlan
-	skillTypes    map[string]model.SkillType
-	skillIdToType map[string]model.SkillType
-	mut           sync.RWMutex
+	logger           interfaces.Logger
+	fs               persist.FileSystem
+	basePath         string
+	skillPlans       map[string]model.SkillPlan
+	skillTypes       map[string]model.SkillType
+	skillIdToType    map[string]model.SkillType
+	githubDownloader *skillplans.GitHubDownloader
+	mut              sync.RWMutex
 }
 
 // NewSkillStore now accepts a FileSystem and a basePath for writable directories.
-func NewSkillStore(logger interfaces.Logger, fs persist.FileSystem, basePath string) *SkillStore {
-	return &SkillStore{
-		logger:     logger,
-		fs:         fs,
-		basePath:   basePath,
-		skillPlans: make(map[string]model.SkillPlan),
-		skillTypes: make(map[string]model.SkillType),
+// The githubDownloader parameter is optional - pass it to enable downloading skill plans from GitHub.
+func NewSkillStore(logger interfaces.Logger, fs persist.FileSystem, basePath string, opts ...func(*SkillStore)) *SkillStore {
+	store := &SkillStore{
+		logger:           logger,
+		fs:               fs,
+		basePath:         basePath,
+		skillPlans:       make(map[string]model.SkillPlan),
+		skillTypes:       make(map[string]model.SkillType),
+		skillIdToType:    make(map[string]model.SkillType),
+	}
+	
+	// Apply options
+	for _, opt := range opts {
+		opt(store)
+	}
+	
+	return store
+}
+
+// WithGitHubDownloader is an option to set the GitHub downloader
+func WithGitHubDownloader(downloader *skillplans.GitHubDownloader) func(*SkillStore) {
+	return func(s *SkillStore) {
+		s.githubDownloader = downloader
 	}
 }
 
@@ -53,9 +68,12 @@ func (s *SkillStore) LoadSkillPlans() error {
 		return fmt.Errorf("failed to ensure plans directory: %w", err)
 	}
 
-	// Copy embedded plans if needed
-	if err := s.copyEmbeddedPlansToWritable(writableDir); err != nil {
-		return fmt.Errorf("failed to copy embedded plans: %w", err)
+	// Try to download latest plans from GitHub
+	if s.githubDownloader != nil {
+		if err := s.githubDownloader.DownloadPlans(writableDir); err != nil {
+			s.logger.Warnf("Failed to download plans from GitHub: %v", err)
+			// Continue with whatever local files exist
+		}
 	}
 
 	plans, err := s.loadSkillPlans(writableDir)
@@ -117,28 +135,6 @@ func (s *SkillStore) GetSkillPlanFile(planName string) ([]byte, error) {
 	return os.ReadFile(filePath)
 }
 
-func (s *SkillStore) copyEmbeddedFile(srcPath, destPath string) error {
-	srcFile, err := embed.StaticFiles.Open(srcPath)
-	if err != nil {
-		return fmt.Errorf("failed to open embedded file %s: %w", srcPath, err)
-	}
-	defer srcFile.Close()
-
-	data, err := io.ReadAll(srcFile)
-	if err != nil {
-		return fmt.Errorf("failed to read embedded file %s: %w", srcPath, err)
-	}
-
-	dir := filepath.Dir(destPath)
-	if err := s.fs.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create directory for %s: %w", destPath, err)
-	}
-
-	if err := s.fs.WriteFile(destPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write file %s: %w", destPath, err)
-	}
-	return nil
-}
 
 func (s *SkillStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, error) {
 	plans := make(map[string]model.SkillPlan)
@@ -159,29 +155,51 @@ func (s *SkillStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, err
 		planName := strings.TrimSuffix(entry.Name(), ".txt")
 		path := filepath.Join(dir, entry.Name())
 
-		skills, err := s.readSkillsFromFile(path)
+		parsed, err := s.readSkillsFromFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read skills from %s: %w", path, err)
 		}
-		plans[planName] = model.SkillPlan{Name: planName, Skills: skills}
+		plans[planName] = model.SkillPlan{
+			Name:   planName,
+			Skills: parsed.Skills,
+			Icon:   parsed.Icon,
+		}
 	}
 
 	return plans, nil
 }
 
-func (s *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill, error) {
+// ParsedSkillPlan holds the result of parsing a skill plan file
+type ParsedSkillPlan struct {
+	Skills map[string]model.Skill
+	Icon   string // Optional icon identifier
+}
+
+func (s *SkillStore) readSkillsFromFile(filePath string) (*ParsedSkillPlan, error) {
 	data, err := s.fs.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read eve plan file %s: %w", filePath, err)
 	}
 
-	skills := make(map[string]model.Skill)
+	result := &ParsedSkillPlan{
+		Skills: make(map[string]model.Skill),
+	}
+	
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	lineNumber := 0
 	for scanner.Scan() {
 		lineNumber++
 		line := scanner.Text()
-		if strings.TrimSpace(line) == "" {
+		trimmed := strings.TrimSpace(line)
+		
+		// Check for icon directive
+		if strings.HasPrefix(trimmed, "# icon:") {
+			result.Icon = strings.TrimSpace(strings.TrimPrefix(trimmed, "# icon:"))
+			continue
+		}
+		
+		// Skip empty lines and other comments
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
 
@@ -197,16 +215,16 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 			return nil, fmt.Errorf("invalid eve level in %s at line %d: %s", filePath, lineNumber, skillLevelStr)
 		}
 
-		if currentSkill, exists := skills[skillName]; !exists || skillLevel > currentSkill.Level {
-			skills[skillName] = model.Skill{Name: skillName, Level: skillLevel}
+		if currentSkill, exists := result.Skills[skillName]; !exists || skillLevel > currentSkill.Level {
+			result.Skills[skillName] = model.Skill{Name: skillName, Level: skillLevel}
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("error scanning file %s: %w", filePath, err)
 	}
 
-	s.logger.Debugf("Read %d skills from %s", len(skills), filePath)
-	return skills, nil
+	s.logger.Debugf("Read %d skills from %s (icon: %s)", len(result.Skills), filePath, result.Icon)
+	return result, nil
 }
 
 func (s *SkillStore) LoadSkillTypes() error {
@@ -319,81 +337,7 @@ func (s *SkillStore) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return st, ok
 }
 
-// A helper function to load deleted embedded plans from a JSON or text file
-func (s *SkillStore) loadDeletedEmbeddedPlans() (map[string]bool, error) {
-	deletedPlans := make(map[string]bool)
-	deletedListPath := filepath.Join(s.basePath, plansDir, "deleted_embedded_plans.json")
 
-	if _, err := os.Stat(deletedListPath); os.IsNotExist(err) {
-		// No file, so no deleted plans
-		return deletedPlans, nil
-	}
-
-	data, err := s.fs.ReadFile(deletedListPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read deleted embedded plans: %w", err)
-	}
-
-	// Suppose we store them as a simple JSON array of plan names
-	var planNames []string
-	if err := json.Unmarshal(data, &planNames); err != nil {
-		return nil, fmt.Errorf("failed to parse deleted embedded plans: %w", err)
-	}
-	for _, name := range planNames {
-		deletedPlans[name] = true
-	}
-	return deletedPlans, nil
-}
-
-func (s *SkillStore) saveDeletedEmbeddedPlans(deletedPlans map[string]bool) error {
-	planNames := make([]string, 0, len(deletedPlans))
-	for name := range deletedPlans {
-		planNames = append(planNames, name)
-	}
-	
-	deletedListPath := filepath.Join(s.basePath, plansDir, "deleted_embedded_plans.json")
-	if err := persist.AtomicWriteJSON(s.fs, deletedListPath, planNames); err != nil {
-		return fmt.Errorf("failed to save deleted embedded plans: %w", err)
-	}
-	return nil
-}
-
-// Enhance copyEmbeddedPlansToWritable to skip deleted plans
-func (s *SkillStore) copyEmbeddedPlansToWritable(writableDir string) error {
-	deletedPlans, err := s.loadDeletedEmbeddedPlans()
-	if err != nil {
-		return err
-	}
-
-	entries, err := embed.StaticFiles.ReadDir("static/plans")
-	if err != nil {
-		return fmt.Errorf("failed to read embedded plans: %w", err)
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			fileName := entry.Name()
-			planName := strings.TrimSuffix(fileName, ".txt")
-
-			// If the user previously deleted this embedded plan, skip copying it
-			if deletedPlans[planName] {
-				s.logger.Debugf("Skipping previously deleted embedded plan: %s", planName)
-				continue
-			}
-
-			destPath := filepath.Join(writableDir, fileName)
-			// Only copy if file does not exist to avoid overwriting custom user changes
-			if _, err := s.fs.Stat(destPath); os.IsNotExist(err) {
-				if err := s.copyEmbeddedFile("static/plans/"+fileName, destPath); err != nil {
-					return fmt.Errorf("failed to copy embedded plan %s: %w", fileName, err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// Modify DeleteSkillPlan to record deletions of embedded plans
 func (s *SkillStore) DeleteSkillPlan(planName string) error {
 	planFilePath := filepath.Join(s.basePath, plansDir, planName+".txt")
 
@@ -403,31 +347,6 @@ func (s *SkillStore) DeleteSkillPlan(planName string) error {
 			return fmt.Errorf("eve plan does not exist: %w", err)
 		}
 		return fmt.Errorf("failed to delete eve plan file: %w", err)
-	}
-
-	// If this plan was embedded originally, add it to the deleted list
-	// One way is to check if it matches an embedded plan name
-	// For a robust solution, store the original embedded plan list somewhere.
-	// Here, we read from embed and check if planName was one of them.
-	entries, err := embed.StaticFiles.ReadDir("static/plans")
-	if err == nil {
-		embeddedPlan := false
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.TrimSuffix(entry.Name(), ".txt") == planName {
-				embeddedPlan = true
-				break
-			}
-		}
-		if embeddedPlan {
-			deletedPlans, err := s.loadDeletedEmbeddedPlans()
-			if err != nil {
-				return err
-			}
-			deletedPlans[planName] = true
-			if err := s.saveDeletedEmbeddedPlans(deletedPlans); err != nil {
-				return err
-			}
-		}
 	}
 
 	s.mut.Lock()

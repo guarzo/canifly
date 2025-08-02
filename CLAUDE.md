@@ -100,8 +100,8 @@ SECRET_KEY=<your_generated_secret_key>
    - Request required scopes for character/skill/asset access
 
 3. **Dependencies**: 
-   - Go 1.22.3+
-   - npm 22.2.0+
+   - Go 1.24+
+   - npm 24+
    - Run `npm install` in root directory
 
 ## Code Quality Standards

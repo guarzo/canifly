@@ -16,6 +16,7 @@ import (
 	eveSvc "github.com/guarzo/canifly/internal/services/eve"
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/skillplans"
 	"github.com/guarzo/canifly/internal/services/storage"
 	syncSvc "github.com/guarzo/canifly/internal/services/sync"
 )
@@ -87,7 +88,12 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Note: repository adapters are no longer needed for account and config services
 	
 	// Create remaining repositories for EVE data
-	skillRepo := eve.NewSkillStore(logger, persist.OSFileSystem{}, cfg.BasePath)
+	var skillStoreOpts []func(*eve.SkillStore)
+	if cfg.SkillPlansRepoURL != "" {
+		githubDownloader := skillplans.NewGitHubDownloader(cfg.SkillPlansRepoURL, logger)
+		skillStoreOpts = append(skillStoreOpts, eve.WithGitHubDownloader(githubDownloader))
+	}
+	skillRepo := eve.NewSkillStore(logger, persist.OSFileSystem{}, cfg.BasePath, skillStoreOpts...)
 	if err := skillRepo.LoadSkillPlans(); err != nil {
 		return nil, fmt.Errorf("failed to load skill plans: %v", err)
 	}

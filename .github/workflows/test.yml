@@ -9,36 +9,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      EVE_CLIENT_ID: ${{ secrets.EVE_CLIENT_ID }}
-      EVE_CLIENT_SECRET: ${{ secrets.EVE_CLIENT_SECRET }}
-      EVE_CALLBACK_URL: ${{ secrets.EVE_CALLBACK_URL }}
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24.4'
+          go-version: '1.24'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '24.2.0'
-
-      - name: Create .env file
-        run: |
-          mkdir -p internal/embed/config
-          echo "EVE_CLIENT_ID=${EVE_CLIENT_ID}" >> internal/embed/config/.env
-          echo "EVE_CLIENT_SECRET=${EVE_CLIENT_SECRET}" >> internal/embed/config/.env
-          echo "EVE_CALLBACK_URL=${EVE_CALLBACK_URL}" >> internal/embed/config/.env
-          echo "SECRET_KEY=${SECRET_KEY}" >> internal/embed/config/.env
+          node-version: '22'
 
       - name: Install Dependencies
-        run: npm install && cd renderer && npm install
+        run: npm ci && cd renderer && npm ci
 
       - name: Run Tests
         run: npm test

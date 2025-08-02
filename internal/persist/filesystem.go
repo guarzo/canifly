@@ -18,6 +18,10 @@ type FileSystem interface {
 
 type OSFileSystem struct{}
 
+func NewOSFileSystem() FileSystem {
+	return OSFileSystem{}
+}
+
 func (OSFileSystem) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }

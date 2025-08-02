@@ -26,6 +26,7 @@ type ConfigData struct {
 	EVEClientID        string   `json:"EVEClientID,omitempty"`        // EVE Online application client ID
 	EVEClientSecret    string   `json:"EVEClientSecret,omitempty"`    // EVE Online application client secret
 	EVECallbackURL     string   `json:"EVECallbackURL,omitempty"`     // EVE Online callback URL
+	SkillPlansRepoURL  string   `json:"SkillPlansRepoURL,omitempty"`  // GitHub repository URL for skill plans
 }
 
 func init() {

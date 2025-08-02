@@ -275,3 +275,23 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 		})
 	}
 }
+
+// RefreshSkillPlans handles POST /api/skill-plans/refresh
+func (h *SkillPlanHandler) RefreshSkillPlans() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Refresh skill plans from remote repository
+		if err := h.eveDataService.RefreshRemotePlans(); err != nil {
+			h.logger.Errorf("Failed to refresh skill plans: %v", err)
+			respondError(w, "Failed to refresh skill plans", http.StatusInternalServerError)
+			return
+		}
+
+		// Clear cache for skill plans
+		InvalidateCache(h.cache, "skillplans:")
+
+		respondJSON(w, map[string]string{
+			"status": "success",
+			"message": "Skill plans refreshed successfully",
+		})
+	}
+}

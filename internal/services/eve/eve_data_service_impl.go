@@ -520,6 +520,11 @@ func (s *EVEDataServiceImpl) ListSkillPlans() ([]string, error) {
 	return planNames, nil
 }
 
+func (s *EVEDataServiceImpl) RefreshRemotePlans() error {
+	// Reload skill plans from repository (which will trigger GitHub download if configured)
+	return s.skillRepo.LoadSkillPlans()
+}
+
 func (s *EVEDataServiceImpl) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	return s.skillRepo.GetSkillTypeByID(id)
 }

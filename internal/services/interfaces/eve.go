@@ -13,6 +13,7 @@ type SkillRepository interface {
 	SaveSkillPlan(planName string, skills map[string]model.Skill) error
 	DeleteSkillPlan(planName string) error
 	GetSkillTypeByID(id string) (model.SkillType, bool)
+	LoadSkillPlans() error
 }
 
 type EveProfilesRepository interface {

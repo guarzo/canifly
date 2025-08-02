@@ -16,12 +16,13 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-var version = "0.0.40"
+// Version is set by main package from embedded version file
+var Version string
 
 // Start initializes and runs the application with enhanced logging for startup failure scenarios.
 func Start() error {
 	logger := server.SetupLogger()
-	logger.Infof("Starting application, version %s", version)
+	logger.Infof("Starting application, version %s", Version)
 
 	cfg, err := server.LoadConfig(logger)
 	if err != nil {
