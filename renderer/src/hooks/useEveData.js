@@ -3,7 +3,7 @@ import useEveDataStore from '../stores/eveDataStore';
 import { useAuth } from './useAuth';
 
 export function useEveData() {
-  const { isLoggedIn } = useAuth();
+  const { isAuthenticated } = useAuth();
   const {
     skillPlans,
     eveProfiles,
@@ -18,12 +18,12 @@ export function useEveData() {
   } = useEveDataStore();
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isAuthenticated) {
       fetchEveData();
     } else {
       reset();
     }
-  }, [isLoggedIn]);
+  }, [isAuthenticated, fetchEveData, reset]);
 
   return {
     skillPlans,

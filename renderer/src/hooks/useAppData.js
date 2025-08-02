@@ -6,6 +6,7 @@ import { useAsyncOperation } from './useAsyncOperation';
 export function useAppData() {
   const {
     accounts,
+    associations,
     config,
     selectedAccountId,
     selectedCharacterId,
@@ -15,6 +16,7 @@ export function useAppData() {
     error,
     fetchAppData,
     fetchAccounts,
+    fetchAssociations,
     fetchConfig,
     updateAccount,
     updateConfig,
@@ -99,15 +101,17 @@ export function useAppData() {
 
   return {
     accounts,
+    associations,
     config,
     selectedAccountId,
     selectedCharacterId,
     refreshKey,
     loading,
     error,
-    isLoading: loading.accounts || loading.config,
+    isLoading: loading.accounts || loading.associations || loading.config,
     fetchAppData: (forceRefresh) => execute(() => fetchAppData(forceRefresh), { showToast: false }),
     fetchAccounts: () => execute(fetchAccounts, { showToast: false }),
+    fetchAssociations: () => execute(fetchAssociations, { showToast: false }),
     fetchConfig: () => execute(fetchConfig, { showToast: false }),
     updateAccount: handleUpdateAccount,
     updateConfig: handleUpdateConfig,

@@ -14,7 +14,7 @@ import {
 import { CloudDownload, Refresh } from '@mui/icons-material';
 import { useAppData } from '../../hooks/useAppData';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
-import apiService from '../../api/apiService';
+import { getFuzzworksStatus, updateFuzzworks } from '../../api/apiService';
 
 const FuzzworksSettings = () => {
   const { config, updateConfig } = useAppData();
@@ -32,7 +32,7 @@ const FuzzworksSettings = () => {
   const fetchStatus = async () => {
     setLoadingStatus(true);
     try {
-      const response = await apiService.get('/api/fuzzworks/status');
+      const response = await getFuzzworksStatus();
       setStatus(response.data);
     } catch (error) {
       console.error('Failed to fetch Fuzzworks status:', error);
@@ -54,7 +54,7 @@ const FuzzworksSettings = () => {
   const handleManualUpdate = async () => {
     await execute(
       async () => {
-        const response = await apiService.post('/api/fuzzworks/update');
+        const response = await updateFuzzworks();
         await fetchStatus(); // Refresh status after update
         return response.data;
       },

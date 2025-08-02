@@ -16,6 +16,7 @@ export default defineConfig({
         target: 'http://localhost:8713',
         changeOrigin: true,
         secure: false,
+        ws: true, // Enable WebSocket proxy
       },
       'v2': {
         target: 'https://login.eveonline.com',

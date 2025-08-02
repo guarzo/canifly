@@ -1,7 +1,10 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from './useAuth';
 
-const WS_URL = 'ws://localhost:42423/api/ws';
+// Use relative URL for WebSocket to work with proxy
+const WS_URL = window.location.protocol === 'https:' 
+  ? `wss://${window.location.host}/api/ws`
+  : `ws://${window.location.host}/api/ws`;
 const RECONNECT_DELAY = 5000; // 5 seconds
 const PING_INTERVAL = 30000; // 30 seconds
 
@@ -10,17 +13,20 @@ export function useWebSocket(onMessage) {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const pingIntervalRef = useRef(null);
+  const [connectionState, setConnectionState] = useState('disconnected');
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || wsRef.current?.readyState === WebSocket.OPEN) {
+    if (!isAuthenticated || connectionState === 'connecting' || wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
     try {
+      setConnectionState('connecting');
       wsRef.current = new WebSocket(WS_URL);
 
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');
+        setConnectionState('connected');
         
         // Start ping interval
         pingIntervalRef.current = setInterval(() => {
@@ -43,10 +49,12 @@ export function useWebSocket(onMessage) {
 
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
+        setConnectionState('error');
       };
 
       wsRef.current.onclose = () => {
         console.log('WebSocket disconnected');
+        setConnectionState('disconnected');
         
         // Clear ping interval
         if (pingIntervalRef.current) {
@@ -54,7 +62,7 @@ export function useWebSocket(onMessage) {
           pingIntervalRef.current = null;
         }
 
-        // Attempt to reconnect after delay
+        // Attempt to reconnect after delay if authenticated
         if (isAuthenticated) {
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
@@ -63,8 +71,9 @@ export function useWebSocket(onMessage) {
       };
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
+      setConnectionState('error');
     }
-  }, [isAuthenticated, onMessage]);
+  }, [isAuthenticated, onMessage, connectionState]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -77,23 +86,29 @@ export function useWebSocket(onMessage) {
       pingIntervalRef.current = null;
     }
 
-    if (wsRef.current) {
+    if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
       wsRef.current.close();
       wsRef.current = null;
     }
+    
+    setConnectionState('disconnected');
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      connect();
-    } else {
-      disconnect();
-    }
+    // Add a small delay to ensure backend is ready
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        connect();
+      } else {
+        disconnect();
+      }
+    }, 1000); // 1 second delay
 
     return () => {
+      clearTimeout(timer);
       disconnect();
     };
-  }, [isAuthenticated, connect, disconnect]);
+  }, [isAuthenticated]); // Remove connect and disconnect from deps to prevent loops
 
   const sendMessage = useCallback((message) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -106,5 +121,6 @@ export function useWebSocket(onMessage) {
   return {
     sendMessage,
     isConnected: wsRef.current?.readyState === WebSocket.OPEN,
+    connectionState
   };
 }

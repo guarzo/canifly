@@ -871,3 +871,8 @@ func (s *EVEDataServiceImpl) Set(key string, value []byte, expiration time.Durat
 func (s *EVEDataServiceImpl) SetHTTPClient(httpClient interfaces.EsiHttpClient) {
 	s.httpClient = httpClient
 }
+
+// SetAccountManagementService sets the account management service after initialization
+func (s *EVEDataServiceImpl) SetAccountManagementService(accountMgmt interfaces.AccountManagementService) {
+	s.accountMgmt = accountMgmt
+}

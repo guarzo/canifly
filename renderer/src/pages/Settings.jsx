@@ -26,7 +26,7 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4 pb-10 pt-16">
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" storageKey="settings" />
       <Container maxWidth="lg" sx={{ mt: 3 }}>
         <motion.div
           variants={containerVariants}

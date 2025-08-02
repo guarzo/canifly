@@ -6,6 +6,7 @@ const useAppDataStore = create(
   devtools(
     (set, get) => ({
       accounts: [],
+      associations: [],
       config: null,
       selectedAccountId: null,
       selectedCharacterId: null,
@@ -13,10 +14,12 @@ const useAppDataStore = create(
       hasInitialFetch: false,
       loading: {
         accounts: false,
+        associations: false,
         config: false
       },
       error: {
         accounts: null,
+        associations: null,
         config: null
       },
 
@@ -26,39 +29,44 @@ const useAppDataStore = create(
         if (!forceRefresh && state.hasInitialFetch && state.config) {
           return {
             accounts: state.accounts,
+            associations: state.associations,
             config: state.config
           };
         }
 
         set({ 
-          loading: { accounts: true, config: true },
-          error: { accounts: null, config: null }
+          loading: { accounts: true, associations: true, config: true },
+          error: { accounts: null, associations: null, config: null }
         });
 
         try {
-          const [accountsRes, configRes] = await Promise.all([
+          const [accountsRes, associationsRes, configRes] = await Promise.all([
             apiService.getAccounts(),
+            apiService.getAssociations(),
             apiService.getConfig()
           ]);
 
           const accounts = accountsRes?.data || [];
+          const associations = associationsRes?.data || [];
           const config = configRes?.data || {};
 
           set({
             accounts,
+            associations,
             config,
             hasInitialFetch: true,
-            loading: { accounts: false, config: false }
+            loading: { accounts: false, associations: false, config: false }
           });
 
-          return { accounts, config };
+          return { accounts, associations, config };
         } catch (error) {
           console.error('Failed to fetch app data:', error);
           set({
             hasInitialFetch: true,
-            loading: { accounts: false, config: false },
+            loading: { accounts: false, associations: false, config: false },
             error: { 
               accounts: error.message,
+              associations: error.message,
               config: error.message
             }
           });
@@ -103,6 +111,27 @@ const useAppDataStore = create(
           set({ 
             loading: { ...get().loading, config: false },
             error: { ...get().error, config: error.message }
+          });
+          throw error;
+        }
+      },
+
+      fetchAssociations: async () => {
+        set({ loading: { ...get().loading, associations: true } });
+        try {
+          const response = await apiService.getAssociations();
+          const associations = response?.data || [];
+          set({ 
+            associations,
+            loading: { ...get().loading, associations: false },
+            error: { ...get().error, associations: null }
+          });
+          return associations;
+        } catch (error) {
+          console.error('Failed to fetch associations:', error);
+          set({ 
+            loading: { ...get().loading, associations: false },
+            error: { ...get().error, associations: error.message }
           });
           throw error;
         }
@@ -157,12 +186,18 @@ const useAppDataStore = create(
 
       refreshData: async () => {
         set({ refreshKey: Date.now() });
-        return get().fetchAppData(true);
+        const [accounts, associations, config] = await Promise.all([
+          get().fetchAccounts(),
+          get().fetchAssociations(),
+          get().fetchConfig()
+        ]);
+        return { accounts, associations, config };
       },
 
       reset: () => {
         set({
           accounts: [],
+          associations: [],
           config: null,
           selectedAccountId: null,
           selectedCharacterId: null,
@@ -170,10 +205,12 @@ const useAppDataStore = create(
           hasInitialFetch: false,
           loading: {
             accounts: false,
+            associations: false,
             config: false
           },
           error: {
             accounts: null,
+            associations: null,
             config: null
           }
         });

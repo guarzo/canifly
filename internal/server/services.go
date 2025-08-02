@@ -128,6 +128,9 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Now create account management service with EVE data service as user info fetcher
 	accountManagementService = accountSvc.NewAccountManagementService(storageService, eveDataService, logger)
 	
+	// Set the account management service in EVE data service
+	eveDataService.SetAccountManagementService(accountManagementService)
+	
 	// Create sync service
 	syncService := syncSvc.NewSyncService(
 		eveDataService,

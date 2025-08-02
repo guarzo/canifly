@@ -14,7 +14,7 @@ import Settings from './pages/Settings.jsx';
 
 function AppRoutes({ characters }) {
     const { isAuthenticated } = useAuth();
-    const { accounts, config, isLoading } = useAppData();
+    const { accounts, associations, config, isLoading } = useAppData();
     const { skillPlans, eveProfiles, eveConversions, loading: eveLoading } = useEveData();
     
     if (!isAuthenticated) {
@@ -31,7 +31,6 @@ function AppRoutes({ characters }) {
     
     // Extract data from stores
     const roles = config?.Roles || [];
-    const associations = accounts.flatMap(acc => acc.associations || []);
     const userSelections = config?.DropDownSelections || {};
     const currentSettingsDir = config?.SettingsDir || '';
     const lastBackupDir = config?.LastBackupDir || [];

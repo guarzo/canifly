@@ -388,6 +388,25 @@ export async function unassociateCharacter(userId, charId, userName, charName) {
     });
 }
 
+// Fuzzworks functions
+export async function getFuzzworksStatus() {
+    return apiRequest(`/api/fuzzworks/status`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch Fuzzworks status.'
+    });
+}
+
+export async function updateFuzzworks() {
+    return apiRequest(`/api/fuzzworks/update`, {
+        method: 'POST',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to update Fuzzworks data.'
+    });
+}
+
 export async function deleteSkillPlan(planName) {
     return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
         method: 'DELETE',
@@ -456,6 +475,10 @@ export default {
     getAssociations,
     associateCharacter,
     unassociateCharacter,
+    
+    // Fuzzworks functions
+    getFuzzworksStatus,
+    updateFuzzworks,
     
     // Other functions
     addCharacter,
