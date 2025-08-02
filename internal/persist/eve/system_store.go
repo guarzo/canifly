@@ -8,8 +8,6 @@ import (
 	"encoding/csv"
 	"io"
 
-	"github.com/guarzo/canifly/internal/embed"
-	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -37,65 +35,24 @@ type SystemStore struct {
 func (sys *SystemStore) LoadSystems() error {
 	sys.logger.Infof("load systems")
 	
-	// Try to load from downloaded Fuzzworks data first
+	// Load from downloaded Fuzzworks data only
 	fuzzworksPath := filepath.Join(sys.basePath, "config", "fuzzworks", "mapSolarSystems.csv")
-	if file, err := os.Open(fuzzworksPath); err == nil {
-		defer file.Close()
-		sys.logger.Infof("Loading systems from Fuzzworks data: %s", fuzzworksPath)
-		
-		if err := sys.loadFromFuzzworks(file); err != nil {
-			sys.logger.Warnf("Failed to load from Fuzzworks data: %v, falling back to embedded data", err)
-		} else {
-			sys.logger.Debugf("Loaded %d systems from Fuzzworks data", len(sys.sysIdToName))
-			return nil
-		}
-	}
-	
-	// Fall back to embedded data
-	sys.logger.Infof("Loading systems from embedded data")
-	file, err := embed.StaticFiles.Open("static/systems.csv")
+	file, err := os.Open(fuzzworksPath)
 	if err != nil {
-		return fmt.Errorf("failed to read systems file: %w", err)
+		return fmt.Errorf("systems data not found - ensure Fuzzworks data is downloaded: %w", err)
 	}
 	defer file.Close()
-
-	records, err := persist.ReadCsvRecords(file)
-	if err != nil {
-		return fmt.Errorf("error reading systems CSV: %w", err)
+	
+	sys.logger.Infof("Loading systems from Fuzzworks data: %s", fuzzworksPath)
+	
+	if err := sys.loadFromFuzzworks(file); err != nil {
+		return fmt.Errorf("failed to load from Fuzzworks data: %w", err)
 	}
-
-	// Parse records into the maps
-	if err := sys.parseSystemRecords(records); err != nil {
-		return fmt.Errorf("failed to parse system records: %w", err)
-	}
-
-	sys.logger.Debugf("Loaded %d systems from embedded data", len(sys.sysIdToName))
+	
+	sys.logger.Debugf("Loaded %d systems from Fuzzworks data", len(sys.sysIdToName))
 	return nil
 }
 
-func (sys *SystemStore) parseSystemRecords(records [][]string) error {
-	lineNumber := 0
-	for _, record := range records {
-		lineNumber++
-		if len(record) < 2 {
-			sys.logger.Warnf("Skipping line %d: not enough columns", lineNumber)
-			continue
-		}
-
-		sysIDStr := record[0]
-		sysName := record[1]
-
-		sysID, err := strconv.ParseInt(sysIDStr, 10, 64)
-		if err != nil {
-			sys.logger.Warnf("Invalid system ID at line %d: %v", lineNumber, err)
-			continue
-		}
-
-		sys.sysIdToName[sysID] = sysName
-		sys.sysNameToId[sysName] = sysID
-	}
-	return nil
-}
 
 // GetSystemName returns the system name for a given ID.
 func (sys *SystemStore) GetSystemName(systemID int64) string {

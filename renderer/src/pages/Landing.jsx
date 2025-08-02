@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import LoginButton from '../components/landing/LoginButton.jsx';
 import { Container, Box, Typography } from '@mui/material';
 import GlassCard from '../components/ui/GlassCard.jsx';
+import ParticleBackground from '../components/effects/ParticleBackground.jsx';
 
 const Landing = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -25,6 +26,9 @@ const Landing = () => {
 
     return (
         <div className="relative min-h-screen overflow-hidden">
+            {/* Particle Background */}
+            <ParticleBackground />
+            
             {/* Animated background gradient */}
             <div 
                 className="absolute inset-0 opacity-30"
@@ -32,29 +36,6 @@ const Landing = () => {
                     background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(20, 184, 166, 0.15), transparent 50%)`,
                 }}
             />
-            
-            {/* Floating particles */}
-            <div className="absolute inset-0">
-                {[...Array(20)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute w-1 h-1 bg-teal-400 rounded-full opacity-50"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                            y: [0, -30, 0],
-                            opacity: [0.5, 1, 0.5],
-                        }}
-                        transition={{
-                            duration: 3 + Math.random() * 2,
-                            repeat: Infinity,
-                            delay: Math.random() * 2,
-                        }}
-                    />
-                ))}
-            </div>
 
             <Container
                 maxWidth="lg"

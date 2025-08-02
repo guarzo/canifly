@@ -8,6 +8,38 @@ import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
 import { formatSP } from "../../utils/formatter.jsx";
 
 
+const characterVariants = {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { 
+        opacity: 1, 
+        scale: 1,
+        transition: {
+            duration: 0.3,
+            ease: "easeOut"
+        }
+    },
+    hover: {
+        scale: 1.02,
+        y: -4,
+        transition: {
+            duration: 0.2,
+            ease: "easeInOut"
+        }
+    }
+};
+
+const skillBadgeVariants = {
+    initial: { opacity: 0, y: 10 },
+    animate: { 
+        opacity: 1, 
+        y: 0,
+        transition: {
+            delay: 0.2,
+            duration: 0.3
+        }
+    }
+};
+
 const CharacterItem = ({
                            character,
                            onUpdateCharacter,
@@ -70,8 +102,11 @@ const CharacterItem = ({
 
     return (
         <motion.div 
-            className="glass p-3 rounded-lg hover:border-teal-500/30 transition-all duration-300"
-            whileHover={{ scale: 1.02 }}
+            className="glass p-3 rounded-lg hover:border-teal-500/30 transition-all duration-300 relative"
+            variants={characterVariants}
+            initial="initial"
+            animate="animate"
+            whileHover="hover"
             whileTap={{ scale: 0.98 }}
         >
             <CharacterDetailModal
@@ -82,15 +117,29 @@ const CharacterItem = ({
             />
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-3">
-                    <span className="font-semibold text-sm text-teal-300 cursor-pointer hover:text-teal-400 transition-colors"
-                        onClick={() => setDetailOpen(true)} >
+                    {/* Character name with enhanced hover effect */}
+                    <motion.span 
+                        className="font-semibold text-sm text-teal-300 cursor-pointer hover:text-teal-400 transition-colors"
+                        onClick={() => setDetailOpen(true)}
+                        whileHover={{ x: 2 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                    >
                         {character.Character.CharacterName}
-                    </span>
-                    <Tooltip title="Total Skillpoints">
-                        <span className="text-xs text-teal-400">
-                            {formattedSP}
-                        </span>
-                    </Tooltip>
+                    </motion.span>
+                    <motion.div
+                        variants={skillBadgeVariants}
+                        initial="initial"
+                        animate="animate"
+                    >
+                        <Tooltip title="Total Skillpoints">
+                            <motion.span 
+                                className="text-xs text-teal-400 px-2 py-0.5 rounded-full bg-teal-900/30 border border-teal-500/20"
+                                whileHover={{ scale: 1.1 }}
+                            >
+                                {formattedSP}
+                            </motion.span>
+                        </Tooltip>
+                    </motion.div>
                     <Tooltip title="Open zKillboard">
                         <IconButton
                             aria-label="Open zKillboard"
@@ -110,15 +159,31 @@ const CharacterItem = ({
                 </div>
 
                 <Tooltip title={mctTooltip}>
-                    <motion.div
-                        data-testid="mct-indicator"
-                        className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400 shadow-glow' : 'bg-gray-600'}`}
-                        animate={character.MCT ? { 
-                            scale: [1, 1.2, 1],
-                            opacity: [1, 0.8, 1]
-                        } : {}}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    />
+                    <div className="relative">
+                        <motion.div
+                            data-testid="mct-indicator"
+                            className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400 shadow-glow' : 'bg-gray-600'}`}
+                            animate={character.MCT ? { 
+                                scale: [1, 1.2, 1],
+                                opacity: [1, 0.8, 1]
+                            } : {}}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        />
+                        {character.MCT && (
+                            <motion.div
+                                className="absolute inset-0 rounded-full bg-green-400"
+                                animate={{
+                                    scale: [1, 1.5, 1.5],
+                                    opacity: [0.7, 0, 0]
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeOut"
+                                }}
+                            />
+                        )}
+                    </div>
                 </Tooltip>
             </div>
 

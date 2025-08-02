@@ -21,7 +21,6 @@ var _ interfaces.SkillRepository = (*SkillStore)(nil)
 
 const (
 	plansDir      = "plans"
-	skillTypeFile = "static/invTypes.csv"
 )
 
 // SkillStore implements interfaces.SkillRepository
@@ -213,54 +212,32 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 func (s *SkillStore) LoadSkillTypes() error {
 	s.logger.Infof("load skill types")
 	
-	// Try to load from downloaded Fuzzworks data first
+	// Load from downloaded Fuzzworks data only
 	fuzzworksPath := filepath.Join(s.basePath, "config", "fuzzworks", "invTypes.csv")
-	if file, err := os.Open(fuzzworksPath); err == nil {
-		defer file.Close()
-		s.logger.Infof("Loading skill types from Fuzzworks data: %s", fuzzworksPath)
-		
-		records, err := persist.ReadCsvRecords(file)
-		if err != nil {
-			s.logger.Warnf("Failed to read Fuzzworks CSV: %v, falling back to embedded data", err)
-		} else {
-			skillTypes, skillIDTypes, err := s.parseSkillTypes(records)
-			if err != nil {
-				s.logger.Warnf("Failed to parse Fuzzworks data: %v, falling back to embedded data", err)
-			} else {
-				s.mut.Lock()
-				s.skillTypes = skillTypes
-				s.skillIdToType = skillIDTypes
-				s.mut.Unlock()
-				s.logger.Debugf("Loaded %d skill types from Fuzzworks data", len(skillTypes))
-				return nil
-			}
-		}
-	}
-	
-	// Fall back to embedded data
-	s.logger.Infof("Loading skill types from embedded data")
-	file, err := embed.StaticFiles.Open(skillTypeFile)
+	file, err := os.Open(fuzzworksPath)
 	if err != nil {
-		return fmt.Errorf("failed to open eve type file %s: %w", skillTypeFile, err)
+		return fmt.Errorf("skill types not found - ensure Fuzzworks data is downloaded: %w", err)
 	}
 	defer file.Close()
-
+	
+	s.logger.Infof("Loading skill types from Fuzzworks data: %s", fuzzworksPath)
+	
 	records, err := persist.ReadCsvRecords(file)
 	if err != nil {
-		return fmt.Errorf("failed to read CSV records from %s: %w", skillTypeFile, err)
+		return fmt.Errorf("failed to read Fuzzworks CSV: %w", err)
 	}
-
+	
 	skillTypes, skillIDTypes, err := s.parseSkillTypes(records)
 	if err != nil {
-		return fmt.Errorf("failed to parse eve types: %w", err)
+		return fmt.Errorf("failed to parse Fuzzworks data: %w", err)
 	}
-
+	
 	s.mut.Lock()
 	s.skillTypes = skillTypes
 	s.skillIdToType = skillIDTypes
 	s.mut.Unlock()
-
-	s.logger.Debugf("Loaded %d skill types from embedded data", len(skillTypes))
+	
+	s.logger.Debugf("Loaded %d skill types from Fuzzworks data", len(skillTypes))
 	return nil
 }
 

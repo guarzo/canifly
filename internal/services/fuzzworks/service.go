@@ -82,14 +82,30 @@ func (s *Service) Initialize(ctx context.Context) error {
 		// Not a critical error, continue with empty metadata
 	}
 
-	// Update data files
-	if err := s.UpdateData(ctx); err != nil {
-		s.logger.Errorf("Failed to update data files: %v", err)
-		// Check if we have existing files to fall back to
-		if !s.hasLocalFiles() {
-			return fmt.Errorf("no local data files and download failed: %w", err)
+	// Check if we have local files
+	if !s.hasLocalFiles() {
+		s.logger.Warnf("No local Fuzzworks data found, downloading now...")
+		// Force download if no local files exist
+		s.forceUpdate = true
+		if err := s.UpdateData(ctx); err != nil {
+			return fmt.Errorf("failed to download required EVE data: %w", err)
 		}
-		s.logger.Infof("Using existing local data files")
+	} else {
+		// Try to update existing files
+		if err := s.UpdateData(ctx); err != nil {
+			s.logger.Warnf("Failed to update data files: %v", err)
+			// Validate existing files are still good
+			if err := s.validateLocalFiles(); err != nil {
+				s.logger.Errorf("Local files validation failed: %v", err)
+				// Force re-download
+				s.forceUpdate = true
+				if updateErr := s.UpdateData(ctx); updateErr != nil {
+					return fmt.Errorf("failed to re-download EVE data after validation failure: %w", updateErr)
+				}
+			} else {
+				s.logger.Infof("Using existing local data files")
+			}
+		}
 	}
 
 	return nil
@@ -567,6 +583,32 @@ func (s *Service) ParseSolarSystemsCSV() (map[int64]string, map[string]int64, er
 	}
 
 	return idToName, nameToId, nil
+}
+
+func (s *Service) validateLocalFiles() error {
+	// Validate invTypes.csv
+	invTypesPath := filepath.Join(s.dataPath, "invTypes.csv")
+	invTypesData, err := os.ReadFile(invTypesPath)
+	if err != nil {
+		return fmt.Errorf("failed to read invTypes.csv: %w", err)
+	}
+	
+	if err := s.validateData(InvTypes, invTypesData); err != nil {
+		return fmt.Errorf("invTypes.csv validation failed: %w", err)
+	}
+	
+	// Validate mapSolarSystems.csv
+	solarSystemsPath := filepath.Join(s.dataPath, "mapSolarSystems.csv")
+	solarSystemsData, err := os.ReadFile(solarSystemsPath)
+	if err != nil {
+		return fmt.Errorf("failed to read mapSolarSystems.csv: %w", err)
+	}
+	
+	if err := s.validateData(SolarSystems, solarSystemsData); err != nil {
+		return fmt.Errorf("mapSolarSystems.csv validation failed: %w", err)
+	}
+	
+	return nil
 }
 
 func hasRequiredColumns(header []string, required []string) bool {

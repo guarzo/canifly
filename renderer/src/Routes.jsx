@@ -1,7 +1,8 @@
 // src/Routes.jsx
 
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
 import { useEveData } from './hooks/useEveData';
@@ -12,8 +13,10 @@ import Landing from './pages/Landing.jsx';
 import Sync from './pages/Sync.jsx';
 import Mapping from './pages/Mapping.jsx';
 import Settings from './pages/Settings.jsx';
+import PageTransition from './components/transitions/PageTransition.jsx';
 
 function AppRoutes({ characters }) {
+    const location = useLocation();
     const { isAuthenticated } = useAuth();
     const { accounts, associations, config, isLoading } = useAppData();
     const { skillPlans, eveProfiles, eveConversions, loading: eveLoading } = useEveData();
@@ -43,53 +46,67 @@ function AppRoutes({ characters }) {
     const lastBackupDir = config?.LastBackupDir || [];
 
     return (
-        <Routes>
-            <Route
-                path="/"
-                element={
-                    <CharacterOverview
-                        roles={roles}
-                        skillConversions={eveConversions}
-                    />
-                }
-            />
-            <Route
-                path="/skill-plans"
-                element={
-                    <SkillPlans
-                        characters={characters}
-                        skillPlans={skillPlans}
-                        conversions={eveConversions}
-                    />
-                }
-            />
-            <Route
-                path="/sync"
-                element={
-                    <Sync
-                        settingsData={eveProfiles}
-                        associations={associations}
-                        currentSettingsDir={currentSettingsDir}
-                        userSelections={userSelections}
-                        lastBackupDir={lastBackupDir}
-                    />
-                }
-            />
-            <Route
-                path="/mapping"
-                element={
-                    <Mapping
-                        associations={associations}
-                        subDirs={eveProfiles}
-                    />
-                }
-            />
-            <Route
-                path="/settings"
-                element={<Settings />}
-            />
-            <Route path="*" element={<div>Route Not Found</div>} />
-        </Routes>
+        <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+                <Route
+                    path="/"
+                    element={
+                        <PageTransition>
+                            <CharacterOverview
+                                roles={roles}
+                                skillConversions={eveConversions}
+                            />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/skill-plans"
+                    element={
+                        <PageTransition>
+                            <SkillPlans
+                                characters={characters}
+                                skillPlans={skillPlans}
+                                conversions={eveConversions}
+                            />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/sync"
+                    element={
+                        <PageTransition>
+                            <Sync
+                                settingsData={eveProfiles}
+                                associations={associations}
+                                currentSettingsDir={currentSettingsDir}
+                                userSelections={userSelections}
+                                lastBackupDir={lastBackupDir}
+                            />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/mapping"
+                    element={
+                        <PageTransition>
+                            <Mapping
+                                associations={associations}
+                                subDirs={eveProfiles}
+                            />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/settings"
+                    element={
+                        <PageTransition>
+                            <Settings />
+                        </PageTransition>
+                    }
+                />
+                <Route path="*" element={<PageTransition><div>Route Not Found</div></PageTransition>} />
+            </Routes>
+        </AnimatePresence>
     );
 }
 
