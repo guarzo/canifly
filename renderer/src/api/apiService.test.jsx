@@ -1,14 +1,11 @@
 // src/api/apiService.test.js
 import { vi } from 'vitest';
 import {
-    getAppData,
-    getAppDataNoCache,
     logout,
-    toggleAccountStatus,
     updateCharacter,
-    removeCharacter,
-    updateAccountName,
-    removeAccount,
+    deleteCharacter,
+    deleteAccount,
+    updateAccount,
     addCharacter,
     saveSkillPlan,
     saveUserSelections,
@@ -23,13 +20,9 @@ import {
     initiateLogin
 } from './apiService';
 import { apiRequest } from './apiRequest';
-import { normalizeAppData } from '../utils/dataNormalizer';
 
 vi.mock('./apiRequest', () => ({
     apiRequest: vi.fn()
-}));
-vi.mock('../utils/dataNormalizer', () => ({
-    normalizeAppData: vi.fn()
 }));
 
 describe('apiService', () => {
@@ -39,46 +32,6 @@ describe('apiService', () => {
         vi.clearAllMocks();
     });
 
-    describe('getAppData', () => {
-        test('returns normalized data on success', async () => {
-            const mockData = { foo: 'bar' };
-            const normalizedData = { foo: 'normalized' };
-            apiRequest.mockResolvedValue(mockData);
-            normalizeAppData.mockReturnValue(normalizedData);
-
-            const result = await getAppData();
-            // Depending on isDev, errorMessage may be present or not. Let's assume isDev is true for testing.
-            expect(apiRequest).toHaveBeenCalledWith(`/api/app-data`, { credentials: 'include' }, { errorMessage: 'Failed to load app data.' });
-            expect(normalizeAppData).toHaveBeenCalledWith(mockData);
-            expect(result).toBe(normalizedData);
-        });
-
-        test('returns null if no response', async () => {
-            apiRequest.mockResolvedValue(null);
-            const result = await getAppData();
-            expect(result).toBeNull();
-        });
-    });
-
-    describe('getAppDataNoCache', () => {
-        test('returns normalized data on success', async () => {
-            const mockData = { baz: 'qux' };
-            const normalizedData = { baz: 'normalized' };
-            apiRequest.mockResolvedValue(mockData);
-            normalizeAppData.mockReturnValue(normalizedData);
-
-            const result = await getAppDataNoCache();
-            expect(apiRequest).toHaveBeenCalledWith(`/api/app-data-no-cache`, { credentials: 'include' }, { errorMessage: 'Failed to load data.' });
-            expect(normalizeAppData).toHaveBeenCalledWith(mockData);
-            expect(result).toBe(normalizedData);
-        });
-
-        test('returns null if no response', async () => {
-            apiRequest.mockResolvedValue(null);
-            const result = await getAppDataNoCache();
-            expect(result).toBeNull();
-        });
-    });
 
     describe('logout', () => {
         test('calls apiRequest with correct parameters', async () => {
@@ -94,31 +47,16 @@ describe('apiService', () => {
         });
     });
 
-    describe('toggleAccountStatus', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue('toggled');
-            const result = await toggleAccountStatus(123);
-            expect(apiRequest).toHaveBeenCalledWith('/api/toggle-account-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ accountID: 123 })
-            }, {
-                errorMessage: 'Failed to toggle account status.'
-            });
-            expect(result).toBe('toggled');
-        });
-    });
 
     describe('updateCharacter', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('updated');
             const updates = { Role: 'Pvp' };
             const result = await updateCharacter(456, updates);
-            expect(apiRequest).toHaveBeenCalledWith('/api/update-character', {
-                method: 'POST',
+            expect(apiRequest).toHaveBeenCalledWith('/api/characters/456', {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ characterID: 456, updates }),
+                body: JSON.stringify(updates),
                 credentials: 'include'
             }, {
                 errorMessage: 'Failed to update character.'
@@ -127,14 +65,12 @@ describe('apiService', () => {
         });
     });
 
-    describe('removeCharacter', () => {
+    describe('deleteCharacter', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('removed');
-            const result = await removeCharacter(789);
-            expect(apiRequest).toHaveBeenCalledWith('/api/remove-character', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ characterID: 789 }),
+            const result = await deleteCharacter(789);
+            expect(apiRequest).toHaveBeenCalledWith('/api/characters/789', {
+                method: 'DELETE',
                 credentials: 'include'
             }, {
                 errorMessage: 'Failed to remove character.'
@@ -143,34 +79,30 @@ describe('apiService', () => {
         });
     });
 
-    describe('updateAccountName', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue('name updated');
-            const result = await updateAccountName(42, 'NewName');
-            expect(apiRequest).toHaveBeenCalledWith('/api/update-account-name', {
-                method: 'POST',
+    describe('updateAccount', () => {
+        test('calls apiRequest correctly for name update', async () => {
+            apiRequest.mockResolvedValue('account updated');
+            const result = await updateAccount(42, { name: 'NewName' });
+            expect(apiRequest).toHaveBeenCalledWith('/api/accounts/42', {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountID: 42, accountName: 'NewName' }),
+                body: JSON.stringify({ name: 'NewName' }),
                 credentials: 'include'
             }, {
-                errorMessage: 'Failed to update account name.'
+                errorMessage: 'Failed to update account.'
             });
-            expect(result).toBe('name updated');
+            expect(result).toBe('account updated');
         });
     });
 
-    // In apiService.test.js, update the removeAccount test:
-    describe('removeAccount', () => {
+    describe('deleteAccount', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('account removed');
-            const result = await removeAccount('TestAccount');
-            expect(apiRequest).toHaveBeenCalledWith('/api/remove-account', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountName: 'TestAccount' }),
+            const result = await deleteAccount(123);
+            expect(apiRequest).toHaveBeenCalledWith('/api/accounts/123', {
+                method: 'DELETE',
                 credentials: 'include'
             }, {
-                // Include successMessage since the code now has it
                 successMessage: 'Account removed successfully!',
                 errorMessage: 'Failed to remove account.'
             });
@@ -183,15 +115,15 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('saved');
             const result = await saveSkillPlan('MyPlan', { skill: 'Level5' });
-            expect(apiRequest).toHaveBeenCalledWith('/api/save-skill-plan', {
+            expect(apiRequest).toHaveBeenCalledWith('/api/skill-plans', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'MyPlan', contents: { skill: 'Level5' } }),
+                body: JSON.stringify({ name: 'MyPlan', content: { skill: 'Level5' } }),
                 credentials: 'include'
             }, {
                 // Include successMessage here as well
-                successMessage: 'Skill Plan Saved!',
-                errorMessage: 'Failed to save skill plan.'
+                successMessage: 'Skill Plan Created!',
+                errorMessage: 'Failed to create skill plan.'
             });
             expect(result).toBe('saved');
         });
@@ -203,11 +135,11 @@ describe('apiService', () => {
             apiRequest.mockResolvedValue('selections saved');
             const newSelections = { theme: 'dark' };
             const result = await saveUserSelections(newSelections);
-            expect(apiRequest).toHaveBeenCalledWith(`/api/save-user-selections`, {
-                method: 'POST',
+            expect(apiRequest).toHaveBeenCalledWith(`/api/config`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(newSelections),
+                body: JSON.stringify({ userSelections: newSelections }),
             }, {
                 errorMessage: 'Failed to save user selections.',
             });
@@ -251,11 +183,11 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('chosen');
             const result = await chooseSettingsDir('/path/to/dir');
-            expect(apiRequest).toHaveBeenCalledWith(`/api/choose-settings-dir`, {
-                method: 'POST',
+            expect(apiRequest).toHaveBeenCalledWith(`/api/config`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ directory: '/path/to/dir' }),
+                body: JSON.stringify({ settingsDir: '/path/to/dir' }),
             }, {
                 errorMessage: 'Failed to choose settings directory.'
             });
@@ -283,9 +215,11 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('reset');
             const result = await resetToDefaultDirectory();
-            expect(apiRequest).toHaveBeenCalledWith(`/api/reset-to-default-directory`, {
-                method: 'POST',
+            expect(apiRequest).toHaveBeenCalledWith(`/api/config`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
+                body: JSON.stringify({ settingsDir: '' }),
             }, {
                 errorMessage: 'Failed to reset directory.'
             });
@@ -297,11 +231,11 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('associated');
             const result = await associateCharacter('user1', 'char1', 'UserName', 'CharName');
-            expect(apiRequest).toHaveBeenCalledWith(`/api/associate-character`, {
+            expect(apiRequest).toHaveBeenCalledWith(`/api/associations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ userId: 'user1', charId: 'char1', userName: 'UserName', charName: 'CharName' })
+                body: JSON.stringify({ userId: 'user1', characterId: 'char1' })
             }, {
                 errorMessage: 'Association operation failed.'
             });
@@ -313,11 +247,9 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('unassociated');
             const result = await unassociateCharacter('user1', 'char1', 'UserName', 'CharName');
-            expect(apiRequest).toHaveBeenCalledWith(`/api/unassociate-character`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({ userId: 'user1', charId: 'char1', userName: 'UserName', charName: 'CharName' })
+            expect(apiRequest).toHaveBeenCalledWith(`/api/associations/user1/char1`, {
+                method: 'DELETE',
+                credentials: 'include'
             }, {
                 errorMessage: 'Unassociation operation failed.'
             });
@@ -329,7 +261,7 @@ describe('apiService', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('deleted');
             const result = await deleteSkillPlan('MyPlan');
-            expect(apiRequest).toHaveBeenCalledWith(`/api/delete-skill-plan?planName=MyPlan`, {
+            expect(apiRequest).toHaveBeenCalledWith(`/api/skill-plans/MyPlan`, {
                 method: 'DELETE',
                 credentials: 'include',
             }, {

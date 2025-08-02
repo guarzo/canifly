@@ -6,13 +6,7 @@ import (
 	"time"
 )
 
-// AppState is the data passed to the UI
-type AppState struct {
-	LoggedIn    bool        `json:"LoggedIn"`
-	AccountData AccountData `json:"AccountData"`
-	ConfigData  ConfigData  `json:"ConfigData"`
-	EveData     EveData     `json:"EveData"`
-}
+// AppState has been removed - data is fetched from individual services
 
 // DropDownSelections  are the dropdown selections on the sync page
 type DropDownSelections map[string]UserSelection
@@ -28,6 +22,7 @@ type ConfigData struct {
 	SettingsDir        string   `json:"SettingsDir"`   // directory where the settings are kept
 	LastBackupDir      string   `json:"LastBackupDir"` // directory used for the previous backup
 	DropDownSelections          // dropdown selections within the app
+	AutoUpdateFuzzworks *bool   `json:"AutoUpdateFuzzworks,omitempty"` // auto-update Fuzzworks data on startup (defaults to true)
 }
 
 func init() {
@@ -42,7 +37,6 @@ func init() {
 	gob.Register(map[string]*time.Time{})
 	gob.Register(map[string]map[string]int32{})
 	gob.Register([]SkillQueue{})
-	gob.Register(AppState{})
 	gob.Register(AccountData{})
 	gob.Register(EveData{})
 	gob.Register(EveProfile{})

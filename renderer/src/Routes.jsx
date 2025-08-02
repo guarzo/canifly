@@ -3,22 +3,25 @@
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
+import { useEveData } from './hooks/useEveData';
 
 import CharacterOverview from './pages/CharacterOverview.jsx';
 import SkillPlans from './pages/SkillPlans.jsx';
 import Landing from './pages/Landing.jsx';
 import Sync from './pages/Sync.jsx';
 import Mapping from './pages/Mapping.jsx';
+import Settings from './pages/Settings.jsx';
 
 function AppRoutes({ characters }) {
     const { isAuthenticated } = useAuth();
-    const { accounts, config, dashboards, isLoading } = useAppData();
+    const { accounts, config, isLoading } = useAppData();
+    const { skillPlans, eveProfiles, eveConversions, loading: eveLoading } = useEveData();
     
     if (!isAuthenticated) {
         return <Landing />;
     }
     
-    if (isLoading) {
+    if (isLoading || eveLoading.skillPlans || eveLoading.eveProfiles || eveLoading.eveConversions) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
                 <p>Loading...</p>
@@ -28,13 +31,10 @@ function AppRoutes({ characters }) {
     
     // Extract data from stores
     const roles = config?.Roles || [];
-    const skillPlans = config?.SkillPlans || {};
-    const eveProfiles = config?.EveProfiles || [];
     const associations = accounts.flatMap(acc => acc.associations || []);
     const userSelections = config?.DropDownSelections || {};
     const currentSettingsDir = config?.SettingsDir || '';
-    const lastBackupDir = config?.LastBackupDir || '';
-    const eveConversions = config?.EveConversions || {};
+    const lastBackupDir = config?.LastBackupDir || [];
 
     return (
         <Routes>
@@ -77,6 +77,10 @@ function AppRoutes({ characters }) {
                         subDirs={eveProfiles}
                     />
                 }
+            />
+            <Route
+                path="/settings"
+                element={<Settings />}
             />
             <Route path="*" element={<div>Route Not Found</div>} />
         </Routes>

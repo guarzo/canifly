@@ -13,22 +13,22 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// SetupHandlers configures and returns the app’s router
-func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServices) http.Handler {
+// SetupHandlers configures and returns the app's router
+func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServices, basePath string) http.Handler {
 	sessionStore := flyHttp.NewSessionService(secret)
 	r := mux.NewRouter()
 
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
 
-	dashboardHandler := flyHandlers.NewDashboardHandler(sessionStore, logger, appServices.ConfigurationService)
 	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EVEDataService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
-	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService)
+	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.EVEDataService)
-	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.EVEDataService)
-	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigurationService)
-	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
+	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigurationService, appServices.HTTPCacheService)
+	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService, appServices.ConfigurationService, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService)
 	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AccountManagementService)
+	fuzzworksHandler := flyHandlers.NewFuzzworksHandler(logger, basePath, appServices.HTTPCacheService, appServices.WebSocketHub)
 
 	// Public routes
 	r.HandleFunc("/callback/", authHandler.CallBack())
@@ -36,17 +36,20 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/finalize-login", authHandler.FinalizeLogin())
 
 	// Auth routes
-	r.HandleFunc("/api/app-data", dashboardHandler.GetDashboardData()).Methods("GET")
-	r.HandleFunc("/api/app-data-no-cache", dashboardHandler.GetDashboardDataNoCache()).Methods("GET")
 
 	r.HandleFunc("/api/session", authHandler.GetSession()).Methods("GET")
 	r.HandleFunc("/api/logout", authHandler.Logout())
 	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())
 
-	r.HandleFunc("/api/get-skill-plan", skillPlanHandler.GetSkillPlanFile())
-	r.HandleFunc("/api/save-skill-plan", skillPlanHandler.SaveSkillPlan())
-	r.HandleFunc("/api/delete-skill-plan", skillPlanHandler.DeleteSkillPlan())
+	// RESTful skill plan endpoints
+	r.HandleFunc("/api/skill-plans", skillPlanHandler.ListSkillPlans()).Methods("GET")
+	r.HandleFunc("/api/skill-plans", skillPlanHandler.CreateSkillPlan()).Methods("POST")
+	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.GetSkillPlan()).Methods("GET")
+	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.UpdateSkillPlan()).Methods("PUT")
+	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.DeleteSkillPlanRESTful()).Methods("DELETE")
+	r.HandleFunc("/api/skill-plans/{name}/copy", skillPlanHandler.CopySkillPlan()).Methods("POST")
+	
 
 	// RESTful account endpoints
 	r.HandleFunc("/api/accounts", accountHandler.ListAccounts()).Methods("GET")
@@ -54,36 +57,38 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/accounts/{id}", accountHandler.UpdateAccount()).Methods("PATCH")
 	r.HandleFunc("/api/accounts/{id}", accountHandler.DeleteAccount()).Methods("DELETE")
 	
-	// Legacy account endpoints (to be deprecated)
-	r.HandleFunc("/api/update-account-name", accountHandler.UpdateAccountName())
-	r.HandleFunc("/api/toggle-account-status", accountHandler.ToggleAccountStatus())
-	r.HandleFunc("/api/toggle-account-visibility", accountHandler.ToggleAccountVisibility())
-	r.HandleFunc("/api/remove-account", accountHandler.RemoveAccount())
 
 	// RESTful character endpoints
 	r.HandleFunc("/api/characters/{id}", characterHandler.GetCharacter()).Methods("GET")
 	r.HandleFunc("/api/characters/{id}", characterHandler.UpdateCharacterRESTful()).Methods("PATCH")
 	r.HandleFunc("/api/characters/{id}", characterHandler.DeleteCharacter()).Methods("DELETE")
 	
-	// Legacy character endpoints (to be deprecated)
-	r.HandleFunc("/api/update-character", characterHandler.UpdateCharacter)
-	r.HandleFunc("/api/remove-character", characterHandler.RemoveCharacter)
 
 	// RESTful config endpoints
 	r.HandleFunc("/api/config", configHandler.GetConfig()).Methods("GET")
 	r.HandleFunc("/api/config", configHandler.UpdateConfig()).Methods("PATCH")
 	
-	// Legacy config endpoints (to be deprecated)
-	r.HandleFunc("/api/choose-settings-dir", configHandler.ChooseSettingsDir)
-	r.HandleFunc("/api/reset-to-default-directory", configHandler.ResetToDefaultDir)
-	r.HandleFunc("/api/save-user-selections", configHandler.SaveUserSelections)
+
+	// EVE data endpoints
+	r.HandleFunc("/api/eve/skill-plans", eveDataHandler.GetSkillPlans).Methods("GET")
+	r.HandleFunc("/api/eve/profiles", eveDataHandler.GetEveProfiles).Methods("GET")
+	r.HandleFunc("/api/eve/conversions", eveDataHandler.GetEveConversions).Methods("GET")
 
 	r.HandleFunc("/api/sync-subdirectory", eveDataHandler.SyncSubDirectory)
 	r.HandleFunc("/api/sync-all-subdirectories", eveDataHandler.SyncAllSubdirectories)
 	r.HandleFunc("/api/backup-directory", eveDataHandler.BackupDirectory)
 
-	r.HandleFunc("/api/associate-character", assocHandler.AssociateCharacter)
-	r.HandleFunc("/api/unassociate-character", assocHandler.UnassociateCharacter)
+	// RESTful association endpoints
+	r.HandleFunc("/api/associations", assocHandler.ListAssociations()).Methods("GET")
+	r.HandleFunc("/api/associations", assocHandler.CreateAssociation()).Methods("POST")
+	r.HandleFunc("/api/associations/{userId}/{characterId}", assocHandler.DeleteAssociation()).Methods("DELETE")
+	
+	// WebSocket endpoint
+	r.HandleFunc("/api/ws", appServices.WebSocketHub.HandleWebSocket)
+	
+	// Fuzzworks endpoints
+	r.HandleFunc("/api/fuzzworks/update", fuzzworksHandler.UpdateData()).Methods("POST")
+	r.HandleFunc("/api/fuzzworks/status", fuzzworksHandler.GetStatus()).Methods("GET")
 
 	// Serve static files
 	staticFileServer := http.FileServer(http.FS(embed.StaticFilesSub))

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import useAuthStore from '../stores/authStore';
 import { useAsyncOperation } from './useAsyncOperation';
 
@@ -19,11 +18,7 @@ export function useAuth() {
   const { execute: executeLogout } = useAsyncOperation();
   const { execute: executeCheckAuth } = useAsyncOperation();
 
-  useEffect(() => {
-    if (!authCheckComplete) {
-      executeCheckAuth(checkAuth, { showToast: false });
-    }
-  }, [authCheckComplete, checkAuth, executeCheckAuth]);
+  // Don't trigger auth check here - let App.jsx handle it once
 
   const handleLogin = async (account) => {
     return executeLogin(() => login(account), {

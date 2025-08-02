@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Typography, Box, Tooltip, IconButton } from '@mui/material';
 import { Help as HelpFilledIcon, HelpOutline as HelpIcon } from '@mui/icons-material';
 
@@ -24,31 +25,58 @@ const SubPageHeader = ({ title, instructions, storageKey }) => {
     };
 
     return (
-        <Box className="max-w-7xl mx-auto mb-6">
-            <Box className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-md shadow-md relative">
-                <Box display="flex" alignItems="center">
-                    <Typography variant="h4" sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '0.5rem', flex: 1 }}>
+        <motion.div 
+            className="max-w-7xl mx-auto mb-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <Box className="glass rounded-xl p-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-blue-500/5 pointer-events-none" />
+                <Box display="flex" alignItems="center" className="relative z-10">
+                    <Typography 
+                        variant="h4" 
+                        className="text-gradient font-display flex-1"
+                        sx={{ fontWeight: 700 }}
+                    >
                         {title}
                     </Typography>
                     {instructions && (
                         <Tooltip title={showInstructions ? "Hide instructions" : "Show instructions"}>
-                            <IconButton
-                                onClick={toggleInstructions}
-                                sx={{ color: '#99f6e4' }}
-                                size="small"
+                            <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
                             >
-                                {showInstructions ? <HelpFilledIcon fontSize="small" /> : <HelpIcon fontSize="small" />}
-                            </IconButton>
+                                <IconButton
+                                    onClick={toggleInstructions}
+                                    className="text-teal-400 hover:text-teal-300 hover:bg-teal-500/10"
+                                    size="small"
+                                >
+                                    {showInstructions ? <HelpFilledIcon fontSize="small" /> : <HelpIcon fontSize="small" />}
+                                </IconButton>
+                            </motion.div>
                         </Tooltip>
                     )}
                 </Box>
-                {instructions && showInstructions && (
-                    <Typography variant="body2" sx={{ color: '#99f6e4', marginTop: '0.5rem' }}>
-                        {instructions}
-                    </Typography>
-                )}
+                <AnimatePresence>
+                    {instructions && showInstructions && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Typography 
+                                variant="body2" 
+                                className="text-gray-400 mt-3"
+                            >
+                                {instructions}
+                            </Typography>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </Box>
-        </Box>
+        </motion.div>
     );
 };
 

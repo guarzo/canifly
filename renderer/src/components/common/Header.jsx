@@ -25,7 +25,8 @@ import {
     ListAlt as SkillPlansIcon,
     Sync as SyncIcon,
     AccountTree as MappingIcon,
-    Cached as RefreshIcon
+    Cached as RefreshIcon,
+    Settings as SettingsIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../hooks/useAuth';
@@ -36,21 +37,44 @@ import nav_img1 from '../../assets/images/nav-logo.png';
 import nav_img2 from '../../assets/images/nav-logo2.webp';
 
 const StyledAppBar = styled(AppBar)(() => ({
-    backgroundImage: 'linear-gradient(to right, #1f2937, #1f2937)',
-    color: '#14b8a6',
-    boxShadow: 'inset 0 -4px 0 0 #14b8a6',
-    borderBottom: '4px solid #14b8a6',
+    background: 'rgba(17, 24, 39, 0.8)',
+    backdropFilter: 'blur(20px)',
+    borderBottom: '1px solid rgba(20, 184, 166, 0.2)',
+    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '2px',
+        background: 'linear-gradient(90deg, transparent, #14b8a6, transparent)',
+        animation: 'shimmer 3s linear infinite',
+    }
 }));
 
 const StyledDrawer = styled(Drawer)(() => ({
     '& .MuiPaper-root': {
-        background: 'linear-gradient(to bottom, #1f2937, #111827)',
-        overflow: 'hidden',
+        background: 'rgba(17, 24, 39, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(148, 163, 184, 0.1)',
+        boxShadow: '0 0 40px rgba(0, 0, 0, 0.5)',
         color: '#5eead4',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        width: 250 // Ensure the drawer has a fixed width
+        width: 280,
+        overflow: 'hidden',
+        '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at top right, rgba(20, 184, 166, 0.1), transparent 60%)',
+            pointerEvents: 'none',
+        }
     }
 }));
 
@@ -85,6 +109,7 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
         { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
         { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
         { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
+        { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     ];
 
     const handleAddCharacterClick = () => {
@@ -129,13 +154,41 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                                 <MenuIcon />
                             </IconButton>
                             <Tooltip title="Add Character">
-                                <IconButton onClick={handleAddCharacterClick} style={{ WebkitAppRegion: 'no-drag' }}>
-                                    <AddCircleOutline sx={{ color: '#22c55e' }} />
+                                <IconButton 
+                                    onClick={handleAddCharacterClick} 
+                                    className="group"
+                                    style={{ WebkitAppRegion: 'no-drag' }}
+                                    sx={{
+                                        transition: 'all 0.3s',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                            transform: 'scale(1.1)',
+                                        }
+                                    }}
+                                >
+                                    <AddCircleOutline 
+                                        className="transition-all duration-300 group-hover:rotate-90"
+                                        sx={{ color: '#22c55e' }} 
+                                    />
                                 </IconButton>
                             </Tooltip>
                             <Tooltip title="Add Skill Plan">
-                                <IconButton onClick={openSkillPlanModal} style={{ WebkitAppRegion: 'no-drag' }}>
-                                    <SkillPlansIcon sx={{ color: '#f59e0b' }} />
+                                <IconButton 
+                                    onClick={openSkillPlanModal} 
+                                    className="group"
+                                    style={{ WebkitAppRegion: 'no-drag' }}
+                                    sx={{
+                                        transition: 'all 0.3s',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                            transform: 'scale(1.1)',
+                                        }
+                                    }}
+                                >
+                                    <SkillPlansIcon 
+                                        className="transition-all duration-300 group-hover:rotate-12"
+                                        sx={{ color: '#f59e0b' }} 
+                                    />
                                 </IconButton>
                             </Tooltip>
                         </>
@@ -144,9 +197,15 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                     <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                         <Typography
                             variant="h6"
-                            sx={{ color: '#14b8a6', textAlign: 'center' }}
+                            className="text-gradient font-display"
+                            sx={{ 
+                                textAlign: 'center',
+                                fontSize: '1.5rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.05em'
+                            }}
                         >
-                            Can I Fly?
+                            CanIFly
                         </Typography>
                     </Box>
 
@@ -194,25 +253,40 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                                         to={item.path}
                                         selected={location.pathname === item.path}
                                         sx={{
+                                            borderRadius: '12px',
+                                            margin: '4px 8px',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            '&::before': {
+                                                content: '""',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: '-100%',
+                                                width: '100%',
+                                                height: '100%',
+                                                background: 'linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent)',
+                                                transition: 'left 0.5s',
+                                            },
                                             '&:hover': {
-                                                backgroundColor: '#0f172a',
+                                                backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                                                transform: 'translateX(4px)',
+                                                '&::before': {
+                                                    left: '100%',
+                                                },
                                                 '& .MuiListItemText-primary': {
-                                                    color: '#a7f3d0',
+                                                    color: '#5eead4',
                                                 },
                                                 '& .MuiListItemIcon-root': {
-                                                    color: '#a7f3d0',
+                                                    color: '#5eead4',
+                                                    transform: 'scale(1.1)',
                                                 },
                                             },
                                             '&.Mui-selected': {
-                                                backgroundColor: '#134e4a',
+                                                backgroundColor: 'rgba(20, 184, 166, 0.2)',
+                                                borderLeft: '3px solid #14b8a6',
                                                 '&:hover': {
-                                                    backgroundColor: '#145a54',
-                                                    '& .MuiListItemText-primary': {
-                                                        color: '#a7f3d0',
-                                                    },
-                                                    '& .MuiListItemIcon-root': {
-                                                        color: '#a7f3d0',
-                                                    },
+                                                    backgroundColor: 'rgba(20, 184, 166, 0.3)',
                                                 },
                                             },
                                         }}

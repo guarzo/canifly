@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -11,36 +12,47 @@ import (
 type ConfigHandler struct {
 	logger        interfaces.Logger
 	configService interfaces.ConfigurationService
+	cache         interfaces.HTTPCacheService
 }
 
 func NewConfigHandler(
 	l interfaces.Logger,
 	s interfaces.ConfigurationService,
+	cache interfaces.HTTPCacheService,
 ) *ConfigHandler {
 	return &ConfigHandler{
 		logger:        l,
 		configService: s,
+		cache:         cache,
 	}
 }
 
 // RESTful endpoint: GET /api/config
 func (h *ConfigHandler) GetConfig() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		config, err := h.configService.FetchConfigData()
-		if err != nil {
-			respondError(w, "Failed to fetch config", http.StatusInternalServerError)
-			return
-		}
-		
-		response := map[string]interface{}{
-			"settingsDir": config.SettingsDir,
-			"roles": config.Roles,
-			"userSelections": config.DropDownSelections,
-			"lastBackupDir": config.LastBackupDir,
-		}
-		
-		respondJSON(w, response)
-	}
+	return WithCache(
+		h.cache,
+		h.logger,
+		"config:data",
+		10*time.Minute, // Cache for 10 minutes
+		func() (interface{}, error) {
+			config, err := h.configService.FetchConfigData()
+			if err != nil {
+				return nil, err
+			}
+			
+			configData := map[string]interface{}{
+				"settingsDir": config.SettingsDir,
+				"roles": config.Roles,
+				"userSelections": config.DropDownSelections,
+				"lastBackupDir": config.LastBackupDir,
+			}
+			
+			// Return in the format the frontend expects
+			return map[string]interface{}{
+				"data": configData,
+			}, nil
+		},
+	)
 }
 
 // RESTful endpoint: PATCH /api/config
@@ -81,60 +93,9 @@ func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 			}
 		}
 		
+		// Invalidate config cache after successful update
+		InvalidateCache(h.cache, "config:")
+		
 		respondJSON(w, map[string]bool{"success": true})
 	}
-}
-
-// Legacy endpoint (to be deprecated)
-func (h *ConfigHandler) SaveUserSelections(w http.ResponseWriter, r *http.Request) {
-	var req model.DropDownSelections
-	if err := decodeJSONBody(r, &req); err != nil {
-		respondError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.configService.SaveUserSelections(req); err != nil {
-		respondError(w, fmt.Sprintf("Failed to save user selections: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	respondJSON(w, map[string]bool{"success": true})
-}
-
-// Legacy endpoint (to be deprecated)
-func (h *ConfigHandler) ChooseSettingsDir(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Directory string `json:"directory"`
-	}
-	h.logger.Infof("in choose settings handler")
-
-	if err := decodeJSONBody(r, &req); err != nil {
-		respondError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if req.Directory == "" {
-		respondError(w, "Directory is required", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.configService.UpdateSettingsDir(req.Directory); err != nil {
-		respondJSON(w, map[string]interface{}{"success": false, "error": err.Error()})
-		return
-	}
-
-	respondJSON(w, map[string]interface{}{"success": true, "settingsDir": req.Directory})
-}
-
-// Legacy endpoint (to be deprecated)
-func (h *ConfigHandler) ResetToDefaultDir(w http.ResponseWriter, r *http.Request) {
-
-	h.logger.Infof("in reset to default dir handler")
-
-	if err := h.configService.EnsureSettingsDir(); err != nil {
-		respondJSON(w, map[string]interface{}{"success": false, "error": err.Error()})
-		return
-	}
-
-	respondJSON(w, map[string]interface{}{"success": true})
 }

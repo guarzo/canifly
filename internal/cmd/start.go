@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/server"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -27,6 +28,18 @@ func Start() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
+	// Acquire exclusive lock on the application data directory
+	lock, err := persist.AcquireLock(cfg.BasePath)
+	if err != nil {
+		return fmt.Errorf("failed to acquire application lock: %w", err)
+	}
+	defer func() {
+		if err := lock.Release(); err != nil {
+			logger.WithError(err).Error("Failed to release application lock")
+		}
+	}()
+	logger.Info("Successfully acquired exclusive lock on application data")
+
 	// Validate startup paths
 	if err := server.ValidateStartupPaths(cfg, logger); err != nil {
 		return fmt.Errorf("startup path validation failed: %w", err)
@@ -37,7 +50,11 @@ func Start() error {
 		return fmt.Errorf("failed to get services: %w", err)
 	}
 
-	r := server.SetupHandlers(cfg.SecretKey, logger, services)
+	// Start WebSocket hub
+	go services.WebSocketHub.Run()
+	logger.Info("WebSocket hub started")
+
+	r := server.SetupHandlers(cfg.SecretKey, logger, services, cfg.BasePath)
 	srv, listener, err := createServerWithListener(r, cfg.Port, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

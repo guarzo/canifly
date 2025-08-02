@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -24,13 +25,16 @@ type EVEDataServiceImpl struct {
 	authClient   interfaces.AuthClient
 	accountMgmt  interfaces.AccountManagementService
 	configSvc    interfaces.ConfigurationService
+	storage      interfaces.StorageService
 	
-	// Repositories
-	cacheRepo      interfaces.CacheRepository
-	deletedRepo    interfaces.DeletedCharactersRepository
+	// Repositories still needed
 	skillRepo      interfaces.SkillRepository
 	systemRepo     interfaces.SystemRepository
 	eveProfileRepo interfaces.EveProfilesRepository
+	
+	// Cache management
+	cache   map[string][]byte
+	cacheMu sync.RWMutex
 }
 
 // NewEVEDataServiceImpl creates a new consolidated EVE data service implementation
@@ -40,8 +44,7 @@ func NewEVEDataServiceImpl(
 	authClient interfaces.AuthClient,
 	accountMgmt interfaces.AccountManagementService,
 	configSvc interfaces.ConfigurationService,
-	cacheRepo interfaces.CacheRepository,
-	deletedRepo interfaces.DeletedCharactersRepository,
+	storage interfaces.StorageService,
 	skillRepo interfaces.SkillRepository,
 	systemRepo interfaces.SystemRepository,
 	eveProfileRepo interfaces.EveProfilesRepository,
@@ -52,11 +55,15 @@ func NewEVEDataServiceImpl(
 		authClient:     authClient,
 		accountMgmt:    accountMgmt,
 		configSvc:      configSvc,
-		cacheRepo:      cacheRepo,
-		deletedRepo:    deletedRepo,
+		storage:        storage,
 		skillRepo:      skillRepo,
 		systemRepo:     systemRepo,
 		eveProfileRepo: eveProfileRepo,
+		cache:          make(map[string][]byte),
+	}
+	// Load initial cache
+	if err := svc.LoadCache(); err != nil {
+		logger.Warnf("Failed to load API cache: %v", err)
 	}
 	return svc
 }
@@ -120,7 +127,7 @@ func (s *EVEDataServiceImpl) GetCharacterLocation(characterID int64, token *oaut
 
 func (s *EVEDataServiceImpl) ResolveCharacterNames(charIds []string) (map[string]string, error) {
 	charIdToName := make(map[string]string)
-	deletedChars, err := s.deletedRepo.FetchDeletedCharacters()
+	deletedChars, err := s.storage.LoadDeletedCharacters()
 	if err != nil {
 		s.logger.WithError(err).Info("resolve character names running without deleted characters info")
 		deletedChars = []string{}
@@ -144,7 +151,7 @@ func (s *EVEDataServiceImpl) ResolveCharacterNames(charIds []string) (map[string
 		}
 	}
 
-	if saveErr := s.deletedRepo.SaveDeletedCharacters(deletedChars); saveErr != nil {
+	if saveErr := s.storage.SaveDeletedCharacters(deletedChars); saveErr != nil {
 		s.logger.Warnf("failed to save deleted characters %v", saveErr)
 	}
 	if err := s.SaveCache(); err != nil {
@@ -450,6 +457,15 @@ func (s *EVEDataServiceImpl) GetSkillPlanFile(name string) ([]byte, error) {
 
 func (s *EVEDataServiceImpl) DeleteSkillPlan(name string) error {
 	return s.skillRepo.DeleteSkillPlan(name)
+}
+
+func (s *EVEDataServiceImpl) ListSkillPlans() ([]string, error) {
+	plans := s.GetSkillPlans()
+	planNames := make([]string, 0, len(plans))
+	for name := range plans {
+		planNames = append(planNames, name)
+	}
+	return planNames, nil
 }
 
 func (s *EVEDataServiceImpl) GetSkillTypeByID(id string) (model.SkillType, bool) {
@@ -811,14 +827,47 @@ func (s *EVEDataServiceImpl) SyncAllDir(baseSubDir, charId, userId string) (int,
 
 // Cache Management
 func (s *EVEDataServiceImpl) SaveCache() error {
-	return s.cacheRepo.SaveApiCache()
+	s.cacheMu.RLock()
+	cacheCopy := make(map[string][]byte)
+	for k, v := range s.cache {
+		cacheCopy[k] = v
+	}
+	s.cacheMu.RUnlock()
+	return s.storage.SaveAPICache(cacheCopy)
 }
 
 func (s *EVEDataServiceImpl) LoadCache() error {
-	return s.cacheRepo.LoadApiCache()
+	cache, err := s.storage.LoadAPICache()
+	if err != nil {
+		return err
+	}
+	s.cacheMu.Lock()
+	s.cache = cache
+	s.cacheMu.Unlock()
+	return nil
 }
 
 // SaveEsiCache saves the ESI cache (alias for SaveCache to implement ESIService interface)
 func (s *EVEDataServiceImpl) SaveEsiCache() error {
 	return s.SaveCache()
+}
+
+// Cache getter and setter for CacheService
+func (s *EVEDataServiceImpl) Get(key string) ([]byte, bool) {
+	s.cacheMu.RLock()
+	defer s.cacheMu.RUnlock()
+	val, exists := s.cache[key]
+	return val, exists
+}
+
+func (s *EVEDataServiceImpl) Set(key string, value []byte, expiration time.Duration) {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	s.cache[key] = value
+	// Note: expiration is ignored in this simple implementation
+}
+
+// SetHTTPClient sets the HTTP client after initialization
+func (s *EVEDataServiceImpl) SetHTTPClient(httpClient interfaces.EsiHttpClient) {
+	s.httpClient = httpClient
 }

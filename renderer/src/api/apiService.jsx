@@ -21,7 +21,6 @@
  */
 
 import { apiRequest } from './apiRequest';
-import { normalizeAppData } from '../utils/dataNormalizer';
 import {isDev} from '../Config';
 
 // New RESTful API functions
@@ -83,15 +82,8 @@ export async function updateConfig(updates) {
     });
 }
 
-// Get dashboards
-export async function getDashboards() {
-    return apiRequest(`/api/dashboards`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to get dashboards.'
-    });
-}
+// Note: Dashboards are not a separate entity in the backend
+// The dashboard page uses accounts and config data
 
 // Get session status
 export async function getSession() {
@@ -115,13 +107,33 @@ export async function updateAccount(accountID, updates) {
     });
 }
 
+// Get all skill plans
+export async function getSkillPlans() {
+    return apiRequest(`/api/skill-plans`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch skill plans.'
+    });
+}
+
+// Get specific skill plan
+export async function getSkillPlan(planName) {
+    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch skill plan.'
+    });
+}
+
 // Create skill plan
 export async function createSkillPlan(planName, planContents) {
     return apiRequest(`/api/skill-plans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ planName, planContents })
+        body: JSON.stringify({ name: planName, content: planContents })
     }, {
         errorMessage: 'Failed to create skill plan.'
     });
@@ -129,13 +141,41 @@ export async function createSkillPlan(planName, planContents) {
 
 // Copy skill plan
 export async function copySkillPlan(sourcePlanName, targetPlanName) {
-    return apiRequest(`/api/skill-plans/copy`, {
+    return apiRequest(`/api/skill-plans/${encodeURIComponent(sourcePlanName)}/copy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ sourcePlanName, targetPlanName })
+        body: JSON.stringify({ newName: targetPlanName })
     }, {
         errorMessage: 'Failed to copy skill plan.'
+    });
+}
+
+// EVE Data endpoints
+export async function getEveSkillPlans() {
+    return apiRequest(`/api/eve/skill-plans`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch EVE skill plans.'
+    });
+}
+
+export async function getEveProfiles() {
+    return apiRequest(`/api/eve/profiles`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch EVE profiles.'
+    });
+}
+
+export async function getEveConversions() {
+    return apiRequest(`/api/eve/conversions`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch EVE conversions.'
     });
 }
 
@@ -150,29 +190,6 @@ export async function logout() {
     });
 }
 
-export async function toggleAccountStatus(accountID) {
-    // Use new RESTful endpoint
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ isActive: true }) // Toggle active status
-    }, {
-        errorMessage: 'Failed to toggle account status.'
-    });
-}
-
-export async function toggleAccountVisibility(accountID) {
-    // Use new RESTful endpoint
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ isVisible: true }) // Toggle visibility
-    }, {
-        errorMessage: 'Failed to toggle account visibility.'
-    });
-}
 
 
 export async function updateCharacter(characterID, updates) {
@@ -187,46 +204,13 @@ export async function updateCharacter(characterID, updates) {
     });
 }
 
-export async function removeCharacter(characterID) {
-    // Use new RESTful endpoint
+// deleteCharacter is the primary function for removing characters
+export async function deleteCharacter(characterID) {
     return apiRequest(`/api/characters/${characterID}`, {
         method: 'DELETE',
         credentials: 'include'
     }, {
         errorMessage: 'Failed to remove character.'
-    });
-}
-
-// Alias for removeCharacter to match RESTful naming
-export const deleteCharacter = removeCharacter;
-
-export async function updateAccountName(accountID, newName) {
-    // Use new RESTful endpoint
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName }),
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to update account name.'
-    });
-}
-
-export async function removeAccount(accountName, accountID = null) {
-    // If accountID is provided, use new RESTful endpoint
-    if (accountID) {
-        return deleteAccount(accountID);
-    }
-    
-    // Otherwise, use legacy endpoint
-    return apiRequest('/api/remove-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountName }),
-        credentials: 'include'
-    }, {
-        successMessage: 'Account removed successfully!',
-        errorMessage: 'Failed to remove account.'
     });
 }
 
@@ -245,15 +229,49 @@ export async function addCharacter(account) {
 
 
 export async function saveSkillPlan(planName, planContents) {
-    return apiRequest('/api/save-skill-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: planName, contents: planContents }),
-        credentials: 'include'
-    }, {
-        successMessage: 'Skill Plan Saved!',
-        errorMessage: 'Failed to save skill plan.'
-    });
+    // Check if plan exists by trying to get it first
+    // If it exists, use PUT to update; if not, use POST to create
+    try {
+        const response = await fetch(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            // Plan exists, use PUT to update
+            return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: planContents }),
+                credentials: 'include'
+            }, {
+                successMessage: 'Skill Plan Updated!',
+                errorMessage: 'Failed to update skill plan.'
+            });
+        } else {
+            // Plan doesn't exist, use POST to create
+            return apiRequest('/api/skill-plans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: planName, content: planContents }),
+                credentials: 'include'
+            }, {
+                successMessage: 'Skill Plan Created!',
+                errorMessage: 'Failed to create skill plan.'
+            });
+        }
+    } catch (error) {
+        // Default to create if there's an error checking
+        return apiRequest('/api/skill-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: planName, content: planContents }),
+            credentials: 'include'
+        }, {
+            successMessage: 'Skill Plan Created!',
+            errorMessage: 'Failed to create skill plan.'
+        });
+    }
 }
 
 
@@ -340,30 +358,38 @@ export async function resetToDefaultDirectory() {
     });
 }
 
+// Get all associations
+export async function getAssociations() {
+    return apiRequest(`/api/associations`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to fetch associations.'
+    });
+}
+
 export async function associateCharacter(userId, charId, userName, charName) {
-    return apiRequest(`/api/associate-character`, {
+    return apiRequest(`/api/associations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ userId, charId, userName, charName })
+        body: JSON.stringify({ userId, characterId: charId })
     }, {
         errorMessage: 'Association operation failed.'
     });
 }
 
 export async function unassociateCharacter(userId, charId, userName, charName) {
-    return apiRequest(`/api/unassociate-character`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        credentials: 'include',
-        body: JSON.stringify({ userId, charId, userName, charName })
+    return apiRequest(`/api/associations/${encodeURIComponent(userId)}/${encodeURIComponent(charId)}`, {
+        method: 'DELETE',
+        credentials: 'include'
     }, {
         errorMessage: 'Unassociation operation failed.'
     });
 }
 
 export async function deleteSkillPlan(planName) {
-    return apiRequest(`/api/delete-skill-plan?planName=${encodeURIComponent(planName)}`, {
+    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
         method: 'DELETE',
         credentials: 'include',
     }, {
@@ -406,7 +432,11 @@ export default {
     deleteCharacter,
     getConfig,
     updateConfig,
-    getDashboards,
+    
+    // EVE Data functions
+    getEveSkillPlans,
+    getEveProfiles,
+    getEveConversions,
     
     // Authentication
     getSession,
@@ -414,19 +444,27 @@ export default {
     initiateLogin,
     finalizelogin,
     
-    // Other functions
-    addCharacter,
+    // Skill Plan functions
+    getSkillPlans,
+    getSkillPlan,
     createSkillPlan,
     copySkillPlan,
     deleteSkillPlan,
+    saveSkillPlan,
+    
+    // Association functions
+    getAssociations,
+    associateCharacter,
+    unassociateCharacter,
+    
+    // Other functions
+    addCharacter,
     chooseDefaultDirectory,
     chooseSettingsDirectory,
     backupDirectory,
     resetToDefaultDirectory,
-    associateCharacter,
-    unassociateCharacter,
-    
-    // Utility
-    normalizeAppData
+    syncSubdirectory,
+    syncAllSubdirectories,
+    saveUserSelections
 };
 

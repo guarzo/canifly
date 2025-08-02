@@ -5,8 +5,10 @@ import { HashRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
-import { useAuth } from './hooks/useAuth';
+import useAuthStore from './stores/authStore';
 import { useAppData } from './hooks/useAppData';
+import { useEveData } from './hooks/useEveData';
+import { useWebSocket } from './hooks/useWebSocket';
 import { log } from './utils/logger';
 
 import Header from './components/common/Header.jsx';
@@ -15,7 +17,7 @@ import AddSkillPlanModal from './components/skillplan/AddSkillPlanModal.jsx';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
 import AppRoutes from './Routes';
 import theme from './Theme.jsx';
-import helloImg from './assets/images/hello.png';
+import LoadingScreen from './components/ui/LoadingScreen.jsx';
 import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
@@ -24,15 +26,48 @@ const App = () => {
     const { 
         isAuthenticated, 
         authCheckComplete,
-        loading: authLoading 
-    } = useAuth();
+        loading: authLoading,
+        checkAuth
+    } = useAuthStore();
     
     const { 
         accounts,
         config,
         isLoading: dataLoading,
-        refreshData 
+        refreshData,
+        fetchAccounts
     } = useAppData();
+    
+    const { fetchSkillPlans } = useEveData();
+    
+    // Handle WebSocket messages for real-time updates
+    const handleWebSocketMessage = (message) => {
+        log('WebSocket message received:', message);
+        
+        switch (message.type) {
+            case 'account:updated':
+            case 'account:deleted':
+                fetchAccounts();
+                break;
+            case 'skillplan:created':
+            case 'skillplan:updated':
+            case 'skillplan:deleted':
+                fetchSkillPlans();
+                break;
+            default:
+                log('Unknown WebSocket message type:', message.type);
+        }
+    };
+    
+    // Connect to WebSocket for real-time updates
+    useWebSocket(handleWebSocketMessage);
+
+    // Run auth check only once on app startup
+    useEffect(() => {
+        if (!authCheckComplete) {
+            checkAuth();
+        }
+    }, []); // Empty deps = run once on mount
 
     useEffect(() => {
         log("isAuthenticated changed:", isAuthenticated);
@@ -41,16 +76,7 @@ const App = () => {
     const isLoading = authLoading || !authCheckComplete || (isAuthenticated && dataLoading);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-teal-200 space-y-4">
-                <img
-                    src={helloImg}
-                    alt="Loading"
-                    className="w-32 h-auto object-contain"
-                />
-                <p className="animate-pulse text-lg">Loading...</p>
-            </div>
-        );
+        return <LoadingScreen message="Initializing..." />;
     }
 
     const visibleAccounts = accounts.filter(account => account.Visible !== false);

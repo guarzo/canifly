@@ -13,75 +13,44 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// ConfigurationService consolidates ConfigService, AppStateService and DashboardService functionality
+// ConfigurationService handles application configuration
 type ConfigurationService struct {
-	configRepo    interfaces.ConfigRepository
-	appStateRepo  interfaces.AppStateRepository
-	logger        interfaces.Logger
-	basePath      string
-	osfs          persist.OSFileSystem
-	
-	// Dependencies for dashboard functionality
-	eveDataService interfaces.EVEDataService
-	accountService interfaces.AccountManagementService
+	storage  interfaces.StorageService
+	logger   interfaces.Logger
+	basePath string
+	osfs     persist.OSFileSystem
 }
 
 // NewConfigurationService creates a new consolidated configuration service
 func NewConfigurationService(
-	configRepo interfaces.ConfigRepository,
-	appStateRepo interfaces.AppStateRepository,
+	storage interfaces.StorageService,
 	logger interfaces.Logger,
 	basePath string,
 ) *ConfigurationService {
 	return &ConfigurationService{
-		configRepo:   configRepo,
-		appStateRepo: appStateRepo,
-		logger:       logger,
-		basePath:     basePath,
-		osfs:         persist.OSFileSystem{},
+		storage:  storage,
+		logger:   logger,
+		basePath: basePath,
+		osfs:     persist.OSFileSystem{},
 	}
 }
 
-// SetDashboardDependencies sets the dependencies needed for dashboard functionality
-// This is called after initialization to break circular dependencies
-func (s *ConfigurationService) SetDashboardDependencies(eveDataService interfaces.EVEDataService, accountService interfaces.AccountManagementService) {
-	s.eveDataService = eveDataService
-	s.accountService = accountService
-}
-
-// App State Methods (from AppStateService)
-
-func (s *ConfigurationService) GetAppState() model.AppState {
-	return s.appStateRepo.GetAppState()
-}
-
-func (s *ConfigurationService) SetAppStateLogin(isLoggedIn bool) error {
-	return s.appStateRepo.SetAppStateLogin(isLoggedIn)
-}
-
-func (s *ConfigurationService) UpdateAndSaveAppState(data model.AppState) error {
-	s.appStateRepo.SetAppState(data)
-	return nil
-}
-
-func (s *ConfigurationService) ClearAppState() {
-	s.appStateRepo.ClearAppState()
-}
+// App State methods have been removed - login state is tracked via session only
 
 // Config Methods (from ConfigService)
 
 func (s *ConfigurationService) UpdateSettingsDir(dir string) error {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return err
 	}
 	
 	configData.SettingsDir = dir
-	return s.configRepo.SaveConfigData(configData)
+	return s.storage.SaveConfigData(configData)
 }
 
 func (s *ConfigurationService) GetSettingsDir() (string, error) {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return "", err
 	}
@@ -113,21 +82,25 @@ func (s *ConfigurationService) EnsureSettingsDir() error {
 }
 
 func (s *ConfigurationService) SaveUserSelections(selections model.DropDownSelections) error {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return err
 	}
 	
 	configData.DropDownSelections = selections
-	return s.configRepo.SaveConfigData(configData)
+	return s.storage.SaveConfigData(configData)
 }
 
 func (s *ConfigurationService) FetchUserSelections() (model.DropDownSelections, error) {
-	return s.configRepo.FetchUserSelections()
+	configData, err := s.storage.LoadConfigData()
+	if err != nil {
+		return nil, err
+	}
+	return configData.DropDownSelections, nil
 }
 
 func (s *ConfigurationService) UpdateRoles(newRole string) error {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return err
 	}
@@ -140,11 +113,11 @@ func (s *ConfigurationService) UpdateRoles(newRole string) error {
 	}
 	
 	configData.Roles = append(configData.Roles, newRole)
-	return s.configRepo.SaveConfigData(configData)
+	return s.storage.SaveConfigData(configData)
 }
 
 func (s *ConfigurationService) GetRoles() ([]string, error) {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return nil, err
 	}
@@ -153,19 +126,19 @@ func (s *ConfigurationService) GetRoles() ([]string, error) {
 }
 
 func (s *ConfigurationService) UpdateBackupDir(dir string) error {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return err
 	}
 	
 	configData.LastBackupDir = dir
-	return s.configRepo.SaveConfigData(configData)
+	return s.storage.SaveConfigData(configData)
 }
 
 func (s *ConfigurationService) BackupJSONFiles(backupDir string) error {
 	if backupDir == "" {
 		// Get backup dir from config if not provided
-		configData, err := s.configRepo.FetchConfigData()
+		configData, err := s.storage.LoadConfigData()
 		if err != nil {
 			return err
 		}
@@ -217,17 +190,17 @@ func (s *ConfigurationService) BackupJSONFiles(backupDir string) error {
 }
 
 func (s *ConfigurationService) FetchConfigData() (*model.ConfigData, error) {
-	return s.configRepo.FetchConfigData()
+	return s.storage.LoadConfigData()
 }
 
 func (s *ConfigurationService) SaveRoles(roles []string) error {
-	configData, err := s.configRepo.FetchConfigData()
+	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return err
 	}
 	
 	configData.Roles = roles
-	return s.configRepo.SaveConfigData(configData)
+	return s.storage.SaveConfigData(configData)
 }
 
 // Helper methods
@@ -294,82 +267,3 @@ func (s *ConfigurationService) copyFile(src, dst string) error {
 	return err
 }
 
-// Dashboard Methods (from DashboardService)
-
-func (s *ConfigurationService) RefreshAccountsAndState() (model.AppState, error) {
-	if s.accountService == nil || s.eveDataService == nil {
-		return model.AppState{}, fmt.Errorf("dashboard dependencies not initialized")
-	}
-
-	accountData, err := s.accountService.RefreshAccountData(s.eveDataService)
-	if err != nil {
-		return model.AppState{}, fmt.Errorf("failed to validate accounts: %v", err)
-	}
-
-	updatedData := s.prepareAppData(accountData)
-
-	if err = s.UpdateAndSaveAppState(updatedData); err != nil {
-		s.logger.Errorf("Failed to update persist and session: %v", err)
-	}
-
-	return updatedData, nil
-}
-
-func (s *ConfigurationService) GetCurrentAppState() model.AppState {
-	return s.GetAppState()
-}
-
-func (s *ConfigurationService) RefreshDataInBackground() error {
-	start := time.Now()
-	s.logger.Debugf("Refreshing data in background...")
-
-	_, err := s.RefreshAccountsAndState()
-	if err != nil {
-		s.logger.Errorf("Failed in background refresh: %v", err)
-		return err
-	}
-
-	timeElapsed := time.Since(start)
-	s.logger.Infof("Background refresh complete in %s", timeElapsed)
-	return nil
-}
-
-func (s *ConfigurationService) prepareAppData(accountData *model.AccountData) model.AppState {
-	if s.eveDataService == nil {
-		s.logger.Error("EVE data service not initialized")
-		return model.AppState{}
-	}
-
-	skillPlans, eveConversions := s.eveDataService.GetPlanAndConversionData(
-		accountData.Accounts,
-		s.eveDataService.GetSkillPlans(),
-		s.eveDataService.GetSkillTypes(),
-	)
-
-	configData, err := s.FetchConfigData()
-	if err != nil {
-		s.logger.Errorf("Failed to fetch config data: %v", err)
-		configData = &model.ConfigData{
-			Roles:              []string{},
-			DropDownSelections: make(model.DropDownSelections),
-		}
-	}
-
-	subDirData, err := s.eveDataService.LoadCharacterSettings()
-	if err != nil {
-		s.logger.Errorf("Failed to load character settings: %v", err)
-	}
-
-	eveData := &model.EveData{
-		EveProfiles:    subDirData,
-		SkillPlans:     skillPlans,
-		EveConversions: eveConversions,
-	}
-
-	return model.AppState{
-		LoggedIn:    true,
-		AccountData: *accountData,
-		EveData:     *eveData,
-		ConfigData:  *configData,
-	}
-}

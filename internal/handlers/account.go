@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -14,26 +15,47 @@ type AccountHandler struct {
 	sessionService interfaces.SessionService
 	accountService interfaces.AccountManagementService
 	logger         interfaces.Logger
+	cache          interfaces.HTTPCacheService
+	wsHub          *WebSocketHub
 }
 
-func NewAccountHandler(session interfaces.SessionService, logger interfaces.Logger, accountSrv interfaces.AccountManagementService) *AccountHandler {
+func NewAccountHandler(session interfaces.SessionService, logger interfaces.Logger, accountSrv interfaces.AccountManagementService, cache interfaces.HTTPCacheService, wsHub *WebSocketHub) *AccountHandler {
 	return &AccountHandler{
 		sessionService: session,
 		logger:         logger,
 		accountService: accountSrv,
+		cache:          cache,
+		wsHub:          wsHub,
 	}
 }
 
 // RESTful endpoint: GET /api/accounts
 func (h *AccountHandler) ListAccounts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accounts, err := h.accountService.FetchAccounts()
-		if err != nil {
-			respondError(w, "Failed to fetch accounts", http.StatusInternalServerError)
-			return
-		}
+		// Parse pagination parameters
+		paginationParams := ParsePaginationParams(r)
 		
-		respondJSON(w, accounts)
+		// Check cache first (cache key includes pagination params)
+		cacheKey := fmt.Sprintf("accounts:list:page:%d:limit:%d", paginationParams.Page, paginationParams.Limit)
+		
+		cacheHandler := WithCache(
+			h.cache,
+			h.logger,
+			cacheKey,
+			5*time.Minute, // Cache for 5 minutes
+			func() (interface{}, error) {
+				accounts, err := h.accountService.FetchAccounts()
+				if err != nil {
+					return nil, err
+				}
+				
+				// Apply pagination to accounts
+				paginatedResponse := PaginateAccounts(accounts, paginationParams)
+				
+				return paginatedResponse, nil
+			},
+		)
+		cacheHandler(w, r)
 	}
 }
 
@@ -123,91 +145,20 @@ func (h *AccountHandler) UpdateAccount() http.HandlerFunc {
 			}
 		}
 
+		// Invalidate accounts cache after successful update
+		InvalidateCache(h.cache, "accounts:")
+		
+		// Broadcast update via WebSocket
+		if h.wsHub != nil {
+			h.wsHub.BroadcastUpdate("account:updated", map[string]interface{}{
+				"accountId": accountID,
+			})
+		}
+		
 		respondJSON(w, map[string]bool{"success": true})
 	}
 }
 
-// Legacy endpoint handlers (to be deprecated)
-func (h *AccountHandler) UpdateAccountName() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			AccountID   int64  `json:"accountID"`
-			AccountName string `json:"accountName"`
-		}
-		if err := decodeJSONBody(r, &request); err != nil {
-			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-			return
-		}
-		if request.AccountName == "" {
-			respondError(w, "Account name cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		err := h.accountService.UpdateAccountName(request.AccountID, request.AccountName)
-		if err != nil {
-			respondError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		respondJSON(w, map[string]bool{"success": true})
-	}
-}
-
-func (h *AccountHandler) ToggleAccountStatus() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			AccountID int64 `json:"accountID"`
-		}
-		if err := decodeJSONBody(r, &request); err != nil {
-			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-			return
-		}
-		if request.AccountID == 0 {
-			respondError(w, "UserId is required", http.StatusBadRequest)
-			return
-		}
-
-		err := h.accountService.ToggleAccountStatus(request.AccountID)
-		if err != nil {
-			if err.Error() == "account not found" {
-				respondError(w, "Account not found", http.StatusNotFound)
-			} else {
-				respondError(w, fmt.Sprintf("Failed to toggle account status: %v", err), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		respondJSON(w, map[string]bool{"success": true})
-	}
-}
-
-func (h *AccountHandler) ToggleAccountVisibility() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			AccountID int64 `json:"accountID"`
-		}
-		if err := decodeJSONBody(r, &request); err != nil {
-			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-			return
-		}
-		if request.AccountID == 0 {
-			respondError(w, "UserId is required", http.StatusBadRequest)
-			return
-		}
-
-		err := h.accountService.ToggleAccountVisibility(request.AccountID)
-		if err != nil {
-			if err.Error() == "account not found" {
-				respondError(w, "Account not found", http.StatusNotFound)
-			} else {
-				respondError(w, fmt.Sprintf("Failed to toggle account visbility: %v", err), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		respondJSON(w, map[string]bool{"success": true})
-	}
-}
 
 // RESTful endpoint: DELETE /api/accounts/:id
 func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
@@ -248,36 +199,18 @@ func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
 			}
 			return
 		}
+		
+		// Invalidate accounts cache after successful deletion
+		InvalidateCache(h.cache, "accounts:")
+		
+		// Broadcast deletion via WebSocket
+		if h.wsHub != nil {
+			h.wsHub.BroadcastUpdate("account:deleted", map[string]interface{}{
+				"accountId": accountID,
+			})
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
-// Legacy endpoint (to be deprecated)
-func (h *AccountHandler) RemoveAccount() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			AccountName string `json:"accountName"`
-		}
-		if err := decodeJSONBody(r, &request); err != nil {
-			respondError(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		if request.AccountName == "" {
-			respondError(w, "AccountName is required", http.StatusBadRequest)
-			return
-		}
-
-		err := h.accountService.RemoveAccountByName(request.AccountName)
-		if err != nil {
-			if err.Error() == fmt.Sprintf("account %s not found", request.AccountName) {
-				respondError(w, "Account not found", http.StatusNotFound)
-			} else {
-				respondError(w, fmt.Sprintf("Failed to remove account: %v", err), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		respondJSON(w, map[string]bool{"success": true})
-	}
-}

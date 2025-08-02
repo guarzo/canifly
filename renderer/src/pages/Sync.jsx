@@ -1,6 +1,7 @@
 // src/components/sync/Sync.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import {
@@ -220,8 +221,27 @@ const Sync = ({
         localStorage.setItem('showSyncInstructions', JSON.stringify(newValue));
     };
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.5 }
+        }
+    };
+
     return (
-        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+        <div className="min-h-screen px-4 pb-10 pt-16">
             <PageHeader
                 title="Sync Profile Settings"
                 instructions={syncInstructions}
@@ -242,15 +262,33 @@ const Sync = ({
             )}
 
             {message && (
-                <Box className="max-w-7xl mx-auto mt-4">
-                    <Typography>{message}</Typography>
-                </Box>
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-7xl mx-auto mt-4"
+                >
+                    <Box className="glass rounded-lg p-4">
+                        <Typography className="text-teal-400">{message}</Typography>
+                    </Box>
+                </motion.div>
             )}
 
-            <Grid container spacing={4} className="max-w-7xl mx-auto">
-                {settingsData.map(subDir => (
-                    <Grid item xs={12} sm={6} md={4} key={subDir.profile}>
-                        <SubDirectoryCard
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="max-w-7xl mx-auto"
+            >
+                <Grid container spacing={4}>
+                    {settingsData.map((subDir, index) => (
+                        <Grid item xs={12} sm={6} md={4} key={subDir.profile}>
+                            <motion.div
+                                variants={itemVariants}
+                                initial="hidden"
+                                animate="visible"
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <SubDirectoryCard
                             subDir={subDir}
                             selections={selections}
                             handleSelectionChange={handleSelectionChange}
@@ -258,9 +296,11 @@ const Sync = ({
                             handleSyncAll={handleSyncAll}
                             isLoading={isLoading}
                         />
-                    </Grid>
-                ))}
-            </Grid>
+                            </motion.div>
+                        </Grid>
+                    ))}
+                </Grid>
+            </motion.div>
             {confirmDialog}
         </div>
     );

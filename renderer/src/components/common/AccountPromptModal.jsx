@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { IconButton, Select, MenuItem, TextField } from '@mui/material';
-import { Check as CheckIcon } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
+import { IconButton, Select, MenuItem, TextField, Typography } from '@mui/material';
+import { Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
+import GlassCard from '../ui/GlassCard';
+import FuturisticButton from '../ui/FuturisticButton';
 
 const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts }) => {
     const [account, setAccount] = useState('');
@@ -68,14 +71,38 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
         setNewAccount('');
     };
 
-    if (!isOpen) return null;
-
     const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-gray-800 text-teal-200 p-6 rounded shadow-md w-80">
-                <h2 className="mb-4 text-lg font-semibold">{title || 'Enter Account Name'}</h2>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <GlassCard className="w-96 p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <Typography variant="h6" className="text-gradient font-display">
+                                    {title || 'Enter Account Name'}
+                                </Typography>
+                                <IconButton 
+                                    onClick={onClose}
+                                    className="hover:bg-red-500/20"
+                                    size="small"
+                                >
+                                    <CloseIcon className="text-gray-400" />
+                                </IconButton>
+                            </div>
 
                 {!isAddingAccount && hasExistingAccounts && (
                     <div className="mb-4">
@@ -130,22 +157,27 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
                     </div>
                 )}
 
-                <div className="flex justify-end space-x-3">
-                    <button
-                        onClick={onClose}
-                        className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        className="py-2 px-4 bg-teal-600 text-white rounded hover:bg-teal-700"
-                    >
-                        Submit
-                    </button>
-                </div>
-            </div>
-        </div>
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <FuturisticButton
+                                    onClick={onClose}
+                                    variant="ghost"
+                                    size="md"
+                                >
+                                    Cancel
+                                </FuturisticButton>
+                                <FuturisticButton
+                                    onClick={handleSubmit}
+                                    variant="primary"
+                                    size="md"
+                                >
+                                    Submit
+                                </FuturisticButton>
+                            </div>
+                        </GlassCard>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 

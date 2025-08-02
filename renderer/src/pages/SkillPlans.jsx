@@ -1,6 +1,7 @@
 // src/components/skillplan/SkillPlans.jsx
 
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import CharacterTable from '../components/skillplan/CharacterTable.jsx';
 import SkillPlanTable from '../components/skillplan/SkillPlanTable.jsx';
 import {Typography, ToggleButtonGroup, ToggleButton, Box} from '@mui/material';
@@ -38,16 +39,16 @@ const SkillPlans = ({ characters, skillPlans, conversions }) => {
     };
 
     return (
-        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pt-16 pb-10">
+        <div className="min-h-screen px-4 pt-16 pb-10">
             <div className="max-w-7xl mx-auto">
                 <PageHeader
                     title="Skill Plans"
                     instructions={skillPlanInstructions}
                     storageKey="showSkillPlanInstructions"
                 />
-                <Box className="flex items-center justify-between mb-4">
+                <Box className="flex items-center justify-between mb-6">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="body2" sx={{ color: '#99f6e4' }}>
+                        <Typography variant="body2" className="text-gray-400">
                             View:
                         </Typography>
                         <ToggleButtonGroup
@@ -87,34 +88,53 @@ const SkillPlans = ({ characters, skillPlans, conversions }) => {
                     </Box>
                 </Box>
 
-                <div className="space-y-8">
-                    {view === 'characters' && (
-                        <div className="bg-gray-800 rounded-md p-4 shadow-md">
-                            <Typography
-                                variant="h5"
-                                gutterBottom
-                                sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}
+                <AnimatePresence mode="wait">
+                    <motion.div 
+                        key={view}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-8"
+                    >
+                        {view === 'characters' && (
+                            <motion.div 
+                                className="glass rounded-xl p-6"
+                                initial={{ scale: 0.95 }}
+                                animate={{ scale: 1 }}
+                                transition={{ duration: 0.3 }}
                             >
-                                By Character
-                            </Typography>
-                            <CharacterTable characters={characters} skillPlans={skillPlans} conversions={conversions} />
-                        </div>
-                    )}
+                                <Typography
+                                    variant="h5"
+                                    gutterBottom
+                                    className="text-gradient font-display mb-4"
+                                >
+                                    By Character
+                                </Typography>
+                                <CharacterTable characters={characters} skillPlans={skillPlans} conversions={conversions} />
+                            </motion.div>
+                        )}
 
-                    {view === 'plans' && (
-                        <div className="bg-gray-800 rounded-md p-4 shadow-md">
-                            <Typography
-                                variant="h5"
-                                gutterBottom
-                                sx={{ color: '#14b8a6', fontWeight: 'bold', marginBottom: '1rem' }}
+                        {view === 'plans' && (
+                            <motion.div 
+                                className="glass rounded-xl p-6"
+                                initial={{ scale: 0.95 }}
+                                animate={{ scale: 1 }}
+                                transition={{ duration: 0.3 }}
                             >
-                                By Skill Plan
-                            </Typography>
-                            <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions}
-                                            onCopySkillPlan={handleCopySkillPlan} onDeleteSkillPlan={handleDeleteSkillPlan} />
-                        </div>
-                    )}
-                </div>
+                                <Typography
+                                    variant="h5"
+                                    gutterBottom
+                                    className="text-gradient font-display mb-4"
+                                >
+                                    By Skill Plan
+                                </Typography>
+                                <SkillPlanTable skillPlans={skillPlans} characters={characters} conversions={conversions}
+                                                onCopySkillPlan={handleCopySkillPlan} onDeleteSkillPlan={handleDeleteSkillPlan} />
+                            </motion.div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );

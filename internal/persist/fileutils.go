@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 )
 
 func ReadJsonFromFile(fs FileSystem, filePath string, target interface{}) error {
@@ -20,22 +18,6 @@ func ReadJsonFromFile(fs FileSystem, filePath string, target interface{}) error 
 	return nil
 }
 
-func SaveJsonToFile(fs FileSystem, filePath string, source interface{}) error {
-	dir := filepath.Dir(filePath)
-	if err := fs.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create directories for %s: %w", filePath, err)
-	}
-
-	data, err := json.MarshalIndent(source, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON data for %s: %w", filePath, err)
-	}
-
-	if err := fs.WriteFile(filePath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write JSON file %s: %w", filePath, err)
-	}
-	return nil
-}
 
 func ReadCsvRecords(r io.Reader) ([][]string, error) {
 	reader := csv.NewReader(r)

@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import apiService from '../api/apiService';
 
+// Track if auth check is in progress globally
+let authCheckInProgress = false;
+
 const useAuthStore = create(
   devtools(
     persist(
@@ -13,7 +16,14 @@ const useAuthStore = create(
         error: null,
 
         checkAuth: async () => {
+          // Prevent multiple concurrent auth checks
+          if (authCheckInProgress || get().authCheckComplete) {
+            return get().isAuthenticated;
+          }
+          
+          authCheckInProgress = true;
           set({ loading: true, error: null });
+          
           try {
             const response = await apiService.getSession();
             const isAuthenticated = response?.status === 'ok' && response?.authenticated === true;
@@ -34,6 +44,8 @@ const useAuthStore = create(
               error: error.message 
             });
             return false;
+          } finally {
+            authCheckInProgress = false;
           }
         },
 
@@ -73,6 +85,7 @@ const useAuthStore = create(
         },
 
         reset: () => {
+          authCheckInProgress = false;
           set({
             isAuthenticated: false,
             authCheckComplete: false,
@@ -86,7 +99,6 @@ const useAuthStore = create(
         name: 'auth-storage',
         partialize: (state) => ({ 
           isAuthenticated: state.isAuthenticated,
-          authCheckComplete: state.authCheckComplete,
           user: state.user 
         })
       }

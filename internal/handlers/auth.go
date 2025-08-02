@@ -136,11 +136,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 		}
 		h.logger.Warnf("character is %s", user.CharacterName)
 
-		if err := h.stateService.SetAppStateLogin(true); err != nil {
-			h.logger.Errorf("Failed to set app state: %v", err)
-			handleErrorWithRedirect(w, r, "/")
-			return
-		}
+		// Login state is now tracked only via session cookie
 
 		// Use AccountManagementService to handle account creation
 		if err = h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
@@ -224,13 +220,11 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 			loggedIn = false
 		}
 
-		appState := h.stateService.GetAppState()
-		
-		h.logger.Infof("Session check - Cookie LoggedIn: %v, AppState LoggedIn: %v", loggedIn, appState.LoggedIn)
+		h.logger.Infof("Session check - Cookie LoggedIn: %v", loggedIn)
 		
 		respondJSON(w, map[string]interface{}{
 			"status": "ok",
-			"authenticated": loggedIn && appState.LoggedIn,
+			"authenticated": loggedIn,
 		})
 	}
 }
@@ -248,7 +242,7 @@ func (h *AuthHandler) Logout() http.HandlerFunc {
 			respondError(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}
-		h.stateService.ClearAppState()
+		// Session cleared, no need to clear app state
 
 		respondJSON(w, map[string]bool{"success": true})
 	}

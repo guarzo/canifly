@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { IconButton, Select, MenuItem, TextField, Tooltip } from '@mui/material';
+import { motion } from 'framer-motion';
+import { IconButton, Select, MenuItem, TextField, Tooltip, Chip } from '@mui/material';
 import { Delete, Check as CheckIcon } from '@mui/icons-material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
@@ -68,7 +69,11 @@ const CharacterItem = ({
         : 'Skill queue paused';
 
     return (
-        <div className="p-2 rounded-md shadow-sm bg-gray-700">
+        <motion.div 
+            className="glass p-3 rounded-lg hover:border-teal-500/30 transition-all duration-300"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+        >
             <CharacterDetailModal
                 open={detailOpen}
                 onClose={() => setDetailOpen(false)}
@@ -76,8 +81,8 @@ const CharacterItem = ({
                 skillConversions={skillConversions}
             />
             <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-sm text-teal-200 cursor-pointer underline"
+                <div className="flex items-center space-x-3">
+                    <span className="font-semibold text-sm text-teal-300 cursor-pointer hover:text-teal-400 transition-colors"
                         onClick={() => setDetailOpen(true)} >
                         {character.Character.CharacterName}
                     </span>
@@ -105,10 +110,15 @@ const CharacterItem = ({
                 </div>
 
                 <Tooltip title={mctTooltip}>
-                    <div
+                    <motion.div
                         data-testid="mct-indicator"
-                        className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400' : 'bg-gray-400'}`}
-                    ></div>
+                        className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400 shadow-glow' : 'bg-gray-600'}`}
+                        animate={character.MCT ? { 
+                            scale: [1, 1.2, 1],
+                            opacity: [1, 0.8, 1]
+                        } : {}}
+                        transition={{ duration: 2, repeat: Infinity }}
+                    />
                 </Tooltip>
             </div>
 
@@ -173,7 +183,7 @@ const CharacterItem = ({
                     </Tooltip>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 };
 

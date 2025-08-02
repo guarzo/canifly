@@ -3,6 +3,10 @@ package eve
 import (
 	"fmt"
 	"strconv"
+	"os"
+	"path/filepath"
+	"encoding/csv"
+	"io"
 
 	"github.com/guarzo/canifly/internal/embed"
 	"github.com/guarzo/canifly/internal/persist"
@@ -11,25 +15,44 @@ import (
 
 var _ interfaces.SystemRepository = (*SystemStore)(nil)
 
-// SystemStore implements interfaces.SystemRepository
-type SystemStore struct {
-	logger      interfaces.Logger
-	sysIdToName map[int64]string
-	sysNameToId map[string]int64
-}
 
 // NewSystemStore creates a new SystemStore.
 // We still read from embedded files directly here since it's static data.
-func NewSystemStore(logger interfaces.Logger) *SystemStore {
+func NewSystemStore(logger interfaces.Logger, basePath string) *SystemStore {
 	return &SystemStore{
 		logger:      logger,
 		sysIdToName: make(map[int64]string),
 		sysNameToId: make(map[string]int64),
+		basePath:    basePath,
 	}
+}
+
+type SystemStore struct {
+	logger      interfaces.Logger
+	sysIdToName map[int64]string
+	sysNameToId map[string]int64
+	basePath    string
 }
 
 func (sys *SystemStore) LoadSystems() error {
 	sys.logger.Infof("load systems")
+	
+	// Try to load from downloaded Fuzzworks data first
+	fuzzworksPath := filepath.Join(sys.basePath, "config", "fuzzworks", "mapSolarSystems.csv")
+	if file, err := os.Open(fuzzworksPath); err == nil {
+		defer file.Close()
+		sys.logger.Infof("Loading systems from Fuzzworks data: %s", fuzzworksPath)
+		
+		if err := sys.loadFromFuzzworks(file); err != nil {
+			sys.logger.Warnf("Failed to load from Fuzzworks data: %v, falling back to embedded data", err)
+		} else {
+			sys.logger.Debugf("Loaded %d systems from Fuzzworks data", len(sys.sysIdToName))
+			return nil
+		}
+	}
+	
+	// Fall back to embedded data
+	sys.logger.Infof("Loading systems from embedded data")
 	file, err := embed.StaticFiles.Open("static/systems.csv")
 	if err != nil {
 		return fmt.Errorf("failed to read systems file: %w", err)
@@ -46,7 +69,7 @@ func (sys *SystemStore) LoadSystems() error {
 		return fmt.Errorf("failed to parse system records: %w", err)
 	}
 
-	sys.logger.Debugf("Loaded %d systems", len(sys.sysIdToName))
+	sys.logger.Debugf("Loaded %d systems from embedded data", len(sys.sysIdToName))
 	return nil
 }
 
@@ -82,4 +105,66 @@ func (sys *SystemStore) GetSystemName(systemID int64) string {
 		return ""
 	}
 	return name
+}
+
+func (sys *SystemStore) loadFromFuzzworks(file io.Reader) error {
+	reader := csv.NewReader(file)
+	
+	// Read header
+	header, err := reader.Read()
+	if err != nil {
+		return fmt.Errorf("failed to read header: %w", err)
+	}
+	
+	// Find column indices
+	var sysIDIdx, sysNameIdx int = -1, -1
+	for i, col := range header {
+		switch col {
+		case "solarSystemID":
+			sysIDIdx = i
+		case "solarSystemName":
+			sysNameIdx = i
+		}
+	}
+	
+	if sysIDIdx == -1 || sysNameIdx == -1 {
+		return fmt.Errorf("required columns not found in Fuzzworks data")
+	}
+	
+	// Clear existing data
+	sys.sysIdToName = make(map[int64]string)
+	sys.sysNameToId = make(map[string]int64)
+	
+	lineNumber := 1
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			sys.logger.Warnf("Error reading record at line %d: %v", lineNumber, err)
+			continue
+		}
+		lineNumber++
+		
+		if len(record) <= sysIDIdx || len(record) <= sysNameIdx {
+			continue
+		}
+		
+		sysID, err := strconv.ParseInt(record[sysIDIdx], 10, 64)
+		if err != nil {
+			sys.logger.Warnf("Invalid system ID at line %d: %v", lineNumber, err)
+			continue
+		}
+		
+		sysName := record[sysNameIdx]
+		sys.sysIdToName[sysID] = sysName
+		sys.sysNameToId[sysName] = sysID
+	}
+	
+	if len(sys.sysIdToName) == 0 {
+		return fmt.Errorf("no systems loaded from Fuzzworks data")
+	}
+	
+	return nil
 }

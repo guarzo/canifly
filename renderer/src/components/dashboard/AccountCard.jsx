@@ -12,6 +12,7 @@ import {
     VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import CharacterItem from './CharacterItem.jsx';
+import GlassCard from '../ui/GlassCard.jsx';
 
 const AccountCard = ({
                          account,
@@ -66,7 +67,10 @@ const AccountCard = ({
     };
 
     return (
-        <div className="p-4 rounded-md shadow-md bg-gray-800 text-teal-200 max-w-sm">
+        <GlassCard 
+            className="p-6 max-w-sm hover:border-teal-500/30 transition-all duration-300"
+            hover={true}
+        >
             {/* Account Header */}
             <div className="flex justify-between items-center mb-4">
                 {isEditingName ? (
@@ -80,18 +84,23 @@ const AccountCard = ({
                     />
                 ) : (
                     <span
-                        className="text-sm font-bold cursor-pointer"
+                        className="text-lg font-display font-semibold cursor-pointer hover:text-teal-400 transition-colors"
                         onClick={startEditingName}
                     >
-            {account.Name}
-          </span>
+                        {account.Name}
+                    </span>
                 )}
 
                 <div className="flex items-center space-x-2">
                     <Tooltip title="Toggle Account Status (Alpha/Omega)">
                         <button
                             onClick={() => onToggleAccountStatus(account.ID)}
-                            className="text-xl font-bold text-white"
+                            className={`
+                                text-2xl font-bold px-3 py-1 rounded-lg transition-all duration-300
+                                ${account.Status === 'Alpha' 
+                                    ? 'text-gray-400 bg-gray-800/50 hover:bg-gray-700/50' 
+                                    : 'text-orange-400 bg-orange-900/20 hover:bg-orange-900/30 shadow-glow'}
+                            `}
                         >
                             {account.Status === 'Alpha' ? 'α' : 'Ω'}
                         </button>
@@ -153,7 +162,7 @@ const AccountCard = ({
                     />
                 ))}
             </div>
-        </div>
+        </GlassCard>
     );
 };
 

@@ -24,7 +24,7 @@ func TestSaveAndReadJsonFromFile(t *testing.T) {
 	filePath := filepath.Join(basePath, "data.json")
 
 	// Save JSON
-	err := persist.SaveJsonToFile(fs, filePath, data)
+	err := persist.AtomicWriteJSON(fs, filePath, data)
 	assert.NoError(t, err)
 	assert.FileExists(t, filePath)
 
@@ -60,7 +60,7 @@ func TestReadJsonFromFile_InvalidJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to unmarshal JSON data")
 }
 
-func TestSaveJsonToFile_InvalidDir(t *testing.T) {
+func TestAtomicWriteJSON_InvalidDir(t *testing.T) {
 	fs := persist.OSFileSystem{}
 	// Attempt to save in a directory that doesn't exist and can't be created (e.g., a file instead of a dir)
 	basePath := t.TempDir()
@@ -69,7 +69,7 @@ func TestSaveJsonToFile_InvalidDir(t *testing.T) {
 
 	// Now try to save JSON in a "subdirectory" of that file
 	invalidPath := filepath.Join(filePath, "data.json") // filePath is a file, not a directory
-	err := persist.SaveJsonToFile(fs, invalidPath, map[string]string{"key": "value"})
+	err := persist.AtomicWriteJSON(fs, invalidPath, map[string]string{"key": "value"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create directories")
 }

@@ -2,15 +2,40 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CharacterItem from './CharacterItem.jsx';
+import GlassCard from '../ui/GlassCard.jsx';
+import { Badge } from '@mui/material';
 
 const GroupCard = ({ groupName, characters, onUpdateCharacter, roles, skillConversions }) => {
+    const getGroupIcon = (name) => {
+        if (name === 'Unassigned') return '❓';
+        if (name.toLowerCase().includes('pvp')) return '⚔️';
+        if (name.toLowerCase().includes('mining')) return '⛏️';
+        if (name.toLowerCase().includes('industry')) return '🏭';
+        if (name.toLowerCase().includes('trade')) return '💰';
+        if (name.toLowerCase().includes('exploration')) return '🔭';
+        return '📍';
+    };
+
     return (
-        <div className="p-4 rounded-md shadow-md bg-gray-800 text-teal-200 max-w-sm">
+        <GlassCard className="p-6 max-w-sm hover:border-blue-500/30 transition-all duration-300">
             {/* Group Header */}
             <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-bold">
-                    {groupName}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getGroupIcon(groupName)}</span>
+                    <span className="text-lg font-display font-semibold">
+                        {groupName}
+                    </span>
+                </div>
+                <Badge 
+                    badgeContent={characters.length} 
+                    color="primary"
+                    sx={{ 
+                        '& .MuiBadge-badge': { 
+                            backgroundColor: '#14b8a6',
+                            fontWeight: 'bold' 
+                        } 
+                    }}
+                />
             </div>
 
             {/* Characters in this group */}
@@ -26,7 +51,7 @@ const GroupCard = ({ groupName, characters, onUpdateCharacter, roles, skillConve
                     />
                 ))}
             </div>
-        </div>
+        </GlassCard>
     );
 };
 

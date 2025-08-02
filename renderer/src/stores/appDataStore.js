@@ -7,64 +7,59 @@ const useAppDataStore = create(
     (set, get) => ({
       accounts: [],
       config: null,
-      dashboards: [],
       selectedAccountId: null,
       selectedCharacterId: null,
       refreshKey: Date.now(),
+      hasInitialFetch: false,
       loading: {
         accounts: false,
-        config: false,
-        dashboards: false
+        config: false
       },
       error: {
         accounts: null,
-        config: null,
-        dashboards: null
+        config: null
       },
 
       fetchAppData: async (forceRefresh = false) => {
         const state = get();
         
-        if (!forceRefresh && state.accounts.length > 0 && state.config) {
+        if (!forceRefresh && state.hasInitialFetch && state.config) {
           return {
             accounts: state.accounts,
-            config: state.config,
-            dashboards: state.dashboards
+            config: state.config
           };
         }
 
         set({ 
-          loading: { accounts: true, config: true, dashboards: true },
-          error: { accounts: null, config: null, dashboards: null }
+          loading: { accounts: true, config: true },
+          error: { accounts: null, config: null }
         });
 
         try {
-          const [accountsRes, configRes, dashboardsRes] = await Promise.all([
+          const [accountsRes, configRes] = await Promise.all([
             apiService.getAccounts(),
-            apiService.getConfig(),
-            apiService.getDashboards()
+            apiService.getConfig()
           ]);
 
           const accounts = accountsRes?.data || [];
           const config = configRes?.data || {};
-          const dashboards = dashboardsRes?.data || [];
 
           set({
             accounts,
             config,
-            dashboards,
-            loading: { accounts: false, config: false, dashboards: false }
+            hasInitialFetch: true,
+            loading: { accounts: false, config: false }
           });
 
-          return { accounts, config, dashboards };
+          return { accounts, config };
         } catch (error) {
           console.error('Failed to fetch app data:', error);
           set({
-            loading: { accounts: false, config: false, dashboards: false },
+            hasInitialFetch: true,
+            loading: { accounts: false, config: false },
             error: { 
               accounts: error.message,
-              config: error.message,
-              dashboards: error.message
+              config: error.message
             }
           });
           throw error;
@@ -169,19 +164,17 @@ const useAppDataStore = create(
         set({
           accounts: [],
           config: null,
-          dashboards: [],
           selectedAccountId: null,
           selectedCharacterId: null,
           refreshKey: Date.now(),
+          hasInitialFetch: false,
           loading: {
             accounts: false,
-            config: false,
-            dashboards: false
+            config: false
           },
           error: {
             accounts: null,
-            config: null,
-            dashboards: null
+            config: null
           }
         });
       }

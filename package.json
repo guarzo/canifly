@@ -85,7 +85,10 @@
   "dependencies": {
     "@electron/remote": "^2.1.2",
     "axios": "^1.7.9",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
+    "framer-motion": "^12.23.12",
+    "tailwind-merge": "^3.3.1",
     "tar": "^7.4.3",
     "vite": "^6.2.0",
     "zustand": "^5.0.7"

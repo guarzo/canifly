@@ -1,7 +1,8 @@
 // src/components/mapping/Mapping.jsx
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { Grid, Box } from '@mui/material';
+import { Grid, Box, Typography } from '@mui/material';
 import AccountCard from '../components/mapping/MapAccountCard.jsx';
 import CharacterCard from '../components/mapping/MapCharacterCard.jsx';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
@@ -147,60 +148,101 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     };
 
     const noCharacters = availableCharacters.length === 0;
+    
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.5 }
+        }
+    };
 
     return (
-        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+        <div className="min-h-screen px-4 pb-10 pt-16">
             <PageHeader
                 title="Map Character Files to User Files"
                 instructions={mappingInstructions}
                 storageKey="showMappingInstructions"
             />
             <Box className="max-w-7xl mx-auto">
-                <Grid container spacing={4}>
-                    <Grid item xs={12} md={noCharacters ? 12 : 6}>
-                        {accounts.length === 0 ? (
-                            <Box textAlign="center" className="text-gray-300">
-                                No accounts found.
-                            </Box>
-                        ) : (
-                            <Grid container spacing={2}>
-                                {accounts.map((mapping) => (
-                                    <Grid
-                                        item
-                                        xs={12}
-                                        sm={noCharacters ? 6 : 12}
-                                        key={`${mapping.userId}-${mapping.mtime}`}
-                                    >
-                                        <AccountCard
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={noCharacters ? 12 : 6}>
+                            {accounts.length === 0 ? (
+                                <Box textAlign="center" className="text-gray-300">
+                                    <Typography variant="body1" className="text-gray-400">
+                                        No accounts found.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <Grid container spacing={2}>
+                                    {accounts.map((mapping, index) => (
+                                        <Grid
+                                            item
+                                            xs={12}
+                                            sm={noCharacters ? 6 : 12}
+                                            key={`${mapping.userId}-${mapping.mtime}`}
+                                        >
+                                            <motion.div
+                                                variants={itemVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                transition={{ delay: index * 0.05 }}
+                                            >
+                                                <AccountCard
                                             mapping={mapping}
                                             associations={associations}
                                             handleUnassociate={handleUnassociate}
                                             handleDrop={handleDrop}
                                             mtimeToColor={mtimeToColor}
                                         />
-                                    </Grid>
-                                ))}
-                            </Grid>
-                        )}
-                    </Grid>
+                                            </motion.div>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </Grid>
 
                     {/* Only display the Characters column if there are actually unassociated characters */}
                     {!noCharacters && (
                         <Grid item xs={12} md={6}>
                             <Grid container spacing={2} data-testid="available-characters">
-                                {availableCharacters.map((char) => (
+                                {availableCharacters.map((char, index) => (
                                     <Grid item xs={12} sm={6} key={`${char.charId}-${char.mtime}`}>
-                                        <CharacterCard
-                                            char={char}
-                                            handleDragStart={handleDragStart}
-                                            mtimeToColor={mtimeToColor}
-                                        />
+                                        <motion.div
+                                            variants={itemVariants}
+                                            initial="hidden"
+                                            animate="visible"
+                                            transition={{ delay: index * 0.05 }}
+                                        >
+                                            <CharacterCard
+                                                char={char}
+                                                handleDragStart={handleDragStart}
+                                                mtimeToColor={mtimeToColor}
+                                            />
+                                        </motion.div>
                                     </Grid>
                                 ))}
                             </Grid>
                         </Grid>
                     )}
-                </Grid>
+                    </Grid>
+                </motion.div>
             </Box>
 
             {confirmDialog}

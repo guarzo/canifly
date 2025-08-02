@@ -12,33 +12,28 @@ import (
 
 // AccountManagementService consolidates AccountService and AssociationService functionality
 type AccountManagementService struct {
-	accountRepo interfaces.AccountDataRepository
-	esiService  interfaces.ESIService
-	logger      interfaces.Logger
+	storage         interfaces.StorageService
+	userInfoFetcher interfaces.UserInfoFetcher
+	logger          interfaces.Logger
 }
 
 // NewAccountManagementService creates a new consolidated account management service
 func NewAccountManagementService(
-	accountRepo interfaces.AccountDataRepository,
-	esiService interfaces.ESIService,
+	storage interfaces.StorageService,
+	userInfoFetcher interfaces.UserInfoFetcher,
 	logger interfaces.Logger,
 ) *AccountManagementService {
 	return &AccountManagementService{
-		accountRepo: accountRepo,
-		esiService:  esiService,
-		logger:      logger,
+		storage:         storage,
+		userInfoFetcher: userInfoFetcher,
+		logger:          logger,
 	}
-}
-
-// SetESIService sets the ESI service after initialization to break circular dependency
-func (s *AccountManagementService) SetESIService(esiService interfaces.ESIService) {
-	s.esiService = esiService
 }
 
 // Account Management Methods (from AccountService)
 
 func (s *AccountManagementService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -78,11 +73,11 @@ func (s *AccountManagementService) FindOrCreateAccount(state string, char *model
 	}
 
 	accountData.Accounts = accounts
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
 }
 
 func (s *AccountManagementService) UpdateAccountName(accountID int64, accountName string) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -90,14 +85,14 @@ func (s *AccountManagementService) UpdateAccountName(accountID int64, accountNam
 	for i := range accountData.Accounts {
 		if accountData.Accounts[i].ID == accountID {
 			accountData.Accounts[i].Name = accountName
-			return s.accountRepo.SaveAccountData(accountData)
+			return s.storage.SaveAccountData(accountData)
 		}
 	}
 	return fmt.Errorf("account not found")
 }
 
 func (s *AccountManagementService) ToggleAccountStatus(accountID int64) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -110,14 +105,14 @@ func (s *AccountManagementService) ToggleAccountStatus(accountID int64) error {
 			} else {
 				accountData.Accounts[i].Status = model.Alpha
 			}
-			return s.accountRepo.SaveAccountData(accountData)
+			return s.storage.SaveAccountData(accountData)
 		}
 	}
 	return fmt.Errorf("account not found")
 }
 
 func (s *AccountManagementService) ToggleAccountVisibility(accountID int64) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -125,14 +120,14 @@ func (s *AccountManagementService) ToggleAccountVisibility(accountID int64) erro
 	for i := range accountData.Accounts {
 		if accountData.Accounts[i].ID == accountID {
 			accountData.Accounts[i].Visible = !accountData.Accounts[i].Visible
-			return s.accountRepo.SaveAccountData(accountData)
+			return s.storage.SaveAccountData(accountData)
 		}
 	}
 	return fmt.Errorf("account not found")
 }
 
 func (s *AccountManagementService) RemoveAccountByName(accountName string) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -150,11 +145,11 @@ func (s *AccountManagementService) RemoveAccountByName(accountName string) error
 	}
 
 	accountData.Accounts = updatedAccounts
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
 }
 
 func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +174,7 @@ func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.
 			char.Token = *newToken
 
 			// Update character data
-			updatedChar, err := s.esiService.GetUserInfo(newToken)
+			updatedChar, err := s.userInfoFetcher.GetUserInfo(newToken)
 			if err != nil {
 				s.logger.Errorf("Failed to get user info for character %d: %v", char.Character.CharacterID, err)
 				continue
@@ -189,19 +184,19 @@ func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.
 	}
 
 	// Save updated account data
-	if err := s.accountRepo.SaveAccountData(accountData); err != nil {
+	if err := s.storage.SaveAccountData(accountData); err != nil {
 		return nil, err
 	}
 
-	return &accountData, nil
+	return accountData, nil
 }
 
 func (s *AccountManagementService) DeleteAllAccounts() error {
-	return s.accountRepo.DeleteAccountData()
+	return s.storage.DeleteAccountData()
 }
 
 func (s *AccountManagementService) FetchAccounts() ([]model.Account, error) {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return nil, err
 	}
@@ -209,16 +204,16 @@ func (s *AccountManagementService) FetchAccounts() ([]model.Account, error) {
 }
 
 func (s *AccountManagementService) SaveAccounts(accounts []model.Account) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
 	accountData.Accounts = accounts
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
 }
 
 func (s *AccountManagementService) GetAccountNameByID(id string) (string, bool) {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return "", false
 	}
@@ -243,7 +238,7 @@ func (s *AccountManagementService) UpdateAssociationsAfterNewCharacter(account *
 }
 
 func (s *AccountManagementService) AssociateCharacter(userId, charId string) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -252,7 +247,7 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId string) err
 	for i, assoc := range accountData.Associations {
 		if assoc.CharId == charId {
 			accountData.Associations[i].UserId = userId
-			return s.accountRepo.SaveAccountData(accountData)
+			return s.storage.SaveAccountData(accountData)
 		}
 	}
 
@@ -262,11 +257,11 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId string) err
 		UserId: userId,
 	})
 
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
 }
 
 func (s *AccountManagementService) UnassociateCharacter(userId, charId string) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -280,7 +275,15 @@ func (s *AccountManagementService) UnassociateCharacter(userId, charId string) e
 	}
 
 	accountData.Associations = newAssociations
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
+}
+
+func (s *AccountManagementService) GetAssociations() ([]model.Association, error) {
+	accountData, err := s.storage.LoadAccountData()
+	if err != nil {
+		return nil, err
+	}
+	return accountData.Associations, nil
 }
 
 // Helper methods
@@ -295,7 +298,7 @@ func (s *AccountManagementService) findAccountByName(name string, accounts []mod
 }
 
 func (s *AccountManagementService) updateAssociationsAfterNewCharacter(account *model.Account, charID int64) error {
-	accountData, err := s.accountRepo.FetchAccountData()
+	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
@@ -314,7 +317,7 @@ func (s *AccountManagementService) updateAssociationsAfterNewCharacter(account *
 		UserId: fmt.Sprintf("%d", account.ID),
 	})
 
-	return s.accountRepo.SaveAccountData(accountData)
+	return s.storage.SaveAccountData(accountData)
 }
 
 func createNewAccountWithCharacterConsolidated(state string, token *oauth2.Token, char *model.UserInfoResponse) *model.Account {

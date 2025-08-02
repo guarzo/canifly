@@ -14,7 +14,6 @@ import (
 	"golang.org/x/oauth2"
 
 	flyErrors "github.com/guarzo/canifly/internal/errors"
-	"github.com/guarzo/canifly/internal/persist/eve"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -22,6 +21,7 @@ const (
 	maxRetries = 5
 	baseDelay  = 1 * time.Second
 	maxDelay   = 32 * time.Second
+	DefaultExpiration = 24 * time.Hour
 )
 
 var _ interfaces.EsiHttpClient = (*EsiHttpClient)(nil)
@@ -78,7 +78,7 @@ func (c *EsiHttpClient) GetJSONFromURL(url string, token *oauth2.Token, useCache
 
 	// Cache the response if needed
 	if useCache && c.CacheService != nil {
-		c.CacheService.Set(url, bodyBytes, eve.DefaultExpiration)
+		c.CacheService.Set(url, bodyBytes, DefaultExpiration)
 	}
 
 	return json.Unmarshal(bodyBytes, target)

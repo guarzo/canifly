@@ -14,40 +14,6 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-// MockAccountDataRepository mocks interfaces.AccountDataRepository
-type MockAccountDataRepository struct {
-	mock.Mock
-}
-
-func (m *MockAccountDataRepository) FetchAccountData() (model.AccountData, error) {
-	args := m.Called()
-	return args.Get(0).(model.AccountData), args.Error(1)
-}
-
-func (m *MockAccountDataRepository) SaveAccountData(data model.AccountData) error {
-	args := m.Called(data)
-	return args.Error(0)
-}
-
-func (m *MockAccountDataRepository) DeleteAccountData() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-func (m *MockAccountDataRepository) FetchAccounts() ([]model.Account, error) {
-	args := m.Called()
-	return args.Get(0).([]model.Account), args.Error(1)
-}
-
-func (m *MockAccountDataRepository) SaveAccounts(accounts []model.Account) error {
-	args := m.Called(accounts)
-	return args.Error(0)
-}
-
-func (m *MockAccountDataRepository) DeleteAccounts() error {
-	args := m.Called()
-	return args.Error(0)
-}
 
 // MockAssociationService mocks interfaces.AssociationService
 type MockAssociationService struct {
@@ -264,30 +230,7 @@ func (m *MockESIService) GetAlliance(id int64, token *oauth2.Token) (*model.Alli
 	return args.Get(0).(*model.Alliance), args.Error(1)
 }
 
-// MockCharacterService mocks interfaces.CharacterService
-type MockCharacterService struct {
-	mock.Mock
-}
-
-func (m *MockCharacterService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
-	args := m.Called(charIdentity)
-	return args.Get(0).(*model.CharacterIdentity), args.Error(1)
-}
-
-func (m *MockCharacterService) DoesCharacterExist(characterID int64) (bool, *model.CharacterIdentity, error) {
-	args := m.Called(characterID)
-	return args.Bool(0), args.Get(1).(*model.CharacterIdentity), args.Error(2)
-}
-
-func (m *MockCharacterService) UpdateCharacterFields(characterID int64, updates map[string]interface{}) error {
-	args := m.Called(characterID, updates)
-	return args.Error(0)
-}
-
-func (m *MockCharacterService) RemoveCharacter(characterID int64) error {
-	args := m.Called(characterID)
-	return args.Error(0)
-}
+// MockCharacterService removed - functionality now in EVEDataService
 
 // MockSkillService mocks interfaces.SkillService
 type MockSkillService struct {
@@ -374,8 +317,8 @@ func (m *MockAccountService) RemoveAccountByName(accountName string) error {
 	return args.Error(0)
 }
 
-func (m *MockAccountService) RefreshAccountData(characterService interfaces.CharacterService) (*model.AccountData, error) {
-	args := m.Called(characterService)
+func (m *MockAccountService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
+	args := m.Called(eveDataService)
 	return args.Get(0).(*model.AccountData), args.Error(1)
 }
 
@@ -397,6 +340,81 @@ func (m *MockAccountService) SaveAccounts(accounts []model.Account) error {
 func (m *MockAccountService) GetAccountNameByID(id string) (string, bool) {
 	args := m.Called(id)
 	return args.String(0), args.Bool(1)
+}
+
+// MockAccountManagementService mocks interfaces.AccountManagementService
+type MockAccountManagementService struct {
+	mock.Mock
+}
+
+func (m *MockAccountManagementService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
+	args := m.Called(state, char, token)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) UpdateAccountName(accountID int64, accountName string) error {
+	args := m.Called(accountID, accountName)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) ToggleAccountStatus(accountID int64) error {
+	args := m.Called(accountID)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) ToggleAccountVisibility(accountID int64) error {
+	args := m.Called(accountID)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) RemoveAccountByName(accountName string) error {
+	args := m.Called(accountName)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
+	args := m.Called(eveDataService)
+	return args.Get(0).(*model.AccountData), args.Error(1)
+}
+
+func (m *MockAccountManagementService) DeleteAllAccounts() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) FetchAccounts() ([]model.Account, error) {
+	args := m.Called()
+	return args.Get(0).([]model.Account), args.Error(1)
+}
+
+func (m *MockAccountManagementService) SaveAccounts(accounts []model.Account) error {
+	args := m.Called(accounts)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) GetAccountNameByID(id string) (string, bool) {
+	args := m.Called(id)
+	return args.String(0), args.Bool(1)
+}
+
+func (m *MockAccountManagementService) UpdateAssociationsAfterNewCharacter(account *model.Account, charID int64) error {
+	args := m.Called(account, charID)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) AssociateCharacter(userId, charId string) error {
+	args := m.Called(userId, charId)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) UnassociateCharacter(userId, charId string) error {
+	args := m.Called(userId, charId)
+	return args.Error(0)
+}
+
+func (m *MockAccountManagementService) GetAssociations() ([]model.Association, error) {
+	args := m.Called()
+	return args.Get(0).([]model.Association), args.Error(1)
 }
 
 // MockConfigService mocks interfaces.ConfigService
@@ -482,29 +500,7 @@ func (m *MockEveProfilesService) SyncAllDir(baseSubDir, charId, userId string) (
 	return args.Int(0), args.Int(1), args.Error(2)
 }
 
-// MockAppStateService mocks interfaces.AppStateService
-type MockAppStateService struct {
-	mock.Mock
-}
-
-func (m *MockAppStateService) UpdateAndSaveAppState(state model.AppState) error {
-	args := m.Called(state)
-	return args.Error(0)
-}
-
-func (m *MockAppStateService) GetAppState() model.AppState {
-	args := m.Called()
-	return args.Get(0).(model.AppState)
-}
-
-func (m *MockAppStateService) SetAppStateLogin(isLoggedIn bool) error {
-	args := m.Called(isLoggedIn)
-	return args.Error(0)
-}
-
-func (m *MockAppStateService) ClearAppState() {
-	m.Called()
-}
+// MockAppStateService removed - AppState no longer used
 
 // MockLogger mocks interfaces.Logger
 type MockLogger struct{}
@@ -523,49 +519,6 @@ func (m *MockLogger) WithError(err error) interfaces.Logger                     
 func (m *MockLogger) WithField(key string, value interface{}) interfaces.Logger  { return m }
 func (m *MockLogger) WithFields(fields map[string]interface{}) interfaces.Logger { return m }
 
-// MockConfigRepository mocks interfaces.ConfigRepository
-type MockConfigRepository struct {
-	mock.Mock
-}
-
-func (m *MockConfigRepository) BackupJSONFiles(backupDir string) error {
-	return nil
-}
-
-func (m *MockConfigRepository) FetchConfigData() (*model.ConfigData, error) {
-	args := m.Called()
-	return args.Get(0).(*model.ConfigData), args.Error(1)
-}
-
-func (m *MockConfigRepository) SaveConfigData(configData *model.ConfigData) error {
-	args := m.Called(configData)
-	return args.Error(0)
-}
-
-func (m *MockConfigRepository) FetchUserSelections() (model.DropDownSelections, error) {
-	args := m.Called()
-	return args.Get(0).(model.DropDownSelections), args.Error(1)
-}
-
-func (m *MockConfigRepository) SaveUserSelections(selections model.DropDownSelections) error {
-	args := m.Called(selections)
-	return args.Error(0)
-}
-
-func (m *MockConfigRepository) FetchRoles() ([]string, error) {
-	args := m.Called()
-	return args.Get(0).([]string), args.Error(1)
-}
-
-func (m *MockConfigRepository) SaveRoles(roles []string) error {
-	args := m.Called(roles)
-	return args.Error(0)
-}
-
-func (m *MockConfigRepository) GetDefaultSettingsDir() (string, error) {
-	args := m.Called()
-	return args.String(0), args.Error(1)
-}
 
 // Mock for SystemRepository
 type MockSystemRepository struct {
@@ -610,19 +563,6 @@ func (m *MockAuthClient) ExchangeCode(code string) (*oauth2.Token, error) {
 	return args.Get(0).(*oauth2.Token), args.Error(1)
 }
 
-type MockDeletedCharactersRepository struct {
-	mock.Mock
-}
-
-func (m *MockDeletedCharactersRepository) FetchDeletedCharacters() ([]string, error) {
-	args := m.Called()
-	return args.Get(0).([]string), args.Error(1)
-}
-
-func (m *MockDeletedCharactersRepository) SaveDeletedCharacters(chars []string) error {
-	args := m.Called(chars)
-	return args.Error(0)
-}
 
 type MockCacheService struct {
 	mock.Mock
@@ -740,22 +680,4 @@ func (m *MockSessionService) Get(r *http.Request, name string) (*sessions.Sessio
 	return session, nil
 }
 
-// MockDashboardService is a testify mock for DashboardService
-type MockDashboardService struct {
-	mock.Mock
-}
-
-func (m *MockDashboardService) RefreshAccountsAndState() (model.AppState, error) {
-	args := m.Called()
-	return args.Get(0).(model.AppState), args.Error(1)
-}
-
-func (m *MockDashboardService) RefreshDataInBackground() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-func (m *MockDashboardService) GetCurrentAppState() model.AppState {
-	args := m.Called()
-	return args.Get(0).(model.AppState)
-}
+// MockDashboardService removed - Dashboard/AppState no longer used

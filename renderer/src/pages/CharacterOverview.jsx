@@ -1,6 +1,7 @@
 // src/pages/CharacterOverview.jsx
 
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import AccountCard from '../components/dashboard/AccountCard.jsx';
 import GroupCard from '../components/dashboard/GroupCard.jsx';
 import {
@@ -200,7 +201,7 @@ const CharacterOverview = ({ roles, skillConversions }) => {
         );
 
     return (
-        <div className="bg-gray-900 min-h-screen text-teal-200 px-4 pb-10 pt-16">
+        <div className="min-h-screen px-4 pb-10 pt-16">
             <PageHeader
                 title="Character Overview"
                 instructions={overviewInstructions}
@@ -318,55 +319,93 @@ const CharacterOverview = ({ roles, skillConversions }) => {
             </Box>
 
             {/* RENDER LOGIC */}
+            <AnimatePresence mode="wait">
             {view === 'account' ? (
                 /* ------------- ACCOUNT VIEW ------------- */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <motion.div 
+                    key="account-view"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                >
                     {filteredAndSortedAccounts.length === 0 ? (
-                        <Box textAlign="center" mt={4}>
+                        <Box textAlign="center" mt={4} gridColumn="1 / -1">
                             <Typography variant="body1" sx={{ color: '#99f6e4' }}>
                                 No accounts found.
                             </Typography>
                         </Box>
                     ) : (
-                        filteredAndSortedAccounts.map((account) => (
-                            <AccountCard
+                        filteredAndSortedAccounts.map((account, index) => (
+                            <motion.div
                                 key={account.ID}
-                                account={account}
-                                onToggleAccountStatus={handleToggleAccountStatus}
-                                onUpdateAccountName={handleUpdateAccountName}
-                                onUpdateCharacter={handleUpdateCharacter}
-                                onRemoveCharacter={handleRemoveCharacter}
-                                onRemoveAccount={handleRemoveAccount}
-                                roles={roles}
-                                skillConversions={skillConversions}
-                                onToggleAccountVisibility={handleToggleAccountVisibility}
-                            />
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ 
+                                    duration: 0.3,
+                                    delay: index * 0.05,
+                                    type: "spring",
+                                    stiffness: 100
+                                }}
+                            >
+                                <AccountCard
+                                    account={account}
+                                    onToggleAccountStatus={handleToggleAccountStatus}
+                                    onUpdateAccountName={handleUpdateAccountName}
+                                    onUpdateCharacter={handleUpdateCharacter}
+                                    onRemoveCharacter={handleRemoveCharacter}
+                                    onRemoveAccount={handleRemoveAccount}
+                                    roles={roles}
+                                    skillConversions={skillConversions}
+                                    onToggleAccountVisibility={handleToggleAccountVisibility}
+                                />
+                            </motion.div>
                         ))
                     )}
-                </div>
+                </motion.div>
             ) : (
                 /* ------------- GROUP VIEW (ROLE or LOCATION) ------------- */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <motion.div 
+                    key="group-view"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                >
                     {sortedGroups.length === 0 ? (
-                        <Box textAlign="center" mt={4}>
+                        <Box textAlign="center" mt={4} gridColumn="1 / -1">
                             <Typography variant="body1" sx={{ color: '#99f6e4' }}>
                                 No characters found.
                             </Typography>
                         </Box>
                     ) : (
-                        sortedGroups.map((group) => (
-                            <GroupCard
+                        sortedGroups.map((group, index) => (
+                            <motion.div
                                 key={group}
-                                groupName={group}
-                                characters={mapToDisplay[group] || []}
-                                onUpdateCharacter={handleUpdateCharacter}
-                                roles={roles}
-                                skillConversions={skillConversions}
-                            />
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ 
+                                    duration: 0.3,
+                                    delay: index * 0.05,
+                                    type: "spring",
+                                    stiffness: 100
+                                }}
+                            >
+                                <GroupCard
+                                    groupName={group}
+                                    characters={mapToDisplay[group] || []}
+                                    onUpdateCharacter={handleUpdateCharacter}
+                                    roles={roles}
+                                    skillConversions={skillConversions}
+                                />
+                            </motion.div>
                         ))
                     )}
-                </div>
+                </motion.div>
             )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -1,6 +1,8 @@
 package interfaces
 
 import (
+	"time"
+	
 	"github.com/guarzo/canifly/internal/model"
 	"golang.org/x/oauth2"
 )
@@ -33,6 +35,7 @@ type EVEDataService interface {
 	DeleteSkillPlan(name string) error
 	GetSkillTypeByID(id string) (model.SkillType, bool)
 	GetPlanAndConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string)
+	ListSkillPlans() ([]string, error)
 
 	// Eve Profile Management (from EveProfilesService)
 	LoadCharacterSettings() ([]model.EveProfile, error)
@@ -44,4 +47,11 @@ type EVEDataService interface {
 	SaveCache() error
 	LoadCache() error
 	SaveEsiCache() error
+	
+	// CacheService methods (so EVEDataService can act as its own cache)
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte, expiration time.Duration)
+	
+	// HTTP Client setter (for circular dependency resolution)
+	SetHTTPClient(httpClient EsiHttpClient)
 }

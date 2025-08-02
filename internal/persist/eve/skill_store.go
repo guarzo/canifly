@@ -84,7 +84,7 @@ func (s *SkillStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 		sb.WriteString(fmt.Sprintf("%s %d\n", skillName, skill.Level))
 	}
 
-	if err := s.fs.WriteFile(planFilePath, []byte(sb.String()), 0644); err != nil {
+	if err := persist.AtomicWriteFile(s.fs, planFilePath, []byte(sb.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write plan file: %w", err)
 	}
 
@@ -212,6 +212,33 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (map[string]model.Skill
 
 func (s *SkillStore) LoadSkillTypes() error {
 	s.logger.Infof("load skill types")
+	
+	// Try to load from downloaded Fuzzworks data first
+	fuzzworksPath := filepath.Join(s.basePath, "config", "fuzzworks", "invTypes.csv")
+	if file, err := os.Open(fuzzworksPath); err == nil {
+		defer file.Close()
+		s.logger.Infof("Loading skill types from Fuzzworks data: %s", fuzzworksPath)
+		
+		records, err := persist.ReadCsvRecords(file)
+		if err != nil {
+			s.logger.Warnf("Failed to read Fuzzworks CSV: %v, falling back to embedded data", err)
+		} else {
+			skillTypes, skillIDTypes, err := s.parseSkillTypes(records)
+			if err != nil {
+				s.logger.Warnf("Failed to parse Fuzzworks data: %v, falling back to embedded data", err)
+			} else {
+				s.mut.Lock()
+				s.skillTypes = skillTypes
+				s.skillIdToType = skillIDTypes
+				s.mut.Unlock()
+				s.logger.Debugf("Loaded %d skill types from Fuzzworks data", len(skillTypes))
+				return nil
+			}
+		}
+	}
+	
+	// Fall back to embedded data
+	s.logger.Infof("Loading skill types from embedded data")
 	file, err := embed.StaticFiles.Open(skillTypeFile)
 	if err != nil {
 		return fmt.Errorf("failed to open eve type file %s: %w", skillTypeFile, err)
@@ -233,7 +260,7 @@ func (s *SkillStore) LoadSkillTypes() error {
 	s.skillIdToType = skillIDTypes
 	s.mut.Unlock()
 
-	s.logger.Debugf("Loaded %d eve types", len(skillTypes))
+	s.logger.Debugf("Loaded %d skill types from embedded data", len(skillTypes))
 	return nil
 }
 
@@ -346,14 +373,10 @@ func (s *SkillStore) saveDeletedEmbeddedPlans(deletedPlans map[string]bool) erro
 	for name := range deletedPlans {
 		planNames = append(planNames, name)
 	}
-	data, err := json.MarshalIndent(planNames, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal deleted embedded plans: %w", err)
-	}
-
+	
 	deletedListPath := filepath.Join(s.basePath, plansDir, "deleted_embedded_plans.json")
-	if err := s.fs.WriteFile(deletedListPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write deleted embedded plans file: %w", err)
+	if err := persist.AtomicWriteJSON(s.fs, deletedListPath, planNames); err != nil {
+		return fmt.Errorf("failed to save deleted embedded plans: %w", err)
 	}
 	return nil
 }

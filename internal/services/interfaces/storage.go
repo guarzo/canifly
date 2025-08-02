@@ -17,9 +17,7 @@ type StorageService interface {
 	LoadConfigData() (*model.ConfigData, error)
 	SaveConfigData(data *model.ConfigData) error
 
-	// App State
-	LoadAppState() (*model.AppState, error)
-	SaveAppState(state *model.AppState) error
+	// App State methods removed - login state tracked via session only
 
 	// EVE Profiles
 	LoadEveProfiles() (map[string]interface{}, error)

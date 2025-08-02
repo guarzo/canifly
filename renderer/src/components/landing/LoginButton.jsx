@@ -65,12 +65,13 @@ const LoginButton = ({ onModalOpenChange }) => {
             <button
                 onClick={handleOpenModal}
                 aria-label="Login with Eve SSO"
-                className="inline-flex items-center py-3 px-6 rounded-md transition duration-300 hover:bg-teal-700 bg-teal-600 dark:bg-teal-500 dark:hover:bg-teal-600"
+                className="group relative inline-flex items-center py-4 px-8 rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 transition-all duration-300 transform hover:scale-105 hover:shadow-glow-lg"
             >
+                <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/20 to-blue-500/20 blur-xl group-hover:blur-2xl transition-all duration-300" />
                 <img
                     src={eveSsoImage}
                     alt="Login with Eve SSO"
-                    className="h-16 w-auto object-contain"
+                    className="relative h-16 w-auto object-contain filter brightness-110"
                 />
             </button>
             <AccountPromptModal

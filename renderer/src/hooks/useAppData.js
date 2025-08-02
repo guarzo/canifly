@@ -7,10 +7,10 @@ export function useAppData() {
   const {
     accounts,
     config,
-    dashboards,
     selectedAccountId,
     selectedCharacterId,
     refreshKey,
+    hasInitialFetch,
     loading,
     error,
     fetchAppData,
@@ -29,10 +29,10 @@ export function useAppData() {
   const { execute } = useAsyncOperation();
 
   useEffect(() => {
-    if (isAuthenticated && accounts.length === 0) {
+    if (isAuthenticated && !hasInitialFetch) {
       execute(() => fetchAppData(false), { showToast: false });
     }
-  }, [isAuthenticated, accounts.length, fetchAppData, execute]);
+  }, [isAuthenticated, hasInitialFetch, fetchAppData, execute]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -100,13 +100,12 @@ export function useAppData() {
   return {
     accounts,
     config,
-    dashboards,
     selectedAccountId,
     selectedCharacterId,
     refreshKey,
     loading,
     error,
-    isLoading: loading.accounts || loading.config || loading.dashboards,
+    isLoading: loading.accounts || loading.config,
     fetchAppData: (forceRefresh) => execute(() => fetchAppData(forceRefresh), { showToast: false }),
     fetchAccounts: () => execute(fetchAccounts, { showToast: false }),
     fetchConfig: () => execute(fetchConfig, { showToast: false }),

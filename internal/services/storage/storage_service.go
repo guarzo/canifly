@@ -46,7 +46,7 @@ func (s *StorageService) SaveJSON(filename string, v interface{}) error {
 	defer s.mu.Unlock()
 
 	filePath := filepath.Join(s.basePath, filename)
-	return persist.SaveJsonToFile(s.fs, filePath, v)
+	return persist.AtomicWriteJSON(s.fs, filePath, v)
 }
 
 // Account Data Operations
@@ -105,23 +105,7 @@ func (s *StorageService) SaveConfigData(data *model.ConfigData) error {
 	return s.SaveJSON("config.json", data)
 }
 
-// App State Operations
-
-func (s *StorageService) LoadAppState() (*model.AppState, error) {
-	var state model.AppState
-	
-	err := s.LoadJSON("appstate.json", &state)
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		// Return default state if file doesn't exist
-		return &model.AppState{LoggedIn: false}, nil
-	}
-	
-	return &state, err
-}
-
-func (s *StorageService) SaveAppState(state *model.AppState) error {
-	return s.SaveJSON("appstate.json", state)
-}
+// App State operations have been removed - login state is tracked via session only
 
 // EVE Profile Operations
 
@@ -146,7 +130,7 @@ func (s *StorageService) SaveEveProfiles(data map[string]interface{}) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 	
-	return persist.SaveJsonToFile(s.fs, filePath, data)
+	return persist.AtomicWriteJSON(s.fs, filePath, data)
 }
 
 // Skill Plan Operations
@@ -165,13 +149,8 @@ func (s *StorageService) SaveSkillPlan(filename string, content []byte) error {
 
 	filePath := filepath.Join(s.basePath, "plans", filename)
 	
-	// Ensure directory exists
-	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-	
-	return s.fs.WriteFile(filePath, content, 0644)
+	// AtomicWriteFile handles directory creation
+	return persist.AtomicWriteFile(s.fs, filePath, content, 0644)
 }
 
 func (s *StorageService) ListSkillPlans() ([]string, error) {
