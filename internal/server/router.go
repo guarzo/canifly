@@ -23,7 +23,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 
 	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EVEDataService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
-	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.EVEDataService)
+	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.EVEDataService, appServices.HTTPCacheService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
 	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigurationService, appServices.HTTPCacheService)
 	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService, appServices.ConfigurationService, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService)
@@ -62,6 +62,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/characters/{id}", characterHandler.GetCharacter()).Methods("GET")
 	r.HandleFunc("/api/characters/{id}", characterHandler.UpdateCharacterRESTful()).Methods("PATCH")
 	r.HandleFunc("/api/characters/{id}", characterHandler.DeleteCharacter()).Methods("DELETE")
+	r.HandleFunc("/api/characters/{id}/refresh", characterHandler.RefreshCharacter()).Methods("POST")
 	
 
 	// RESTful config endpoints

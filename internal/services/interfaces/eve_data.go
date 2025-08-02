@@ -24,6 +24,7 @@ type EVEDataService interface {
 	DoesCharacterExist(characterID int64) (bool, *model.CharacterIdentity, error)
 	UpdateCharacterFields(characterID int64, updates map[string]interface{}) error
 	RemoveCharacter(characterID int64) error
+	RefreshCharacterData(characterID int64) (bool, error)
 
 	// Skill Plan Management (from SkillService)
 	GetSkillPlans() map[string]model.SkillPlan
@@ -54,4 +55,7 @@ type EVEDataService interface {
 	
 	// HTTP Client setter (for circular dependency resolution)
 	SetHTTPClient(httpClient EsiHttpClient)
+	
+	// Account Management setter (for circular dependency resolution)
+	SetAccountManagementService(accountMgmt AccountManagementService)
 }

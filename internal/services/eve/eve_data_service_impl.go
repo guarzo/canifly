@@ -376,6 +376,58 @@ func (s *EVEDataServiceImpl) RemoveCharacter(characterID int64) error {
 	return fmt.Errorf("character not found")
 }
 
+func (s *EVEDataServiceImpl) RefreshCharacterData(characterID int64) (bool, error) {
+	s.logger.Infof("RefreshCharacterData called for character ID: %d", characterID)
+	
+	accounts, err := s.accountMgmt.FetchAccounts()
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch accounts: %w", err)
+	}
+
+	// Find the character
+	for i := range accounts {
+		for j := range accounts[i].Characters {
+			if accounts[i].Characters[j].Character.CharacterID == characterID {
+				charIdentity := &accounts[i].Characters[j]
+				s.logger.Infof("Found character: %s (ID: %d)", charIdentity.Character.CharacterName, characterID)
+				
+				// Check if token is expired
+				if time.Now().After(charIdentity.Token.Expiry) {
+					s.logger.Warnf("Token expired for character %s", charIdentity.Character.CharacterName)
+					return false, fmt.Errorf("token expired")
+				}
+				
+				s.logger.Infof("Token valid until %v, proceeding with refresh", charIdentity.Token.Expiry)
+				
+				// Update character using existing ProcessIdentity method
+				updatedChar, err := s.ProcessIdentity(charIdentity)
+				if err != nil {
+					s.logger.Errorf("ProcessIdentity failed: %v", err)
+					return false, fmt.Errorf("failed to update character: %w", err)
+				}
+				
+				s.logger.Infof("ProcessIdentity completed, skills: %d, total SP: %d", 
+					len(updatedChar.Character.CharacterSkillsResponse.Skills),
+					updatedChar.Character.CharacterSkillsResponse.TotalSP)
+				
+				// Update the character in the accounts slice
+				accounts[i].Characters[j] = *updatedChar
+				
+				// Save updated accounts
+				if err := s.accountMgmt.SaveAccounts(accounts); err != nil {
+					return false, fmt.Errorf("failed to save accounts: %w", err)
+				}
+				
+				s.logger.Infof("Character data saved successfully")
+				return true, nil
+			}
+		}
+	}
+	
+	s.logger.Warnf("Character ID %d not found in any account", characterID)
+	return false, fmt.Errorf("character not found")
+}
+
 // Skill Plan Management
 func (s *EVEDataServiceImpl) GetSkillPlans() map[string]model.SkillPlan {
 	return s.skillRepo.GetSkillPlans()

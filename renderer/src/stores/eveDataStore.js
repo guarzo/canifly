@@ -43,9 +43,9 @@ const useEveDataStore = create(
             apiService.getEveConversions()
           ]);
 
-          const skillPlans = skillPlansRes?.data || {};
-          const eveProfiles = eveProfilesRes?.data || [];
-          const eveConversions = eveConversionsRes?.data || {};
+          const skillPlans = skillPlansRes || {};
+          const eveProfiles = eveProfilesRes || [];
+          const eveConversions = eveConversionsRes || {};
 
           set({
             skillPlans,
@@ -75,7 +75,7 @@ const useEveDataStore = create(
         set({ loading: { ...get().loading, skillPlans: true } });
         try {
           const response = await apiService.getEveSkillPlans();
-          const skillPlans = response?.data || {};
+          const skillPlans = response || {};
           set({ 
             skillPlans,
             loading: { ...get().loading, skillPlans: false },
@@ -96,7 +96,7 @@ const useEveDataStore = create(
         set({ loading: { ...get().loading, eveProfiles: true } });
         try {
           const response = await apiService.getEveProfiles();
-          const eveProfiles = response?.data || [];
+          const eveProfiles = response || [];
           set({ 
             eveProfiles,
             loading: { ...get().loading, eveProfiles: false },
@@ -117,7 +117,7 @@ const useEveDataStore = create(
         set({ loading: { ...get().loading, eveConversions: true } });
         try {
           const response = await apiService.getEveConversions();
-          const eveConversions = response?.data || {};
+          const eveConversions = response || {};
           set({ 
             eveConversions,
             loading: { ...get().loading, eveConversions: false },

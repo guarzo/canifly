@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,16 +11,19 @@ import (
 
 type CharacterHandler struct {
 	logger           interfaces.Logger
-	eveDataService interfaces.EVEDataService
+	eveDataService   interfaces.EVEDataService
+	cache            interfaces.HTTPCacheService
 }
 
 func NewCharacterHandler(
 	l interfaces.Logger,
 	e interfaces.EVEDataService,
+	c interfaces.HTTPCacheService,
 ) *CharacterHandler {
 	return &CharacterHandler{
 		logger:           l,
 		eveDataService: e,
+		cache:           c,
 	}
 }
 
@@ -85,5 +89,43 @@ func (h *CharacterHandler) DeleteCharacter() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// RESTful endpoint: POST /api/characters/:id/refresh
+func (h *CharacterHandler) RefreshCharacter() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		characterID, err := strconv.ParseInt(vars["id"], 10, 64)
+		if err != nil {
+			respondError(w, "Invalid character ID", http.StatusBadRequest)
+			return
+		}
+
+		// Use EVE data service to refresh the character
+		updated, err := h.eveDataService.RefreshCharacterData(characterID)
+		if err != nil {
+			if err.Error() == "character not found" {
+				respondError(w, "Character not found", http.StatusNotFound)
+			} else if err.Error() == "token expired" {
+				respondError(w, "Authentication token expired", http.StatusUnauthorized)
+			} else {
+				respondError(w, fmt.Sprintf("Failed to refresh character: %v", err), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Clear account cache to ensure fresh data on next fetch
+		if h.cache != nil {
+			// Invalidate all account cache entries
+			h.cache.Invalidate("accounts:list:*")
+			h.logger.Info("Cleared account cache after character refresh")
+		}
+		
+		respondJSON(w, map[string]interface{}{
+			"success": true,
+			"message": "Character refreshed successfully",
+			"updated": updated,
+		})
 	}
 }

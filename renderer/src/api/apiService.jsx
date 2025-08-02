@@ -107,6 +107,17 @@ export async function updateAccount(accountID, updates) {
     });
 }
 
+// Refresh character data from ESI
+export async function refreshCharacter(characterID) {
+    return apiRequest(`/api/characters/${characterID}/refresh`, {
+        method: 'POST',
+        credentials: 'include'
+    }, {
+        successMessage: 'Character data refreshed successfully!',
+        errorMessage: 'Failed to refresh character data.'
+    });
+}
+
 // Get all skill plans
 export async function getSkillPlans() {
     return apiRequest(`/api/skill-plans`, {

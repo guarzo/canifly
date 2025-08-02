@@ -20,20 +20,35 @@ import {
     Place,
     Visibility as VisibilityIcon,
     VisibilityOff as VisibilityOffIcon,
+    Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { overviewInstructions } from '../utils/instructions.jsx';
 import PageHeader from '../components/common/SubPageHeader.jsx';
 import { useAppData } from '../hooks/useAppData';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
-import apiService from '../api/apiService';
+import * as apiService from '../api/apiService';
 
 const CharacterOverview = ({ roles, skillConversions }) => {
-    const { accounts, updateAccount, deleteAccount } = useAppData();
+    const { accounts, updateAccount, deleteAccount, refreshData } = useAppData();
     const { execute } = useAsyncOperation();
     
     const [view, setView] = useState('account');
     const [sortOrder, setSortOrder] = useState('asc');
     const [showHiddenAccounts, setShowHiddenAccounts] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // Debug: Log the accounts data
+    React.useEffect(() => {
+        console.log('CharacterOverview - accounts:', accounts);
+        if (accounts && accounts.length > 0) {
+            console.log('First account:', accounts[0]);
+            if (accounts[0].Characters && accounts[0].Characters.length > 0) {
+                console.log('First character:', accounts[0].Characters[0]);
+                console.log('Character skills response:', accounts[0].Characters[0].Character?.CharacterSkillsResponse);
+                console.log('Total SP:', accounts[0].Characters[0].Character?.CharacterSkillsResponse?.total_sp);
+            }
+        }
+    }, [accounts]);
 
     const toggleSortOrder = () => {
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -69,6 +84,39 @@ const CharacterOverview = ({ roles, skillConversions }) => {
             () => apiService.deleteCharacter(characterId),
             { successMessage: 'Character removed' }
         );
+    };
+    
+    const handleRefreshAll = async () => {
+        setIsRefreshing(true);
+        try {
+            let successCount = 0;
+            console.log('Starting refresh for all characters...');
+            console.log('Accounts:', accounts);
+            
+            for (const account of accounts) {
+                for (const character of account.Characters) {
+                    try {
+                        console.log(`Refreshing character ${character.Character.CharacterName} (ID: ${character.Character.CharacterID})`);
+                        const result = await apiService.refreshCharacter(character.Character.CharacterID);
+                        console.log(`Refresh result for ${character.Character.CharacterName}:`, result);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Failed to refresh character ${character.Character.CharacterName}:`, error);
+                    }
+                }
+            }
+            
+            console.log(`Refreshed ${successCount} characters successfully`);
+            
+            if (successCount > 0) {
+                // Refresh the accounts data to show updated skills
+                console.log('Refreshing account data...');
+                await refreshData();
+                console.log('Account data refreshed');
+            }
+        } finally {
+            setIsRefreshing(false);
+        }
     };
     
     const handleRemoveAccount = async (accountId) => {
@@ -296,9 +344,31 @@ const CharacterOverview = ({ roles, skillConversions }) => {
                     </IconButton>
                 </Box>
 
-                {/* Show/Hide hidden accounts toggle
-                    (Removed the `view === 'account' &&` check, so it’s always visible) */}
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                {/* Show/Hide hidden accounts toggle and Refresh button */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Tooltip title="Refresh all character data from ESI">
+                        <IconButton
+                            onClick={handleRefreshAll}
+                            disabled={isRefreshing}
+                            sx={{
+                                color: '#14b8a6',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                                },
+                                '&.Mui-disabled': {
+                                    color: '#6b7280',
+                                },
+                            }}
+                        >
+                            <RefreshIcon sx={{ 
+                                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                                '@keyframes spin': {
+                                    '0%': { transform: 'rotate(0deg)' },
+                                    '100%': { transform: 'rotate(360deg)' },
+                                },
+                            }} />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip
                         title={
                             showHiddenAccounts

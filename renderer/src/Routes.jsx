@@ -1,5 +1,6 @@
 // src/Routes.jsx
 
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
@@ -16,6 +17,12 @@ function AppRoutes({ characters }) {
     const { isAuthenticated } = useAuth();
     const { accounts, associations, config, isLoading } = useAppData();
     const { skillPlans, eveProfiles, eveConversions, loading: eveLoading } = useEveData();
+    
+    // Debug logging
+    React.useEffect(() => {
+        console.log('Routes - associations:', associations);
+        console.log('Routes - eveProfiles:', eveProfiles);
+    }, [associations, eveProfiles]);
     
     if (!isAuthenticated) {
         return <Landing />;

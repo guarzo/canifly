@@ -24,6 +24,12 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
     const [associations, setAssociations] = useState(initialAssociations);
     const [mtimeToColor, setMtimeToColor] = useState({});
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
+    
+    // Debug: Log the props
+    React.useEffect(() => {
+        console.log('Mapping - associations:', associations);
+        console.log('Mapping - subDirs:', subDirs);
+    }, [associations, subDirs]);
 
     useEffect(() => {
         if (subDirs.length === 0) return;

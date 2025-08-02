@@ -18,6 +18,13 @@ const SkillPlans = ({ characters, skillPlans, conversions }) => {
     const [view, setView] = useState('characters'); // 'characters' or 'plans'
     const { execute } = useAsyncOperation();
     
+    // Debug: Log the props
+    React.useEffect(() => {
+        console.log('SkillPlans - characters:', characters);
+        console.log('SkillPlans - skillPlans:', skillPlans);
+        console.log('SkillPlans - conversions:', conversions);
+    }, [characters, skillPlans, conversions]);
+    
     const handleCopySkillPlan = async (planName, newPlanName) => {
         return execute(
             () => apiService.copySkillPlan(planName, newPlanName),
