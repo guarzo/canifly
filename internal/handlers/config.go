@@ -39,14 +39,14 @@ func (h *ConfigHandler) GetConfig() http.HandlerFunc {
 			if err != nil {
 				return nil, err
 			}
-			
+
 			configData := map[string]interface{}{
-				"settingsDir": config.SettingsDir,
-				"roles": config.Roles,
+				"settingsDir":    config.SettingsDir,
+				"roles":          config.Roles,
 				"userSelections": config.DropDownSelections,
-				"lastBackupDir": config.LastBackupDir,
+				"lastBackupDir":  config.LastBackupDir,
 			}
-			
+
 			// Return in the format the frontend expects
 			return map[string]interface{}{
 				"data": configData,
@@ -59,16 +59,16 @@ func (h *ConfigHandler) GetConfig() http.HandlerFunc {
 func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request struct {
-			SettingsDir    *string                    `json:"settingsDir,omitempty"`
+			SettingsDir    *string                   `json:"settingsDir,omitempty"`
 			UserSelections *model.DropDownSelections `json:"userSelections,omitempty"`
 			Roles          *[]string                 `json:"roles,omitempty"`
 		}
-		
+
 		if err := decodeJSONBody(r, &request); err != nil {
 			respondError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		// Update settings directory if provided
 		if request.SettingsDir != nil {
 			if err := h.configService.UpdateSettingsDir(*request.SettingsDir); err != nil {
@@ -76,7 +76,7 @@ func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 				return
 			}
 		}
-		
+
 		// Update user selections if provided
 		if request.UserSelections != nil {
 			if err := h.configService.SaveUserSelections(*request.UserSelections); err != nil {
@@ -84,7 +84,7 @@ func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 				return
 			}
 		}
-		
+
 		// Update roles if provided
 		if request.Roles != nil {
 			if err := h.configService.SaveRoles(*request.Roles); err != nil {
@@ -92,10 +92,10 @@ func (h *ConfigHandler) UpdateConfig() http.HandlerFunc {
 				return
 			}
 		}
-		
+
 		// Invalidate config cache after successful update
 		InvalidateCache(h.cache, "config:")
-		
+
 		respondJSON(w, map[string]bool{"success": true})
 	}
 }
@@ -108,10 +108,10 @@ func (h *ConfigHandler) GetEVEConfigStatus() http.HandlerFunc {
 			respondError(w, fmt.Sprintf("Failed to check EVE configuration: %v", err), http.StatusInternalServerError)
 			return
 		}
-		
+
 		respondJSON(w, map[string]interface{}{
 			"needsConfiguration": needsConfig,
-			"callbackURL": "http://localhost:42423/callback",
+			"callbackURL":        "http://localhost:42423/callback",
 		})
 	}
 }
@@ -123,25 +123,25 @@ func (h *ConfigHandler) SaveEVECredentials() http.HandlerFunc {
 			ClientID     string `json:"clientId"`
 			ClientSecret string `json:"clientSecret"`
 		}
-		
+
 		if err := decodeJSONBody(r, &request); err != nil {
 			respondError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		
+
 		if request.ClientID == "" || request.ClientSecret == "" {
 			respondError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
 			return
 		}
-		
+
 		if err := h.configService.SaveEVECredentials(request.ClientID, request.ClientSecret); err != nil {
 			respondError(w, fmt.Sprintf("Failed to save EVE credentials: %v", err), http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Invalidate config cache after successful update
 		InvalidateCache(h.cache, "config:")
-		
+
 		respondJSON(w, map[string]bool{"success": true})
 	}
 }

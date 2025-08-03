@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	FuzzworkInvTypesURL    = "https://www.fuzzwork.co.uk/dump/latest/invTypes.csv.bz2"
+	FuzzworkInvTypesURL     = "https://www.fuzzwork.co.uk/dump/latest/invTypes.csv.bz2"
 	FuzzworkSolarSystemsURL = "https://www.fuzzwork.co.uk/dump/latest/mapSolarSystems.csv.bz2"
-	MaxRetries             = 3
-	RequestTimeout         = 60 * time.Second
-	MetadataFile          = "fuzzworks_metadata.json"
+	MaxRetries              = 3
+	RequestTimeout          = 60 * time.Second
+	MetadataFile            = "fuzzworks_metadata.json"
 )
 
 type DataType string
@@ -49,17 +49,17 @@ type Metadata struct {
 }
 
 type Service struct {
-	logger       interfaces.Logger
-	httpClient   *http.Client
-	dataPath     string
-	metadata     Metadata
-	metadataMux  sync.RWMutex
-	forceUpdate  bool
+	logger      interfaces.Logger
+	httpClient  *http.Client
+	dataPath    string
+	metadata    Metadata
+	metadataMux sync.RWMutex
+	forceUpdate bool
 }
 
 func New(logger interfaces.Logger, basePath string, forceUpdate bool) *Service {
 	dataPath := filepath.Join(basePath, "config", "fuzzworks")
-	
+
 	return &Service{
 		logger: logger,
 		httpClient: &http.Client{
@@ -156,7 +156,7 @@ func (s *Service) UpdateData(ctx context.Context) error {
 
 func (s *Service) updateFile(ctx context.Context, dataType DataType, url, filename string) error {
 	filePath := filepath.Join(s.dataPath, filename)
-	
+
 	// Check if update is needed
 	if !s.forceUpdate && !s.needsUpdate(dataType, url) {
 		s.logger.Infof("%s is up to date", filename)
@@ -170,7 +170,7 @@ func (s *Service) updateFile(ctx context.Context, dataType DataType, url, filena
 	if err != nil {
 		return err
 	}
-	
+
 	// If data is nil, file hasn't changed (304 response)
 	if data == nil {
 		s.logger.Infof("%s unchanged (ETag match), skipping update", filename)
@@ -208,7 +208,7 @@ func (s *Service) updateFile(ctx context.Context, dataType DataType, url, filena
 
 func (s *Service) downloadWithRetries(ctx context.Context, url string) ([]byte, *FileMetadata, error) {
 	var lastErr error
-	
+
 	// Get existing ETag if available
 	existingETag := s.getExistingETag(url)
 
@@ -238,7 +238,7 @@ func (s *Service) download(ctx context.Context, url string, existingETag string)
 	}
 
 	req.Header.Set("User-Agent", "CanIFly/1.0 (EVE Online Tool)")
-	
+
 	// Add If-None-Match header if we have an existing ETag
 	if existingETag != "" {
 		req.Header.Set("If-None-Match", existingETag)
@@ -249,7 +249,7 @@ func (s *Service) download(ctx context.Context, url string, existingETag string)
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	// Handle 304 Not Modified
 	if resp.StatusCode == http.StatusNotModified {
 		s.logger.Infof("File not modified (ETag match): %s", url)
@@ -284,7 +284,7 @@ func (s *Service) download(ctx context.Context, url string, existingETag string)
 
 func (s *Service) validateData(dataType DataType, data []byte) error {
 	reader := csv.NewReader(strings.NewReader(string(data)))
-	
+
 	// Read header
 	header, err := reader.Read()
 	if err != nil {
@@ -312,7 +312,7 @@ func (s *Service) validateInvTypes(reader *csv.Reader, header []string) error {
 	// Count rows and check for known items
 	rowCount := 0
 	foundEssential := false
-	
+
 	for {
 		record, err := reader.Read()
 		if err == io.EOF {
@@ -321,9 +321,9 @@ func (s *Service) validateInvTypes(reader *csv.Reader, header []string) error {
 		if err != nil {
 			continue
 		}
-		
+
 		rowCount++
-		
+
 		// Check for Tritanium (typeID 34) as a sanity check
 		if len(record) > 0 && record[0] == "34" {
 			foundEssential = true
@@ -351,7 +351,7 @@ func (s *Service) validateSolarSystems(reader *csv.Reader, header []string) erro
 	// Count rows
 	rowCount := 0
 	foundJita := false
-	
+
 	for {
 		record, err := reader.Read()
 		if err == io.EOF {
@@ -360,9 +360,9 @@ func (s *Service) validateSolarSystems(reader *csv.Reader, header []string) erro
 		if err != nil {
 			continue
 		}
-		
+
 		rowCount++
-		
+
 		// Check for Jita as a sanity check
 		for _, field := range record {
 			if field == "Jita" {
@@ -424,7 +424,7 @@ func (s *Service) getFilename(dataType DataType) string {
 func (s *Service) getExistingETag(url string) string {
 	s.metadataMux.RLock()
 	defer s.metadataMux.RUnlock()
-	
+
 	switch url {
 	case FuzzworkInvTypesURL:
 		if s.metadata.InvTypes != nil {
@@ -452,7 +452,7 @@ func (s *Service) updateMetadata(dataType DataType, metadata *FileMetadata) {
 
 func (s *Service) loadMetadata() error {
 	metadataPath := filepath.Join(s.dataPath, MetadataFile)
-	
+
 	data, err := os.ReadFile(metadataPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -463,7 +463,7 @@ func (s *Service) loadMetadata() error {
 
 	s.metadataMux.Lock()
 	defer s.metadataMux.Unlock()
-	
+
 	return json.Unmarshal(data, &s.metadata)
 }
 
@@ -471,7 +471,7 @@ func (s *Service) saveMetadata() error {
 	s.metadataMux.RLock()
 	data, err := json.MarshalIndent(s.metadata, "", "  ")
 	s.metadataMux.RUnlock()
-	
+
 	if err != nil {
 		return err
 	}
@@ -486,7 +486,7 @@ func (s *Service) createBackup(filePath string) error {
 	}
 
 	backupPath := filePath + ".backup"
-	
+
 	source, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -506,10 +506,10 @@ func (s *Service) createBackup(filePath string) error {
 func (s *Service) hasLocalFiles() bool {
 	invTypesPath := filepath.Join(s.dataPath, "invTypes.csv")
 	solarSystemsPath := filepath.Join(s.dataPath, "mapSolarSystems.csv")
-	
+
 	_, err1 := os.Stat(invTypesPath)
 	_, err2 := os.Stat(solarSystemsPath)
-	
+
 	return err1 == nil && err2 == nil
 }
 
@@ -524,7 +524,7 @@ func (s *Service) GetSolarSystemsPath() string {
 // ParseSolarSystemsCSV parses the downloaded solar systems CSV and returns ID->Name mapping
 func (s *Service) ParseSolarSystemsCSV() (map[int64]string, map[string]int64, error) {
 	filePath := s.GetSolarSystemsPath()
-	
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open solar systems file: %w", err)
@@ -532,7 +532,7 @@ func (s *Service) ParseSolarSystemsCSV() (map[int64]string, map[string]int64, er
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	
+
 	// Read header
 	header, err := reader.Read()
 	if err != nil {
@@ -592,22 +592,22 @@ func (s *Service) validateLocalFiles() error {
 	if err != nil {
 		return fmt.Errorf("failed to read invTypes.csv: %w", err)
 	}
-	
+
 	if err := s.validateData(InvTypes, invTypesData); err != nil {
 		return fmt.Errorf("invTypes.csv validation failed: %w", err)
 	}
-	
+
 	// Validate mapSolarSystems.csv
 	solarSystemsPath := filepath.Join(s.dataPath, "mapSolarSystems.csv")
 	solarSystemsData, err := os.ReadFile(solarSystemsPath)
 	if err != nil {
 		return fmt.Errorf("failed to read mapSolarSystems.csv: %w", err)
 	}
-	
+
 	if err := s.validateData(SolarSystems, solarSystemsData); err != nil {
 		return fmt.Errorf("mapSolarSystems.csv validation failed: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -616,12 +616,12 @@ func hasRequiredColumns(header []string, required []string) bool {
 	for _, col := range header {
 		headerMap[col] = true
 	}
-	
+
 	for _, req := range required {
 		if !headerMap[req] {
 			return false
 		}
 	}
-	
+
 	return true
 }

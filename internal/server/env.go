@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
+
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
@@ -29,14 +29,14 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 	cfg := Config{}
 
 	cfg.Port = getPort()
-	
+
 	// Get base path first so we can use it for secret key storage
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return cfg, fmt.Errorf("unable to get user config dir: %v", err)
 	}
 	cfg.BasePath = filepath.Join(configDir, "canifly")
-	
+
 	// Create base directory if it doesn't exist
 	if err := os.MkdirAll(cfg.BasePath, 0755); err != nil {
 		// Try fallback to temp directory
@@ -46,7 +46,7 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 			return cfg, fmt.Errorf("failed to create base directory: %w", err)
 		}
 	}
-	
+
 	// Get or create persistent secret key
 	secretKey, err := getSecretKey(cfg.BasePath, logger)
 	if err != nil {
@@ -80,16 +80,16 @@ func getSecretKey(basePath string, logger interfaces.Logger) (string, error) {
 		logger.Debug("Using SECRET_KEY from environment variable")
 		return secret, nil
 	}
-	
+
 	// Use persistent secret store
 	fs := persist.NewOSFileSystem()
 	secretStore := persist.NewSecretStore(basePath, fs)
-	
+
 	secret, err := secretStore.GetOrCreateSecret()
 	if err != nil {
 		return "", fmt.Errorf("failed to get or create secret key: %w", err)
 	}
-	
+
 	logger.Info("Using persistent secret key from config directory")
 	return secret, nil
 }
@@ -111,21 +111,21 @@ func ValidateStartupPaths(cfg Config, logger interfaces.Logger) error {
 		return fmt.Errorf("base path %s is not writable: %w", cfg.BasePath, err)
 	}
 	os.Remove(testFile)
-	
+
 	// Create subdirectories that services will need
 	requiredDirs := []string{
-		filepath.Join(cfg.BasePath, "plans"),        // Skill plans
-		filepath.Join(cfg.BasePath, "eve"),          // EVE character data
-		filepath.Join(cfg.BasePath, "config"),       // Application config
+		filepath.Join(cfg.BasePath, "plans"),               // Skill plans
+		filepath.Join(cfg.BasePath, "eve"),                 // EVE character data
+		filepath.Join(cfg.BasePath, "config"),              // Application config
 		filepath.Join(cfg.BasePath, "config", "fuzzworks"), // Fuzzworks static data
 	}
-	
+
 	for _, dir := range requiredDirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			logger.Warnf("Failed to create directory %s: %v", dir, err)
 		}
 	}
-	
+
 	logger.Infof("Startup validation complete. Base path: %s", cfg.BasePath)
 	return nil
 }

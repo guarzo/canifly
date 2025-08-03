@@ -20,11 +20,11 @@ func PaginateSkillPlans(skillPlans map[string]model.SkillPlanWithStatus, params 
 			Status: status,
 		})
 	}
-	
+
 	total := len(entries)
 	start := params.Offset
 	end := start + params.Limit
-	
+
 	// Adjust bounds
 	if start >= total {
 		start = total
@@ -32,7 +32,7 @@ func PaginateSkillPlans(skillPlans map[string]model.SkillPlanWithStatus, params 
 	} else if end > total {
 		end = total
 	}
-	
+
 	// Get paginated slice
 	var paginatedEntries []SkillPlanEntry
 	if start < total {
@@ -40,11 +40,11 @@ func PaginateSkillPlans(skillPlans map[string]model.SkillPlanWithStatus, params 
 	} else {
 		paginatedEntries = []SkillPlanEntry{}
 	}
-	
+
 	// Calculate pagination metadata
 	hasNext := end < total
 	hasPrev := params.Page > 1
-	
+
 	return PaginatedResponse{
 		Data: paginatedEntries,
 		Pagination: PaginationParams{

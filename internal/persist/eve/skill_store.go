@@ -18,7 +18,7 @@ import (
 var _ interfaces.SkillRepository = (*SkillStore)(nil)
 
 const (
-	plansDir      = "plans"
+	plansDir = "plans"
 )
 
 // SkillStore implements interfaces.SkillRepository
@@ -37,19 +37,19 @@ type SkillStore struct {
 // The githubDownloader parameter is optional - pass it to enable downloading skill plans from GitHub.
 func NewSkillStore(logger interfaces.Logger, fs persist.FileSystem, basePath string, opts ...func(*SkillStore)) *SkillStore {
 	store := &SkillStore{
-		logger:           logger,
-		fs:               fs,
-		basePath:         basePath,
-		skillPlans:       make(map[string]model.SkillPlan),
-		skillTypes:       make(map[string]model.SkillType),
-		skillIdToType:    make(map[string]model.SkillType),
+		logger:        logger,
+		fs:            fs,
+		basePath:      basePath,
+		skillPlans:    make(map[string]model.SkillPlan),
+		skillTypes:    make(map[string]model.SkillType),
+		skillIdToType: make(map[string]model.SkillType),
 	}
-	
+
 	// Apply options
 	for _, opt := range opts {
 		opt(store)
 	}
-	
+
 	return store
 }
 
@@ -135,7 +135,6 @@ func (s *SkillStore) GetSkillPlanFile(planName string) ([]byte, error) {
 	return os.ReadFile(filePath)
 }
 
-
 func (s *SkillStore) loadSkillPlans(dir string) (map[string]model.SkillPlan, error) {
 	plans := make(map[string]model.SkillPlan)
 
@@ -184,20 +183,20 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (*ParsedSkillPlan, erro
 	result := &ParsedSkillPlan{
 		Skills: make(map[string]model.Skill),
 	}
-	
+
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	lineNumber := 0
 	for scanner.Scan() {
 		lineNumber++
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Check for icon directive
 		if strings.HasPrefix(trimmed, "# icon:") {
 			result.Icon = strings.TrimSpace(strings.TrimPrefix(trimmed, "# icon:"))
 			continue
 		}
-		
+
 		// Skip empty lines and other comments
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
@@ -229,7 +228,7 @@ func (s *SkillStore) readSkillsFromFile(filePath string) (*ParsedSkillPlan, erro
 
 func (s *SkillStore) LoadSkillTypes() error {
 	s.logger.Infof("load skill types")
-	
+
 	// Load from downloaded Fuzzworks data only
 	fuzzworksPath := filepath.Join(s.basePath, "config", "fuzzworks", "invTypes.csv")
 	file, err := os.Open(fuzzworksPath)
@@ -237,24 +236,24 @@ func (s *SkillStore) LoadSkillTypes() error {
 		return fmt.Errorf("skill types not found - ensure Fuzzworks data is downloaded: %w", err)
 	}
 	defer file.Close()
-	
+
 	s.logger.Infof("Loading skill types from Fuzzworks data: %s", fuzzworksPath)
-	
+
 	records, err := persist.ReadCsvRecords(file)
 	if err != nil {
 		return fmt.Errorf("failed to read Fuzzworks CSV: %w", err)
 	}
-	
+
 	skillTypes, skillIDTypes, err := s.parseSkillTypes(records)
 	if err != nil {
 		return fmt.Errorf("failed to parse Fuzzworks data: %w", err)
 	}
-	
+
 	s.mut.Lock()
 	s.skillTypes = skillTypes
 	s.skillIdToType = skillIDTypes
 	s.mut.Unlock()
-	
+
 	s.logger.Debugf("Loaded %d skill types from Fuzzworks data", len(skillTypes))
 	return nil
 }
@@ -336,7 +335,6 @@ func (s *SkillStore) GetSkillTypeByID(id string) (model.SkillType, bool) {
 	st, ok := s.skillIdToType[id]
 	return st, ok
 }
-
 
 func (s *SkillStore) DeleteSkillPlan(planName string) error {
 	planFilePath := filepath.Join(s.basePath, plansDir, planName+".txt")

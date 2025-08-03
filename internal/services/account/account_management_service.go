@@ -163,7 +163,7 @@ func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.
 
 		for j := range account.Characters {
 			char := &account.Characters[j]
-			
+
 			// Refresh token if needed
 			// Note: GetTokenSource may not exist, we'll need to check ESIService interface
 			newToken := &char.Token

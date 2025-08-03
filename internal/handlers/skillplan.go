@@ -36,10 +36,10 @@ func (h *SkillPlanHandler) ListSkillPlans() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse pagination parameters
 		paginationParams := ParsePaginationParams(r)
-		
+
 		// Check cache first (cache key includes pagination params)
 		cacheKey := fmt.Sprintf("skillplans:list:page:%d:limit:%d", paginationParams.Page, paginationParams.Limit)
-		
+
 		cacheHandler := WithCache(
 			h.cache,
 			h.logger,
@@ -58,10 +58,10 @@ func (h *SkillPlanHandler) ListSkillPlans() http.HandlerFunc {
 					h.eveDataService.GetSkillPlans(),
 					h.eveDataService.GetSkillTypes(),
 				)
-				
+
 				// Apply pagination to skill plans
 				paginatedResponse := PaginateSkillPlans(skillPlans, paginationParams)
-				
+
 				return paginatedResponse, nil
 			},
 		)
@@ -74,7 +74,7 @@ func (h *SkillPlanHandler) GetSkillPlan() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		planName := vars["name"]
-		
+
 		if planName == "" {
 			respondError(w, "Missing plan name", http.StatusBadRequest)
 			return
@@ -92,7 +92,7 @@ func (h *SkillPlanHandler) GetSkillPlan() http.HandlerFunc {
 		}
 
 		respondJSON(w, map[string]interface{}{
-			"name": planName,
+			"name":    planName,
 			"content": content,
 		})
 	}
@@ -126,11 +126,11 @@ func (h *SkillPlanHandler) CreateSkillPlan() http.HandlerFunc {
 			respondError(w, "Failed to create skill plan", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Invalidate skill plans cache after successful creation
 		InvalidateCache(h.cache, "skillplans:")
 		InvalidateCache(h.cache, "eve:skillplans")
-		
+
 		// Broadcast creation via WebSocket
 		if h.wsHub != nil {
 			h.wsHub.BroadcastUpdate("skillplan:created", map[string]interface{}{
@@ -140,7 +140,7 @@ func (h *SkillPlanHandler) CreateSkillPlan() http.HandlerFunc {
 
 		w.WriteHeader(http.StatusCreated)
 		respondJSON(w, map[string]interface{}{
-			"name": request.Name,
+			"name":    request.Name,
 			"content": request.Content,
 		})
 	}
@@ -192,7 +192,7 @@ func (h *SkillPlanHandler) UpdateSkillPlan() http.HandlerFunc {
 		}
 
 		respondJSON(w, map[string]interface{}{
-			"name": planName,
+			"name":    planName,
 			"content": request.Content,
 		})
 	}
@@ -270,7 +270,7 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 
 		w.WriteHeader(http.StatusCreated)
 		respondJSON(w, map[string]interface{}{
-			"name": request.NewName,
+			"name":    request.NewName,
 			"content": content,
 		})
 	}
@@ -290,7 +290,7 @@ func (h *SkillPlanHandler) RefreshSkillPlans() http.HandlerFunc {
 		InvalidateCache(h.cache, "skillplans:")
 
 		respondJSON(w, map[string]string{
-			"status": "success",
+			"status":  "success",
 			"message": "Skill plans refreshed successfully",
 		})
 	}

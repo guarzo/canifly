@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	maxRetries = 5
-	baseDelay  = 1 * time.Second
-	maxDelay   = 32 * time.Second
+	maxRetries        = 5
+	baseDelay         = 1 * time.Second
+	maxDelay          = 32 * time.Second
 	DefaultExpiration = 24 * time.Hour
 )
 

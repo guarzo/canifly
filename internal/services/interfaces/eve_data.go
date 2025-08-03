@@ -2,7 +2,7 @@ package interfaces
 
 import (
 	"time"
-	
+
 	"github.com/guarzo/canifly/internal/model"
 	"golang.org/x/oauth2"
 )
@@ -49,14 +49,14 @@ type EVEDataService interface {
 	SaveCache() error
 	LoadCache() error
 	SaveEsiCache() error
-	
+
 	// CacheService methods (so EVEDataService can act as its own cache)
 	Get(key string) ([]byte, bool)
 	Set(key string, value []byte, expiration time.Duration)
-	
+
 	// HTTP Client setter (for circular dependency resolution)
 	SetHTTPClient(httpClient EsiHttpClient)
-	
+
 	// Account Management setter (for circular dependency resolution)
 	SetAccountManagementService(accountMgmt AccountManagementService)
 }

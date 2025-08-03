@@ -14,7 +14,6 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-
 // MockAssociationService mocks interfaces.AssociationService
 type MockAssociationService struct {
 	mock.Mock
@@ -519,7 +518,6 @@ func (m *MockLogger) WithError(err error) interfaces.Logger                     
 func (m *MockLogger) WithField(key string, value interface{}) interfaces.Logger  { return m }
 func (m *MockLogger) WithFields(fields map[string]interface{}) interfaces.Logger { return m }
 
-
 // Mock for SystemRepository
 type MockSystemRepository struct {
 	mock.Mock
@@ -562,7 +560,6 @@ func (m *MockAuthClient) ExchangeCode(code string) (*oauth2.Token, error) {
 	args := m.Called(code)
 	return args.Get(0).(*oauth2.Token), args.Error(1)
 }
-
 
 type MockCacheService struct {
 	mock.Mock

@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/guarzo/canifly/internal/services/interfaces"
 	"io"
 	"net/http"
-	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 // HandleServiceError handles service errors with consistent logging and response
@@ -64,20 +64,20 @@ func decodeJSONBody(r *http.Request, v interface{}) error {
 		return fmt.Errorf("request body is nil")
 	}
 	defer r.Body.Close()
-	
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read body: %w", err)
 	}
-	
+
 	if len(body) == 0 {
 		return fmt.Errorf("request body is empty")
 	}
-	
+
 	if err := json.Unmarshal(body, v); err != nil {
 		return fmt.Errorf("failed to decode JSON: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -93,15 +93,15 @@ func clearSession(sessionService interfaces.SessionService, w http.ResponseWrite
 		logger.WithError(err).Error("Failed to get session for clearing")
 		return
 	}
-	
+
 	// Clear session values
 	for key := range session.Values {
 		delete(session.Values, key)
 	}
-	
+
 	// Set MaxAge to -1 to delete the cookie
 	session.Options.MaxAge = -1
-	
+
 	if err := session.Save(r, w); err != nil {
 		logger.WithError(err).Error("Failed to save cleared session")
 	}

@@ -21,13 +21,13 @@ func WithCache(
 		if data, etag, found := cache.Get(key); found {
 			w.Header().Set("ETag", etag)
 			w.Header().Set("Cache-Control", "private, max-age=300") // 5 minutes browser cache
-			
+
 			// Check if client has current version
 			if r.Header.Get("If-None-Match") == etag {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			
+
 			// Return cached data
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -36,7 +36,7 @@ func WithCache(
 			}
 			return
 		}
-		
+
 		// Fetch fresh data
 		data, err := fetcher()
 		if err != nil {
@@ -44,15 +44,15 @@ func WithCache(
 			http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Cache the data and get ETag
 		etag := cache.Set(key, data, ttl)
-		
+
 		// Set response headers
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Cache-Control", "private, max-age=300") // 5 minutes browser cache
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		// Return fresh data
 		if err := json.NewEncoder(w).Encode(data); err != nil {
 			logger.Errorf("Failed to encode fresh data for %s: %v", key, err)

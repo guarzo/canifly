@@ -50,28 +50,24 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.UpdateSkillPlan()).Methods("PUT")
 	r.HandleFunc("/api/skill-plans/{name}", skillPlanHandler.DeleteSkillPlanRESTful()).Methods("DELETE")
 	r.HandleFunc("/api/skill-plans/{name}/copy", skillPlanHandler.CopySkillPlan()).Methods("POST")
-	
 
 	// RESTful account endpoints
 	r.HandleFunc("/api/accounts", accountHandler.ListAccounts()).Methods("GET")
 	r.HandleFunc("/api/accounts/{id}", accountHandler.GetAccount()).Methods("GET")
 	r.HandleFunc("/api/accounts/{id}", accountHandler.UpdateAccount()).Methods("PATCH")
 	r.HandleFunc("/api/accounts/{id}", accountHandler.DeleteAccount()).Methods("DELETE")
-	
 
 	// RESTful character endpoints
 	r.HandleFunc("/api/characters/{id}", characterHandler.GetCharacter()).Methods("GET")
 	r.HandleFunc("/api/characters/{id}", characterHandler.UpdateCharacterRESTful()).Methods("PATCH")
 	r.HandleFunc("/api/characters/{id}", characterHandler.DeleteCharacter()).Methods("DELETE")
 	r.HandleFunc("/api/characters/{id}/refresh", characterHandler.RefreshCharacter()).Methods("POST")
-	
 
 	// RESTful config endpoints
 	r.HandleFunc("/api/config", configHandler.GetConfig()).Methods("GET")
 	r.HandleFunc("/api/config", configHandler.UpdateConfig()).Methods("PATCH")
 	r.HandleFunc("/api/config/eve/status", configHandler.GetEVEConfigStatus()).Methods("GET")
 	r.HandleFunc("/api/config/eve/credentials", configHandler.SaveEVECredentials()).Methods("POST")
-	
 
 	// EVE data endpoints
 	r.HandleFunc("/api/eve/skill-plans", eveDataHandler.GetSkillPlans).Methods("GET")
@@ -86,10 +82,10 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/associations", assocHandler.ListAssociations()).Methods("GET")
 	r.HandleFunc("/api/associations", assocHandler.CreateAssociation()).Methods("POST")
 	r.HandleFunc("/api/associations/{userId}/{characterId}", assocHandler.DeleteAssociation()).Methods("DELETE")
-	
+
 	// WebSocket endpoint
 	r.HandleFunc("/api/ws", appServices.WebSocketHub.HandleWebSocket)
-	
+
 	// Fuzzworks endpoints
 	r.HandleFunc("/api/fuzzworks/update", fuzzworksHandler.UpdateData()).Methods("POST")
 	r.HandleFunc("/api/fuzzworks/status", fuzzworksHandler.GetStatus()).Methods("GET")
@@ -114,7 +110,7 @@ func createCORSHandler(h http.Handler) http.Handler {
 		frontendPort = "3113" // Default to 3113 if not set
 	}
 	allowedOrigin := "http://localhost:" + frontendPort
-	
+
 	return handlers.CORS(
 		handlers.AllowedOrigins([]string{allowedOrigin}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}),

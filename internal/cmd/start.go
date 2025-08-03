@@ -99,7 +99,7 @@ func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger
 		logger.Infof("Server starting to serve requests...")
 		// Signal that the server is ready to accept connections
 		startupCh <- struct{}{}
-		
+
 		err := srv.Serve(listener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.WithError(err).Error("Server encountered an error while serving")

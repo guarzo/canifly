@@ -31,11 +31,11 @@ type StorageService interface {
 	// Cache
 	LoadCache() (map[string][]byte, error)
 	SaveCache(cache map[string][]byte) error
-	
+
 	// Deleted Characters
 	LoadDeletedCharacters() ([]string, error)
 	SaveDeletedCharacters(deleted []string) error
-	
+
 	// API Cache
 	LoadAPICache() (map[string][]byte, error)
 	SaveAPICache(cache map[string][]byte) error

@@ -30,13 +30,13 @@ func NewSecretStore(basePath string, fs FileSystem) *SecretStore {
 // GetOrCreateSecret retrieves the existing secret key or creates a new one
 func (s *SecretStore) GetOrCreateSecret() (string, error) {
 	keyPath := filepath.Join(s.basePath, secretKeyFile)
-	
+
 	// Try to read existing key
 	data, err := s.fs.ReadFile(keyPath)
 	if err == nil && len(data) > 0 {
 		return string(data), nil
 	}
-	
+
 	// If file doesn't exist or is empty, generate new key
 	if os.IsNotExist(err) || len(data) == 0 {
 		key, err := s.generateAndSaveKey(keyPath)
@@ -45,7 +45,7 @@ func (s *SecretStore) GetOrCreateSecret() (string, error) {
 		}
 		return key, nil
 	}
-	
+
 	return "", fmt.Errorf("failed to read secret key: %w", err)
 }
 
@@ -56,21 +56,21 @@ func (s *SecretStore) generateAndSaveKey(keyPath string) (string, error) {
 	if _, err := rand.Read(keyBytes); err != nil {
 		return "", fmt.Errorf("failed to generate random key: %w", err)
 	}
-	
+
 	// Encode to base64 for storage
 	encodedKey := base64.StdEncoding.EncodeToString(keyBytes)
-	
+
 	// Ensure directory exists
 	dir := filepath.Dir(keyPath)
 	if err := s.fs.MkdirAll(dir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
-	
+
 	// Write key with restricted permissions (owner read/write only)
 	if err := AtomicWriteFile(s.fs, keyPath, []byte(encodedKey), 0600); err != nil {
 		return "", fmt.Errorf("failed to save secret key: %w", err)
 	}
-	
+
 	return encodedKey, nil
 }
 

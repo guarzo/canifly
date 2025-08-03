@@ -10,9 +10,9 @@ import (
 )
 
 type CharacterHandler struct {
-	logger           interfaces.Logger
-	eveDataService   interfaces.EVEDataService
-	cache            interfaces.HTTPCacheService
+	logger         interfaces.Logger
+	eveDataService interfaces.EVEDataService
+	cache          interfaces.HTTPCacheService
 }
 
 func NewCharacterHandler(
@@ -21,9 +21,9 @@ func NewCharacterHandler(
 	c interfaces.HTTPCacheService,
 ) *CharacterHandler {
 	return &CharacterHandler{
-		logger:           l,
+		logger:         l,
 		eveDataService: e,
-		cache:           c,
+		cache:          c,
 	}
 }
 
@@ -121,7 +121,7 @@ func (h *CharacterHandler) RefreshCharacter() http.HandlerFunc {
 			h.cache.Invalidate("accounts:list:*")
 			h.logger.Info("Cleared account cache after character refresh")
 		}
-		
+
 		respondJSON(w, map[string]interface{}{
 			"success": true,
 			"message": "Character refreshed successfully",

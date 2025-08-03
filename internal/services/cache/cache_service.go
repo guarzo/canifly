@@ -29,10 +29,10 @@ func NewHTTPCacheService(logger interfaces.Logger) *HTTPCacheService {
 		entries: make(map[string]*cacheEntry),
 		logger:  logger,
 	}
-	
+
 	// Start cleanup goroutine
 	go service.cleanupExpired()
-	
+
 	return service
 }
 
@@ -40,17 +40,17 @@ func NewHTTPCacheService(logger interfaces.Logger) *HTTPCacheService {
 func (s *HTTPCacheService) Get(key string) (interface{}, string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	entry, exists := s.entries[key]
 	if !exists {
 		return nil, "", false
 	}
-	
+
 	// Check if expired
 	if time.Now().After(entry.expiration) {
 		return nil, "", false
 	}
-	
+
 	return entry.data, entry.etag, true
 }
 
@@ -58,18 +58,18 @@ func (s *HTTPCacheService) Get(key string) (interface{}, string, bool) {
 func (s *HTTPCacheService) Set(key string, data interface{}, ttl time.Duration) string {
 	// Generate ETag from data
 	etag := s.generateETag(data)
-	
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.entries[key] = &cacheEntry{
 		data:       data,
 		etag:       etag,
 		expiration: time.Now().Add(ttl),
 	}
-	
+
 	s.logger.Debugf("Cached %s with TTL %v", key, ttl)
-	
+
 	return etag
 }
 
@@ -77,14 +77,14 @@ func (s *HTTPCacheService) Set(key string, data interface{}, ttl time.Duration) 
 func (s *HTTPCacheService) Invalidate(pattern string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	keysToDelete := []string{}
 	for key := range s.entries {
 		if strings.Contains(key, pattern) {
 			keysToDelete = append(keysToDelete, key)
 		}
 	}
-	
+
 	for _, key := range keysToDelete {
 		delete(s.entries, key)
 		s.logger.Debugf("Invalidated cache key: %s", key)
@@ -95,7 +95,7 @@ func (s *HTTPCacheService) Invalidate(pattern string) {
 func (s *HTTPCacheService) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.entries = make(map[string]*cacheEntry)
 	s.logger.Info("Cache cleared")
 }
@@ -108,7 +108,7 @@ func (s *HTTPCacheService) generateETag(data interface{}) string {
 		// Fallback to timestamp-based ETag
 		return hex.EncodeToString([]byte(time.Now().String()))
 	}
-	
+
 	hash := md5.Sum(jsonData)
 	return hex.EncodeToString(hash[:])
 }
@@ -117,22 +117,22 @@ func (s *HTTPCacheService) generateETag(data interface{}) string {
 func (s *HTTPCacheService) cleanupExpired() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		s.mu.Lock()
 		now := time.Now()
 		keysToDelete := []string{}
-		
+
 		for key, entry := range s.entries {
 			if now.After(entry.expiration) {
 				keysToDelete = append(keysToDelete, key)
 			}
 		}
-		
+
 		for _, key := range keysToDelete {
 			delete(s.entries, key)
 		}
-		
+
 		if len(keysToDelete) > 0 {
 			s.logger.Debugf("Cleaned up %d expired cache entries", len(keysToDelete))
 		}

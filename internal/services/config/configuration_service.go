@@ -46,7 +46,7 @@ func (s *ConfigurationService) UpdateSettingsDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	configData.SettingsDir = dir
 	return s.storage.SaveConfigData(configData)
 }
@@ -56,7 +56,7 @@ func (s *ConfigurationService) GetSettingsDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	if configData.SettingsDir == "" {
 		// Try to auto-detect and save it
 		defaultDir := s.getDefaultSettingsDir()
@@ -71,7 +71,7 @@ func (s *ConfigurationService) GetSettingsDir() (string, error) {
 		}
 		return defaultDir, nil
 	}
-	
+
 	return configData.SettingsDir, nil
 }
 
@@ -80,16 +80,16 @@ func (s *ConfigurationService) EnsureSettingsDir() error {
 	if err != nil {
 		return err
 	}
-	
+
 	if settingsDir == "" {
 		return nil // No settings directory configured
 	}
-	
+
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(settingsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -98,7 +98,7 @@ func (s *ConfigurationService) SaveUserSelections(selections model.DropDownSelec
 	if err != nil {
 		return err
 	}
-	
+
 	configData.DropDownSelections = selections
 	return s.storage.SaveConfigData(configData)
 }
@@ -116,14 +116,14 @@ func (s *ConfigurationService) UpdateRoles(newRole string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Check if role already exists
 	for _, role := range configData.Roles {
 		if role == newRole {
 			return nil // Role already exists
 		}
 	}
-	
+
 	configData.Roles = append(configData.Roles, newRole)
 	return s.storage.SaveConfigData(configData)
 }
@@ -133,7 +133,7 @@ func (s *ConfigurationService) GetRoles() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return configData.Roles, nil
 }
 
@@ -142,7 +142,7 @@ func (s *ConfigurationService) UpdateBackupDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	configData.LastBackupDir = dir
 	return s.storage.SaveConfigData(configData)
 }
@@ -156,25 +156,25 @@ func (s *ConfigurationService) BackupJSONFiles(backupDir string) error {
 		}
 		backupDir = configData.LastBackupDir
 	}
-	
+
 	if backupDir == "" {
 		return fmt.Errorf("backup directory not specified")
 	}
-	
+
 	// Create backup directory with timestamp
 	timestamp := time.Now().Format("20060102_150405")
 	backupPath := filepath.Join(backupDir, fmt.Sprintf("backup_%s", timestamp))
-	
+
 	if err := os.MkdirAll(backupPath, 0755); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
-	
+
 	// Find all JSON files in base path
 	jsonFiles, err := s.findJSONFiles(s.basePath)
 	if err != nil {
 		return fmt.Errorf("failed to find JSON files: %w", err)
 	}
-	
+
 	// Copy each JSON file to backup directory
 	for _, file := range jsonFiles {
 		relPath, err := filepath.Rel(s.basePath, file)
@@ -182,21 +182,21 @@ func (s *ConfigurationService) BackupJSONFiles(backupDir string) error {
 			s.logger.WithError(err).Errorf("Failed to get relative path for %s", file)
 			continue
 		}
-		
+
 		destPath := filepath.Join(backupPath, relPath)
 		destDir := filepath.Dir(destPath)
-		
+
 		if err := os.MkdirAll(destDir, 0755); err != nil {
 			s.logger.WithError(err).Errorf("Failed to create backup directory %s", destDir)
 			continue
 		}
-		
+
 		if err := s.copyFile(file, destPath); err != nil {
 			s.logger.WithError(err).Errorf("Failed to backup %s", file)
 			continue
 		}
 	}
-	
+
 	s.logger.Infof("Backup completed to %s", backupPath)
 	return nil
 }
@@ -210,7 +210,7 @@ func (s *ConfigurationService) SaveRoles(roles []string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	configData.Roles = roles
 	return s.storage.SaveConfigData(configData)
 }
@@ -222,30 +222,30 @@ func (s *ConfigurationService) NeedsEVEConfiguration() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	
+
 	return configData.EVEClientID == "" || configData.EVEClientSecret == "", nil
 }
 
 func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string) error {
 	s.logger.Infof("SaveEVECredentials called with ClientID: %s", clientID)
-	
+
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		s.logger.Errorf("Failed to load config data: %v", err)
 		return err
 	}
-	
+
 	configData.EVEClientID = clientID
 	configData.EVEClientSecret = clientSecret
 	configData.EVECallbackURL = "http://localhost:42423/callback"
-	
+
 	s.logger.Infof("Saving EVE credentials to config data")
 	err = s.storage.SaveConfigData(configData)
 	if err != nil {
 		s.logger.Errorf("Failed to save config data: %v", err)
 		return err
 	}
-	
+
 	s.logger.Info("EVE credentials saved successfully")
 	return nil
 }
@@ -255,7 +255,7 @@ func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, call
 	if err != nil {
 		return "", "", "", err
 	}
-	
+
 	return configData.EVEClientID, configData.EVEClientSecret, configData.EVECallbackURL, nil
 }
 
@@ -315,7 +315,7 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 		s.logger.Infof("No existing EVE settings directory found, using default: %s", candidates[0])
 		return candidates[0]
 	}
-	
+
 	return ""
 }
 
@@ -357,19 +357,19 @@ func (s *ConfigurationService) convertWindowsToWSLPath(windowsPath string) (stri
 
 func (s *ConfigurationService) findJSONFiles(root string) ([]string, error) {
 	var jsonFiles []string
-	
+
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip files we can't access
 		}
-		
+
 		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".json") {
 			jsonFiles = append(jsonFiles, path)
 		}
-		
+
 		return nil
 	})
-	
+
 	return jsonFiles, err
 }
 
@@ -379,14 +379,13 @@ func (s *ConfigurationService) copyFile(src, dst string) error {
 		return err
 	}
 	defer sourceFile.Close()
-	
+
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer destFile.Close()
-	
+
 	_, err = io.Copy(destFile, sourceFile)
 	return err
 }
-

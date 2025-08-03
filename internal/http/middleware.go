@@ -17,16 +17,16 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 			logger.Info(r.URL.Path)
 			// Define public routes that don't require authentication
 			publicRoutes := map[string]bool{
-				"/static":             true,
-				"/landing":            true,
-				"/api/login":          true,
-				"/api/logout":         true,
-				"/api/session":        true,
-				"/callback":           true,
-				"/api/add-character":  true,
-				"/api/finalize-login": true,
-				"/api/config/eve/status": true,       // Check if EVE config is needed
-				"/api/config/eve/credentials": true,  // Save EVE credentials during first-run
+				"/static":                     true,
+				"/landing":                    true,
+				"/api/login":                  true,
+				"/api/logout":                 true,
+				"/api/session":                true,
+				"/callback":                   true,
+				"/api/add-character":          true,
+				"/api/finalize-login":         true,
+				"/api/config/eve/status":      true, // Check if EVE config is needed
+				"/api/config/eve/credentials": true, // Save EVE credentials during first-run
 			}
 
 			// Allow access if the request matches a public route

@@ -34,10 +34,10 @@ func (h *AccountHandler) ListAccounts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse pagination parameters
 		paginationParams := ParsePaginationParams(r)
-		
+
 		// Check cache first (cache key includes pagination params)
 		cacheKey := fmt.Sprintf("accounts:list:page:%d:limit:%d", paginationParams.Page, paginationParams.Limit)
-		
+
 		cacheHandler := WithCache(
 			h.cache,
 			h.logger,
@@ -48,10 +48,10 @@ func (h *AccountHandler) ListAccounts() http.HandlerFunc {
 				if err != nil {
 					return nil, err
 				}
-				
+
 				// Apply pagination to accounts
 				paginatedResponse := PaginateAccounts(accounts, paginationParams)
-				
+
 				return paginatedResponse, nil
 			},
 		)
@@ -97,9 +97,9 @@ func (h *AccountHandler) UpdateAccount() http.HandlerFunc {
 		}
 
 		var request struct {
-			Name       *string `json:"name,omitempty"`
-			IsActive   *bool   `json:"isActive,omitempty"`
-			IsVisible  *bool   `json:"isVisible,omitempty"`
+			Name      *string `json:"name,omitempty"`
+			IsActive  *bool   `json:"isActive,omitempty"`
+			IsVisible *bool   `json:"isVisible,omitempty"`
 		}
 		if err := decodeJSONBody(r, &request); err != nil {
 			respondError(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
@@ -147,18 +147,17 @@ func (h *AccountHandler) UpdateAccount() http.HandlerFunc {
 
 		// Invalidate accounts cache after successful update
 		InvalidateCache(h.cache, "accounts:")
-		
+
 		// Broadcast update via WebSocket
 		if h.wsHub != nil {
 			h.wsHub.BroadcastUpdate("account:updated", map[string]interface{}{
 				"accountId": accountID,
 			})
 		}
-		
+
 		respondJSON(w, map[string]bool{"success": true})
 	}
 }
-
 
 // RESTful endpoint: DELETE /api/accounts/:id
 func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
@@ -199,10 +198,10 @@ func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
 			}
 			return
 		}
-		
+
 		// Invalidate accounts cache after successful deletion
 		InvalidateCache(h.cache, "accounts:")
-		
+
 		// Broadcast deletion via WebSocket
 		if h.wsHub != nil {
 			h.wsHub.BroadcastUpdate("account:deleted", map[string]interface{}{
@@ -213,4 +212,3 @@ func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-

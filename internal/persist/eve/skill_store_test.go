@@ -93,37 +93,47 @@ func TestSkillStore_GetSkillPlans(t *testing.T) {
 // contain some test data. If they don't, you may skip these tests or mock the embed.
 
 func TestSkillStore_LoadSkillPlans(t *testing.T) {
-	// This test requires that you have some embedded plans in `static/plans`.
-	// If no embedded data, skip this test.
-	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
-		t.Skip("Skipping test because no embedded files available")
-	}
-
 	logger := &testutil.MockLogger{}
 	fs := persist.OSFileSystem{}
 	basePath := t.TempDir()
+
+	// Create a test skill plan in the plans directory
+	plansDir := filepath.Join(basePath, "plans")
+	require.NoError(t, os.MkdirAll(plansDir, 0755))
+
+	// Create a test skill plan file
+	testPlanContent := `Gunnery 5
+Small Hybrid Turret 4
+Medium Hybrid Turret 3`
+	testPlanPath := filepath.Join(plansDir, "test_plan.txt")
+	require.NoError(t, os.WriteFile(testPlanPath, []byte(testPlanContent), 0644))
 
 	store := eve.NewSkillStore(logger, fs, basePath)
 	err := store.LoadSkillPlans()
 	assert.NoError(t, err)
 
 	plans := store.GetSkillPlans()
-	// We can't know exactly what plans are embedded, but we can check it's not empty.
-	// If you know there's a "sample_plan.txt" embedded, check for it:
-	// assert.Contains(t, plans, "sample_plan")
-
 	assert.NotEmpty(t, plans)
+	assert.Contains(t, plans, "test_plan")
+	assert.Equal(t, 5, plans["test_plan"].Skills["Gunnery"].Level)
 }
 
 func TestSkillStore_LoadSkillTypes(t *testing.T) {
-	// This test requires `static/invTypes.csv` in the embedded files.
-	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
-		t.Skip("Skipping test because no embedded files available")
-	}
-
 	logger := &testutil.MockLogger{}
 	fs := persist.OSFileSystem{}
 	basePath := t.TempDir()
+
+	// Create the Fuzzworks data directory and mock CSV file
+	fuzzworksDir := filepath.Join(basePath, "config", "fuzzworks")
+	require.NoError(t, os.MkdirAll(fuzzworksDir, 0755))
+
+	// Create a mock invTypes.csv file with test data
+	csvContent := `typeID,typeName,description
+3300,Gunnery,"The basic skill for firing guns"
+3301,Small Hybrid Turret,"Skill for small hybrid turrets"
+3302,Medium Hybrid Turret,"Skill for medium hybrid turrets"`
+	csvPath := filepath.Join(fuzzworksDir, "invTypes.csv")
+	require.NoError(t, os.WriteFile(csvPath, []byte(csvContent), 0644))
 
 	store := eve.NewSkillStore(logger, fs, basePath)
 	err := store.LoadSkillTypes()
@@ -131,25 +141,37 @@ func TestSkillStore_LoadSkillTypes(t *testing.T) {
 
 	types := store.GetSkillTypes()
 	assert.NotEmpty(t, types)
-
-	// If you know a particular skill type that should be in the CSV, assert it:
-	// assert.Contains(t, types, "SomeSkillTypeName")
+	assert.Contains(t, types, "Gunnery")
+	assert.Equal(t, "3300", types["Gunnery"].TypeID)
+	assert.Equal(t, "The basic skill for firing guns", types["Gunnery"].Description)
 }
 
 func TestSkillStore_GetSkillTypeByID(t *testing.T) {
-	if os.Getenv("NO_EMBEDDED_TEST") == "1" {
-		t.Skip("Skipping test because no embedded files available")
-	}
-
 	logger := &testutil.MockLogger{}
 	fs := persist.OSFileSystem{}
 	basePath := t.TempDir()
+
+	// Create the Fuzzworks data directory and mock CSV file
+	fuzzworksDir := filepath.Join(basePath, "config", "fuzzworks")
+	require.NoError(t, os.MkdirAll(fuzzworksDir, 0755))
+
+	// Create a mock invTypes.csv file with test data
+	csvContent := `typeID,typeName,description
+3300,Gunnery,"The basic skill for firing guns"
+3301,Small Hybrid Turret,"Skill for small hybrid turrets"`
+	csvPath := filepath.Join(fuzzworksDir, "invTypes.csv")
+	require.NoError(t, os.WriteFile(csvPath, []byte(csvContent), 0644))
 
 	store := eve.NewSkillStore(logger, fs, basePath)
 	err := store.LoadSkillTypes()
 	require.NoError(t, err)
 
-	// Pick an ID you believe won’t exist. Let's try "999999"
-	_, found := store.GetSkillTypeByID("999999")
+	// Test finding an existing skill type by ID
+	skill, found := store.GetSkillTypeByID("3300")
+	assert.True(t, found, "ID 3300 should be found")
+	assert.Equal(t, "Gunnery", skill.TypeName)
+
+	// Test with non-existent ID
+	_, found = store.GetSkillTypeByID("999999")
 	assert.False(t, found, "ID 999999 should not be found in skill types")
 }

@@ -34,7 +34,7 @@ func (h *AssociationHandler) ListAssociations() http.HandlerFunc {
 			respondError(w, "Failed to get associations", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Convert associations to response format
 		data := make([]map[string]interface{}, len(associations))
 		for i, assoc := range associations {
@@ -43,7 +43,7 @@ func (h *AssociationHandler) ListAssociations() http.HandlerFunc {
 				"characterId": assoc.CharId,
 			}
 		}
-		
+
 		respondJSON(w, map[string]interface{}{
 			"data": data,
 		})

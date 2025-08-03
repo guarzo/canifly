@@ -25,7 +25,6 @@ type Logger interface {
 	WithField(key string, value interface{}) Logger
 }
 
-
 // CacheService interface
 type CacheService interface {
 	Get(key string) ([]byte, bool)

@@ -45,7 +45,7 @@ func (s *SyncService) GetSyncDirectories() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return s.eveRepo.GetSubDirectories(settingsDir)
 }
 

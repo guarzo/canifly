@@ -9,7 +9,7 @@ func PaginateAccounts(accounts []model.Account, params PaginationParams) Paginat
 	total := len(accounts)
 	start := params.Offset
 	end := start + params.Limit
-	
+
 	// Adjust bounds
 	if start >= total {
 		start = total
@@ -17,7 +17,7 @@ func PaginateAccounts(accounts []model.Account, params PaginationParams) Paginat
 	} else if end > total {
 		end = total
 	}
-	
+
 	// Get paginated slice
 	var paginatedAccounts []model.Account
 	if start < total {
@@ -25,11 +25,11 @@ func PaginateAccounts(accounts []model.Account, params PaginationParams) Paginat
 	} else {
 		paginatedAccounts = []model.Account{}
 	}
-	
-	// Calculate pagination metadata  
+
+	// Calculate pagination metadata
 	hasNext := end < total
 	hasPrev := params.Page > 1
-	
+
 	return PaginatedResponse{
 		Data: paginatedAccounts,
 		Pagination: PaginationParams{

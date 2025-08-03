@@ -16,10 +16,9 @@ type ConfigurationService interface {
 	BackupJSONFiles(backupDir string) error
 	FetchConfigData() (*model.ConfigData, error)
 	SaveRoles(roles []string) error
-	
+
 	// EVE Credentials Management
 	NeedsEVEConfiguration() (bool, error)
 	SaveEVECredentials(clientID, clientSecret string) error
 	GetEVECredentials() (clientID, clientSecret, callbackURL string, err error)
-
 }

@@ -18,7 +18,6 @@ func ReadJsonFromFile(fs FileSystem, filePath string, target interface{}) error 
 	return nil
 }
 
-
 func ReadCsvRecords(r io.Reader) ([][]string, error) {
 	reader := csv.NewReader(r)
 	var records [][]string

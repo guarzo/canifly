@@ -218,7 +218,7 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 				h.logger.Warnf("Invalid session cookie detected: %v", err)
 				// Return unauthenticated status instead of error
 				respondJSON(w, map[string]interface{}{
-					"status": "ok",
+					"status":        "ok",
 					"authenticated": false,
 				})
 				return
@@ -234,9 +234,9 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 		}
 
 		h.logger.Infof("Session check - Cookie LoggedIn: %v", loggedIn)
-		
+
 		respondJSON(w, map[string]interface{}{
-			"status": "ok",
+			"status":        "ok",
 			"authenticated": loggedIn,
 		})
 	}

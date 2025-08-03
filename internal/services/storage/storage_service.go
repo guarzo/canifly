@@ -60,17 +60,17 @@ func (s *StorageService) SaveJSON(filename string, v interface{}) error {
 
 func (s *StorageService) LoadAccountData() (*model.AccountData, error) {
 	var data model.AccountData
-	
+
 	// Initialize with defaults
 	data.Accounts = []model.Account{}
 	data.Associations = []model.Association{}
-	
+
 	err := s.LoadJSON("accounts.json", &data)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		// Return empty data if file doesn't exist
 		return &data, nil
 	}
-	
+
 	return &data, err
 }
 
@@ -94,17 +94,17 @@ func (s *StorageService) DeleteAccountData() error {
 
 func (s *StorageService) LoadConfigData() (*model.ConfigData, error) {
 	var data model.ConfigData
-	
+
 	// Initialize with defaults
 	data.Roles = []string{}
 	data.DropDownSelections = make(model.DropDownSelections)
-	
+
 	err := s.LoadJSON("config.json", &data)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		// Return empty data if file doesn't exist
 		return &data, nil
 	}
-	
+
 	return &data, err
 }
 
@@ -118,25 +118,25 @@ func (s *StorageService) SaveConfigData(data *model.ConfigData) error {
 
 func (s *StorageService) LoadEveProfiles() (map[string]interface{}, error) {
 	var data map[string]interface{}
-	
+
 	filePath := filepath.Join(s.basePath, "eve", "profiles.json")
 	err := persist.ReadJsonFromFile(s.fs, filePath, &data)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return make(map[string]interface{}), nil
 	}
-	
+
 	return data, err
 }
 
 func (s *StorageService) SaveEveProfiles(data map[string]interface{}) error {
 	filePath := filepath.Join(s.basePath, "eve", "profiles.json")
-	
+
 	// Ensure directory exists
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
-	
+
 	return persist.AtomicWriteJSON(s.fs, filePath, data)
 }
 
@@ -155,7 +155,7 @@ func (s *StorageService) SaveSkillPlan(filename string, content []byte) error {
 	defer s.mu.Unlock()
 
 	filePath := filepath.Join(s.basePath, "plans", filename)
-	
+
 	// AtomicWriteFile handles directory creation
 	return persist.AtomicWriteFile(s.fs, filePath, content, 0644)
 }
@@ -172,14 +172,14 @@ func (s *StorageService) ListSkillPlans() ([]string, error) {
 		}
 		return nil, err
 	}
-	
+
 	var plans []string
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".txt" {
 			plans = append(plans, entry.Name())
 		}
 	}
-	
+
 	return plans, nil
 }
 
@@ -187,12 +187,12 @@ func (s *StorageService) ListSkillPlans() ([]string, error) {
 
 func (s *StorageService) LoadCache() (map[string][]byte, error) {
 	var cache map[string][]byte
-	
+
 	err := s.LoadJSON("cache.json", &cache)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return make(map[string][]byte), nil
 	}
-	
+
 	return cache, err
 }
 
@@ -209,13 +209,13 @@ func (s *StorageService) EnsureDirectories() error {
 		filepath.Join(s.basePath, "eve"),
 		filepath.Join(s.basePath, "plans"),
 	}
-	
+
 	for _, dir := range directories {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -244,12 +244,12 @@ func (s *StorageService) GetBasePath() string {
 
 func (s *StorageService) LoadDeletedCharacters() ([]string, error) {
 	var deleted []string
-	
+
 	err := s.LoadJSON("deleted_characters.json", &deleted)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return []string{}, nil
 	}
-	
+
 	return deleted, err
 }
 
@@ -261,16 +261,15 @@ func (s *StorageService) SaveDeletedCharacters(deleted []string) error {
 
 func (s *StorageService) LoadAPICache() (map[string][]byte, error) {
 	var cache map[string][]byte
-	
+
 	err := s.LoadJSON("api_cache.json", &cache)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return make(map[string][]byte), nil
 	}
-	
+
 	return cache, err
 }
 
 func (s *StorageService) SaveAPICache(cache map[string][]byte) error {
 	return s.SaveJSON("api_cache.json", cache)
 }
-

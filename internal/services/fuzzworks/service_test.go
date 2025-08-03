@@ -22,7 +22,7 @@ func TestService_Initialize(t *testing.T) {
 
 	ctx := context.Background()
 	err = service.Initialize(ctx)
-	
+
 	// We don't fail on error since downloads might fail in test environment
 	// Just check that the service attempted initialization
 	if err != nil {
@@ -60,11 +60,11 @@ func TestService_ParseSolarSystemsCSV(t *testing.T) {
 
 	// Override the path for testing
 	service.dataPath = filepath.Dir(tempFile.Name())
-	
+
 	// Test parsing
 	service.dataPath = ""
 	idToName, nameToId, err := service.ParseSolarSystemsCSV()
-	
+
 	// Since we're not actually downloading in the test, this should fail
 	if err == nil {
 		t.Error("Expected error when parsing non-existent file")

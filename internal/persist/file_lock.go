@@ -20,7 +20,7 @@ type FileLock struct {
 // AcquireLock attempts to acquire an exclusive lock for the application
 func AcquireLock(basePath string) (*FileLock, error) {
 	lockPath := filepath.Join(basePath, ".lock")
-	
+
 	// Check if lock file exists and if the process is still running
 	if existingPID, exists := checkExistingLock(lockPath); exists {
 		if isProcessRunning(existingPID) {
@@ -29,7 +29,7 @@ func AcquireLock(basePath string) (*FileLock, error) {
 		// Stale lock file, remove it
 		os.Remove(lockPath)
 	}
-	
+
 	// Create lock file exclusively
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {
@@ -46,7 +46,7 @@ func AcquireLock(basePath string) (*FileLock, error) {
 		os.Remove(lockPath)
 		return nil, fmt.Errorf("failed to write lock info: %w", err)
 	}
-	
+
 	if err := file.Sync(); err != nil {
 		file.Close()
 		os.Remove(lockPath)
@@ -70,17 +70,17 @@ func checkExistingLock(lockPath string) (int, bool) {
 	if err != nil {
 		return 0, false
 	}
-	
+
 	lines := strings.Split(string(data), "\n")
 	if len(lines) == 0 {
 		return 0, false
 	}
-	
+
 	pid, err := strconv.Atoi(strings.TrimSpace(lines[0]))
 	if err != nil {
 		return 0, false
 	}
-	
+
 	return pid, true
 }
 
@@ -89,7 +89,7 @@ func isProcessRunning(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		// On Windows, try to open the process
@@ -104,7 +104,7 @@ func isProcessRunning(pid int) bool {
 			proc.Wait()
 			close(done)
 		}()
-		
+
 		select {
 		case <-done:
 			// Process exited, so it wasn't running

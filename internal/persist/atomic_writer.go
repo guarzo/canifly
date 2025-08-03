@@ -37,7 +37,6 @@ func AtomicWriteJSON(fs FileSystem, path string, data interface{}) error {
 	return nil
 }
 
-
 // AtomicWriteFile writes any data atomically (not just JSON)
 func AtomicWriteFile(fs FileSystem, path string, data []byte, perm os.FileMode) error {
 	dir := filepath.Dir(path)

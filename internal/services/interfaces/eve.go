@@ -49,4 +49,3 @@ type ESIService interface {
 	GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error)
 	GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error)
 }
-

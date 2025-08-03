@@ -26,11 +26,11 @@ type AppServices struct {
 	StorageService           interfaces.StorageService
 	AccountManagementService interfaces.AccountManagementService
 	ConfigurationService     interfaces.ConfigurationService
-	
+
 	// Consolidated EVE Services
 	EVEDataService interfaces.EVEDataService
 	SyncService    interfaces.SyncService
-	
+
 	// Other Services
 	LoginService     interfaces.LoginService
 	AuthClient       interfaces.AuthClient
@@ -47,7 +47,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 	// Create configuration service first (no dependencies)
 	configurationService := configSvc.NewConfigurationService(storageService, logger, cfg.BasePath)
-	
+
 	// Load EVE credentials from storage if not set in environment
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
 		storedClientID, storedClientSecret, storedCallbackURL, err := configurationService.GetEVECredentials()
@@ -60,17 +60,17 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 			logger.Warn("No EVE credentials found in environment or storage")
 		}
 	}
-	
+
 	// Check if Fuzzworks auto-update is enabled
 	configData, err := configurationService.FetchConfigData()
 	if err != nil {
 		logger.Warnf("Failed to fetch config data: %v", err)
 		configData = &model.ConfigData{}
 	}
-	
+
 	// Default to true if not set
 	autoUpdate := configData.AutoUpdateFuzzworks == nil || *configData.AutoUpdateFuzzworks
-	
+
 	// Initialize Fuzzworks service to download latest EVE data
 	if autoUpdate {
 		logger.Infof("Initializing Fuzzworks data service (auto-update enabled)...")
@@ -85,13 +85,13 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	}
 
 	loginService := initLoginService(logger)
-	
+
 	// Create dynamic auth client that loads credentials on each use
 	logger.Info("Creating dynamic auth client that loads credentials from storage")
 	authClient := initAuthClient(logger, cfg, configurationService)
-	
+
 	// Note: repository adapters are no longer needed for account and config services
-	
+
 	// Create remaining repositories for EVE data
 	var skillStoreOpts []func(*eve.SkillStore)
 	if cfg.SkillPlansRepoURL != "" {
@@ -110,16 +110,16 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		return nil, fmt.Errorf("failed to load systems: %v", err)
 	}
 	eveProfileRepo := eve.NewEveProfilesStore(logger)
-	
+
 	// Create HTTP cache service
 	httpCacheService := cacheSvc.NewHTTPCacheService(logger)
-	
+
 	// Ensure settings directory
 	if err := configurationService.EnsureSettingsDir(); err != nil {
 		logger.Warnf("unable to ensure settings dir: %v", err)
 		// Don't clear the settings directory - it might be temporarily unavailable
 	}
-	
+
 	// Create consolidated EVE data service (initially without dependencies that create circular refs)
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
@@ -132,19 +132,19 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		systemRepo,
 		eveProfileRepo,
 	)
-	
+
 	// Create HTTP client using EVE data service as cache service
 	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, eveDataService)
-	
+
 	// Set the HTTP client in EVE data service
 	eveDataService.SetHTTPClient(httpClient)
-	
+
 	// Now create account management service with EVE data service as user info fetcher
 	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger)
-	
+
 	// Set the account management service in EVE data service
 	eveDataService.SetAccountManagementService(accountManagementService)
-	
+
 	// Create sync service
 	syncService := syncSvc.NewSyncService(
 		eveDataService,
@@ -152,10 +152,10 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		configurationService,
 		logger,
 	)
-	
+
 	// Create WebSocket hub
 	webSocketHub := handlers.NewWebSocketHub(logger)
-	
+
 	// No longer need AppCoordinator - services handle their own data
 
 	return &AppServices{
@@ -186,5 +186,3 @@ func initAuthClient(logger interfaces.Logger, cfg Config, configService interfac
 	}
 	return accountSvc.NewDynamicAuthClient(logger, configService, baseCallbackURL)
 }
-
-

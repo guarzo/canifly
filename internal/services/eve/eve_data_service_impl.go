@@ -20,18 +20,18 @@ import (
 // EVEDataServiceImpl is the full implementation without delegation
 type EVEDataServiceImpl struct {
 	// Core dependencies
-	logger       interfaces.Logger
-	httpClient   interfaces.EsiHttpClient
-	authClient   interfaces.AuthClient
-	accountMgmt  interfaces.AccountManagementService
-	configSvc    interfaces.ConfigurationService
-	storage      interfaces.StorageService
-	
+	logger      interfaces.Logger
+	httpClient  interfaces.EsiHttpClient
+	authClient  interfaces.AuthClient
+	accountMgmt interfaces.AccountManagementService
+	configSvc   interfaces.ConfigurationService
+	storage     interfaces.StorageService
+
 	// Repositories still needed
 	skillRepo      interfaces.SkillRepository
 	systemRepo     interfaces.SystemRepository
 	eveProfileRepo interfaces.EveProfilesRepository
-	
+
 	// Cache management
 	cache   map[string][]byte
 	cacheMu sync.RWMutex
@@ -316,7 +316,7 @@ func (s *EVEDataServiceImpl) UpdateCharacterFields(characterID int64, updates ma
 			break
 		}
 	}
-	
+
 	if charIdentity == nil {
 		return fmt.Errorf("character not found")
 	}
@@ -372,13 +372,13 @@ func (s *EVEDataServiceImpl) RemoveCharacter(characterID int64) error {
 			return s.accountMgmt.SaveAccounts(accounts)
 		}
 	}
-	
+
 	return fmt.Errorf("character not found")
 }
 
 func (s *EVEDataServiceImpl) RefreshCharacterData(characterID int64) (bool, error) {
 	s.logger.Infof("RefreshCharacterData called for character ID: %d", characterID)
-	
+
 	accounts, err := s.accountMgmt.FetchAccounts()
 	if err != nil {
 		return false, fmt.Errorf("failed to fetch accounts: %w", err)
@@ -390,40 +390,40 @@ func (s *EVEDataServiceImpl) RefreshCharacterData(characterID int64) (bool, erro
 			if accounts[i].Characters[j].Character.CharacterID == characterID {
 				charIdentity := &accounts[i].Characters[j]
 				s.logger.Infof("Found character: %s (ID: %d)", charIdentity.Character.CharacterName, characterID)
-				
+
 				// Check if token is expired
 				if time.Now().After(charIdentity.Token.Expiry) {
 					s.logger.Warnf("Token expired for character %s", charIdentity.Character.CharacterName)
 					return false, fmt.Errorf("token expired")
 				}
-				
+
 				s.logger.Infof("Token valid until %v, proceeding with refresh", charIdentity.Token.Expiry)
-				
+
 				// Update character using existing ProcessIdentity method
 				updatedChar, err := s.ProcessIdentity(charIdentity)
 				if err != nil {
 					s.logger.Errorf("ProcessIdentity failed: %v", err)
 					return false, fmt.Errorf("failed to update character: %w", err)
 				}
-				
-				s.logger.Infof("ProcessIdentity completed, skills: %d, total SP: %d", 
+
+				s.logger.Infof("ProcessIdentity completed, skills: %d, total SP: %d",
 					len(updatedChar.Character.CharacterSkillsResponse.Skills),
 					updatedChar.Character.CharacterSkillsResponse.TotalSP)
-				
+
 				// Update the character in the accounts slice
 				accounts[i].Characters[j] = *updatedChar
-				
+
 				// Save updated accounts
 				if err := s.accountMgmt.SaveAccounts(accounts); err != nil {
 					return false, fmt.Errorf("failed to save accounts: %w", err)
 				}
-				
+
 				s.logger.Infof("Character data saved successfully")
 				return true, nil
 			}
 		}
 	}
-	
+
 	s.logger.Warnf("Character ID %d not found in any account", characterID)
 	return false, fmt.Errorf("character not found")
 }
@@ -459,7 +459,7 @@ func (s *EVEDataServiceImpl) ParseAndSaveSkillPlan(contents, name string) error 
 func (s *EVEDataServiceImpl) parseSkillPlan(contents string) map[string]model.Skill {
 	skills := make(map[string]model.Skill)
 	lines := strings.Split(contents, "\n")
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -732,9 +732,9 @@ func (s *EVEDataServiceImpl) updatePlanAndCharacterStatus(
 	result planEvaluationResult,
 ) {
 	characterStatus := model.CharacterSkillPlanStatus{
-		CharacterName: character.CharacterName,
-		Status:        s.getStatusString(result.Qualifies, result.Pending),
-		MissingSkills: result.MissingSkills,
+		CharacterName:     character.CharacterName,
+		Status:            s.getStatusString(result.Qualifies, result.Pending),
+		MissingSkills:     result.MissingSkills,
 		PendingFinishDate: result.LatestFinishDate,
 	}
 
@@ -856,7 +856,7 @@ func (s *EVEDataServiceImpl) BackupDir(targetDir, backupDir string) error {
 	if err := s.eveProfileRepo.BackupDirectory(targetDir, backupDir); err != nil {
 		return err
 	}
-	
+
 	// Also backup JSON files from config
 	return s.configSvc.BackupJSONFiles(backupDir)
 }

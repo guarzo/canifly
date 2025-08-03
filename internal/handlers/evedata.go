@@ -10,12 +10,12 @@ import (
 )
 
 type EveDataHandler struct {
-	logger interfaces.Logger
-	syncService interfaces.SyncService
-	configService interfaces.ConfigurationService
+	logger         interfaces.Logger
+	syncService    interfaces.SyncService
+	configService  interfaces.ConfigurationService
 	eveDataService interfaces.EVEDataService
 	accountService interfaces.AccountManagementService
-	cache interfaces.HTTPCacheService
+	cache          interfaces.HTTPCacheService
 }
 
 func NewEveDataHandler(
@@ -27,12 +27,12 @@ func NewEveDataHandler(
 	cache interfaces.HTTPCacheService,
 ) *EveDataHandler {
 	return &EveDataHandler{
-		logger: l,
-		syncService: s,
-		configService: configService,
+		logger:         l,
+		syncService:    s,
+		configService:  configService,
 		eveDataService: eveDataService,
 		accountService: accountService,
-		cache: cache,
+		cache:          cache,
 	}
 }
 

@@ -1,14 +1,14 @@
 package account
 
 import (
-	"golang.org/x/oauth2"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	"golang.org/x/oauth2"
 )
 
 // DynamicAuthClient wraps the regular auth client but loads credentials dynamically
 type DynamicAuthClient struct {
-	logger         interfaces.Logger
-	configService  interfaces.ConfigurationService
+	logger          interfaces.Logger
+	configService   interfaces.ConfigurationService
 	baseCallbackURL string
 }
 
@@ -27,14 +27,14 @@ func (d *DynamicAuthClient) getAuthClient() (interfaces.AuthClient, error) {
 		d.logger.Errorf("Failed to get EVE credentials: %v", err)
 		return nil, err
 	}
-	
+
 	d.logger.Infof("Dynamic auth client loaded credentials - ClientID: %s, CallbackURL: %s", clientID, callbackURL)
-	
+
 	// Use stored callback URL if available, otherwise use base
 	if callbackURL == "" {
 		callbackURL = d.baseCallbackURL
 	}
-	
+
 	// Create a new auth client with current credentials
 	return NewAuthClient(d.logger, clientID, clientSecret, callbackURL), nil
 }
