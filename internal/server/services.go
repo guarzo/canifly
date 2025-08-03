@@ -116,24 +116,16 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	
 	// Ensure settings directory
 	if err := configurationService.EnsureSettingsDir(); err != nil {
-		logger.Warnf("unable to ensure settings dir: %v; proceeding with empty SettingsDir", err)
-		configData, _ := configurationService.FetchConfigData()
-		if configData != nil {
-			configData.SettingsDir = ""
-			storageService.SaveConfigData(configData)
-		}
+		logger.Warnf("unable to ensure settings dir: %v", err)
+		// Don't clear the settings directory - it might be temporarily unavailable
 	}
 	
-	// Create a temporary account management service (we'll need to fix the circular dependency)
-	// For now, create with nil and set later
-	var accountManagementService *accountSvc.AccountManagementService
-	
-	// Create consolidated EVE data service (initially without httpClient)
+	// Create consolidated EVE data service (initially without dependencies that create circular refs)
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
 		nil, // httpClient will be set later
 		authClient,
-		accountManagementService,
+		nil, // accountManagementService will be set later
 		configurationService,
 		storageService,
 		skillRepo,
@@ -148,7 +140,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	eveDataService.SetHTTPClient(httpClient)
 	
 	// Now create account management service with EVE data service as user info fetcher
-	accountManagementService = accountSvc.NewAccountManagementService(storageService, eveDataService, logger)
+	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger)
 	
 	// Set the account management service in EVE data service
 	eveDataService.SetAccountManagementService(accountManagementService)

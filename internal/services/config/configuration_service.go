@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -56,8 +58,18 @@ func (s *ConfigurationService) GetSettingsDir() (string, error) {
 	}
 	
 	if configData.SettingsDir == "" {
-		// Return default if not set
-		return s.getDefaultSettingsDir(), nil
+		// Try to auto-detect and save it
+		defaultDir := s.getDefaultSettingsDir()
+		if defaultDir != "" {
+			// Save the auto-detected directory
+			configData.SettingsDir = defaultDir
+			if saveErr := s.storage.SaveConfigData(configData); saveErr != nil {
+				s.logger.Warnf("Failed to save auto-detected settings directory: %v", saveErr)
+			} else {
+				s.logger.Infof("Auto-detected and saved settings directory: %s", defaultDir)
+			}
+		}
+		return defaultDir, nil
 	}
 	
 	return configData.SettingsDir, nil
@@ -250,21 +262,88 @@ func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, call
 // Helper methods
 
 func (s *ConfigurationService) getDefaultSettingsDir() string {
-	// Check for WSL
-	if wslDistro := os.Getenv("WSL_DISTRO_NAME"); wslDistro != "" {
-		// Try to get Windows user profile
-		if userProfile := os.Getenv("USERPROFILE"); userProfile != "" {
-			windowsPath := filepath.Join(userProfile, "Documents", "EVE", "Overview")
-			// Convert Windows path to WSL path
-			if wslPath, err := s.convertWindowsToWSLPath(windowsPath); err == nil {
-				return wslPath
-			}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	platform := runtime.GOOS
+	if s.isWSL() {
+		platform = "wsl"
+		homeDir, err = s.getWindowsHomeInWSL()
+		if err != nil {
+			s.logger.Warnf("Failed to get Windows home in WSL: %v", err)
+			return ""
 		}
 	}
+
+	var candidates []string
+	switch platform {
+	case "windows":
+		candidates = []string{
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_tq_tranquility"),
+		}
+	case "darwin":
+		candidates = []string{
+			filepath.Join(homeDir, "Library", "Application Support", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
+	case "linux":
+		candidates = []string{
+			filepath.Join(homeDir, ".local", "share", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
+	case "wsl":
+		// In WSL we prefer the Windows equivalent without "online"
+		candidates = []string{
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_tq_tranquility"),
+			filepath.Join(homeDir, "AppData", "Local", "CCP", "EVE", "c_ccp_eve_online_tq_tranquility"),
+		}
+	default:
+		s.logger.Warnf("Unsupported platform: %s", platform)
+		return ""
+	}
+
+	for _, dir := range candidates {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			s.logger.Infof("Found EVE settings directory: %s", dir)
+			return dir
+		}
+	}
+
+	// If none exist, return the first candidate
+	if len(candidates) > 0 {
+		s.logger.Infof("No existing EVE settings directory found, using default: %s", candidates[0])
+		return candidates[0]
+	}
 	
-	// Default for non-WSL systems
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Documents", "EVE", "Overview")
+	return ""
+}
+
+func (s *ConfigurationService) isWSL() bool {
+	if runtime.GOOS == "linux" {
+		data, err := os.ReadFile("/proc/version")
+		if err == nil && strings.Contains(strings.ToLower(string(data)), "microsoft") {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *ConfigurationService) getWindowsHomeInWSL() (string, error) {
+	cmd := exec.Command("cmd.exe", "/C", "echo", "%USERPROFILE%")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve Windows home directory in WSL: %w", err)
+	}
+	windowsHome := strings.TrimSpace(string(output))
+	windowsHome = strings.ReplaceAll(windowsHome, "\\", "/")
+
+	cmd2 := exec.Command("wslpath", "-u", windowsHome)
+	output2, err := cmd2.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to convert Windows home path to WSL format: %w", err)
+	}
+	return strings.TrimSpace(string(output2)), nil
 }
 
 func (s *ConfigurationService) convertWindowsToWSLPath(windowsPath string) (string, error) {
