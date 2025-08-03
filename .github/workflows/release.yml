@@ -7,7 +7,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
       packages: write
@@ -29,11 +32,12 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Install Wine
+      - name: Install Wine (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo dpkg --add-architecture i386 
           sudo apt-get update
-          sudo apt-get install -y wine32
+          sudo apt-get install -y wine32 wine64
       
       - name: Clean build artifacts
         run: |
@@ -45,14 +49,73 @@ jobs:
         run: |
           VERSION=$(cat version)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        shell: bash
 
-      # Build the Electron app
-      - name: Build Electron App
+      # Build the Electron app for all platforms on Linux
+      - name: Build Electron App (Linux - all platforms)
+        if: matrix.os == 'ubuntu-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run package:app
+        run: |
+          npm run build
+          npm run dist:linux
+          npm run dist:win
+
+      # Build the Electron app for Windows on Windows
+      - name: Build Electron App (Windows)
+        if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build
+          npm run dist:win
+
+      # Build the Electron app for macOS on macOS
+      - name: Build Electron App (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build
+          npm run dist:mac
+
+      - name: List release directory files
+        run: ls -la release
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: release/
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(cat version)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: List downloaded artifacts
+        run: ls -laR release-artifacts
 
       # Generate changelog
       - name: Generate Changelog
@@ -74,25 +137,18 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: ${{ env.changelog }}
           draft: false
           prerelease: false
-
-      - name: List release directory files
-        run: ls -l release
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "release/CanIFly-Setup-${{ env.VERSION }}.exe"
-          asset_name: "CanIFly-Setup-${{ env.VERSION }}.exe"
-          asset_content_type: application/x-msdownload
+          files: |
+            release-artifacts/release-windows-latest/CanIFly-Setup-${{ env.VERSION }}.exe
+            release-artifacts/release-ubuntu-latest/CanIFly-${{ env.VERSION }}.AppImage
+            release-artifacts/release-ubuntu-latest/canifly_${{ env.VERSION }}_amd64.deb
+            release-artifacts/release-macos-latest/CanIFly-${{ env.VERSION }}.dmg
+          fail_on_unmatched_files: false
