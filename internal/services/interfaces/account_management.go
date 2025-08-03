@@ -23,7 +23,7 @@ type AccountManagementService interface {
 	ToggleAccountVisibility(accountID int64) error
 	RemoveAccountByName(accountName string) error
 	RemoveAccountByID(accountID int64) error
-	RefreshAccountData(eveDataService EVEDataService) (*model.AccountData, error)
+	RefreshAccountData() (*model.AccountData, error)
 	DeleteAllAccounts() error
 	FetchAccounts() ([]model.Account, error)
 	SaveAccounts(accounts []model.Account) error

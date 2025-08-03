@@ -6,7 +6,7 @@ import (
 
 // SyncService handles settings synchronization
 type SyncService struct {
-	eveDataService interfaces.EVEDataService
+	profileService interfaces.ProfileService
 	eveRepo        interfaces.EveProfilesRepository
 	configService  interfaces.ConfigurationService
 	logger         interfaces.Logger
@@ -14,13 +14,13 @@ type SyncService struct {
 
 // NewSyncService creates a new sync service
 func NewSyncService(
-	eveData interfaces.EVEDataService,
+	profileSvc interfaces.ProfileService,
 	eveRepo interfaces.EveProfilesRepository,
 	config interfaces.ConfigurationService,
 	logger interfaces.Logger,
 ) interfaces.SyncService {
 	return &SyncService{
-		eveDataService: eveData,
+		profileService: profileSvc,
 		eveRepo:        eveRepo,
 		configService:  config,
 		logger:         logger,
@@ -30,13 +30,13 @@ func NewSyncService(
 // SyncDirectory syncs a specific subdirectory for a character/user
 func (s *SyncService) SyncDirectory(subDir, charId, userId string) (int, int, error) {
 	s.logger.Infof("Syncing directory %s for char %s and user %s", subDir, charId, userId)
-	return s.eveDataService.SyncDir(subDir, charId, userId)
+	return s.profileService.SyncDir(subDir, charId, userId)
 }
 
 // SyncAllDirectories syncs all subdirectories for a character/user
 func (s *SyncService) SyncAllDirectories(baseSubDir, charId, userId string) (int, int, error) {
 	s.logger.Infof("Syncing all directories from base %s for char %s and user %s", baseSubDir, charId, userId)
-	return s.eveDataService.SyncAllDir(baseSubDir, charId, userId)
+	return s.profileService.SyncAllDir(baseSubDir, charId, userId)
 }
 
 // GetSyncDirectories gets list of available sync directories
@@ -52,5 +52,5 @@ func (s *SyncService) GetSyncDirectories() ([]string, error) {
 // BackupDirectory backs up a directory
 func (s *SyncService) BackupDirectory(targetDir, backupDir string) error {
 	s.logger.Infof("Backing up %s to %s", targetDir, backupDir)
-	return s.eveDataService.BackupDir(targetDir, backupDir)
+	return s.profileService.BackupDir(targetDir, backupDir)
 }

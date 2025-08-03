@@ -13,7 +13,7 @@ import (
 
 type AuthHandler struct {
 	sessionService interfaces.SessionService
-	eveDataService interfaces.EVEDataService
+	esiAPIService  interfaces.ESIAPIService
 	logger         interfaces.Logger
 	accountService interfaces.AccountManagementService
 	stateService   interfaces.ConfigurationService
@@ -23,7 +23,7 @@ type AuthHandler struct {
 
 func NewAuthHandler(
 	s interfaces.SessionService,
-	e interfaces.EVEDataService,
+	e interfaces.ESIAPIService,
 	l interfaces.Logger,
 	accountSvc interfaces.AccountManagementService,
 	stateSvc interfaces.ConfigurationService,
@@ -32,7 +32,7 @@ func NewAuthHandler(
 ) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
-		eveDataService: e,
+		esiAPIService:  e,
 		logger:         l,
 		accountService: accountSvc,
 		stateService:   stateSvc,
@@ -131,7 +131,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.eveDataService.GetUserInfo(token)
+		user, err := h.esiAPIService.GetUserInfo(token)
 		if err != nil {
 			h.logger.Errorf("Failed to get user info: %v", err)
 			handleErrorWithRedirect(w, r, "/")

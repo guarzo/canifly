@@ -10,20 +10,23 @@ import (
 )
 
 type CharacterHandler struct {
-	logger         interfaces.Logger
-	eveDataService interfaces.EVEDataService
-	cache          interfaces.HTTPCacheService
+	logger           interfaces.Logger
+	characterService interfaces.CharacterService
+	esiAPIService    interfaces.ESIAPIService
+	cache            interfaces.HTTPCacheService
 }
 
 func NewCharacterHandler(
 	l interfaces.Logger,
-	e interfaces.EVEDataService,
+	cs interfaces.CharacterService,
+	esi interfaces.ESIAPIService,
 	c interfaces.HTTPCacheService,
 ) *CharacterHandler {
 	return &CharacterHandler{
-		logger:         l,
-		eveDataService: e,
-		cache:          c,
+		logger:           l,
+		characterService: cs,
+		esiAPIService:    esi,
+		cache:            c,
 	}
 }
 
@@ -33,7 +36,7 @@ func (h *CharacterHandler) GetCharacter() http.HandlerFunc {
 		vars := mux.Vars(r)
 		characterID := vars["id"]
 
-		character, err := h.eveDataService.GetCharacter(characterID)
+		character, err := h.esiAPIService.GetCharacter(characterID)
 		if err != nil {
 			respondError(w, "Character not found", http.StatusNotFound)
 			return
@@ -64,7 +67,7 @@ func (h *CharacterHandler) UpdateCharacterRESTful() http.HandlerFunc {
 			return
 		}
 
-		if err := h.eveDataService.UpdateCharacterFields(characterID, updates); err != nil {
+		if err := h.characterService.UpdateCharacterFields(characterID, updates); err != nil {
 			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -83,7 +86,7 @@ func (h *CharacterHandler) DeleteCharacter() http.HandlerFunc {
 			return
 		}
 
-		if err := h.eveDataService.RemoveCharacter(characterID); err != nil {
+		if err := h.characterService.RemoveCharacter(characterID); err != nil {
 			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -103,7 +106,7 @@ func (h *CharacterHandler) RefreshCharacter() http.HandlerFunc {
 		}
 
 		// Use EVE data service to refresh the character
-		updated, err := h.eveDataService.RefreshCharacterData(characterID)
+		updated, err := h.characterService.RefreshCharacterData(characterID)
 		if err != nil {
 			if err.Error() == "character not found" {
 				respondError(w, "Character not found", http.StatusNotFound)

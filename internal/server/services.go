@@ -27,11 +27,18 @@ type AppServices struct {
 	AccountManagementService interfaces.AccountManagementService
 	ConfigurationService     interfaces.ConfigurationService
 
-	// Consolidated EVE Services
+	// Split EVE Services
+	ESIAPIService    interfaces.ESIAPIService
+	CharacterService interfaces.CharacterService
+	SkillPlanService interfaces.SkillPlanService
+	ProfileService   interfaces.ProfileService
+	CacheableService interfaces.CacheableService
+
+	// Composite service for backward compatibility (temporary)
 	EVEDataService interfaces.EVEDataService
-	SyncService    interfaces.SyncService
 
 	// Other Services
+	SyncService      interfaces.SyncService
 	LoginService     interfaces.LoginService
 	AuthClient       interfaces.AuthClient
 	HTTPCacheService interfaces.HTTPCacheService
@@ -162,12 +169,22 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		StorageService:           storageService,
 		AccountManagementService: accountManagementService,
 		ConfigurationService:     configurationService,
-		EVEDataService:           eveDataService,
-		SyncService:              syncService,
-		LoginService:             loginService,
-		AuthClient:               authClient,
-		HTTPCacheService:         httpCacheService,
-		WebSocketHub:             webSocketHub,
+
+		// Split EVE Services (all implemented by eveDataService)
+		ESIAPIService:    eveDataService,
+		CharacterService: eveDataService,
+		SkillPlanService: eveDataService,
+		ProfileService:   eveDataService,
+		CacheableService: eveDataService,
+
+		// Keep composite for backward compatibility
+		EVEDataService: eveDataService,
+
+		SyncService:      syncService,
+		LoginService:     loginService,
+		AuthClient:       authClient,
+		HTTPCacheService: httpCacheService,
+		WebSocketHub:     webSocketHub,
 	}, nil
 }
 

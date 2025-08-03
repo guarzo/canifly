@@ -223,7 +223,7 @@ func (s *AccountManagementService) RemoveAccountByID(accountID int64) error {
 	return s.storage.SaveAccountData(accountData)
 }
 
-func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
+func (s *AccountManagementService) RefreshAccountData() (*model.AccountData, error) {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return nil, err

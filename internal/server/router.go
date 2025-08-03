@@ -21,12 +21,12 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
 
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.EVEDataService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
-	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.EVEDataService, appServices.HTTPCacheService)
-	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
+	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService, appServices.ESIAPIService, appServices.HTTPCacheService)
+	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillPlanService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
 	configHandler := flyHandlers.NewConfigHandler(logger, appServices.ConfigurationService, appServices.HTTPCacheService)
-	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService, appServices.ConfigurationService, appServices.EVEDataService, appServices.AccountManagementService, appServices.HTTPCacheService)
+	eveDataHandler := flyHandlers.NewEveDataHandler(logger, appServices.SyncService, appServices.ConfigurationService, appServices.SkillPlanService, appServices.ProfileService, appServices.AccountManagementService, appServices.HTTPCacheService)
 	assocHandler := flyHandlers.NewAssociationHandler(logger, appServices.AccountManagementService)
 	fuzzworksHandler := flyHandlers.NewFuzzworksHandler(logger, basePath, appServices.HTTPCacheService, appServices.WebSocketHub)
 
