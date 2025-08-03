@@ -46,7 +46,14 @@ func (s *StorageService) SaveJSON(filename string, v interface{}) error {
 	defer s.mu.Unlock()
 
 	filePath := filepath.Join(s.basePath, filename)
-	return persist.AtomicWriteJSON(s.fs, filePath, v)
+	s.logger.Infof("Saving JSON to file: %s", filePath)
+	err := persist.AtomicWriteJSON(s.fs, filePath, v)
+	if err != nil {
+		s.logger.Errorf("Failed to save JSON to %s: %v", filePath, err)
+	} else {
+		s.logger.Infof("Successfully saved JSON to %s", filePath)
+	}
+	return err
 }
 
 // Account Data Operations

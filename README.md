@@ -51,8 +51,9 @@
 
 ### Prerequisites
 
-- **Go:** Version 1.22.3 or newer. [Download Go](https://golang.org/dl/)
-- **npm:** Version 22.2.0 or newer.
+- **Go:** Version 1.23.2 or newer. [Download Go](https://golang.org/dl/)
+- **Node.js:** Version 20.0.0 or newer.
+- **npm:** Version 10.7.0 or newer.
 - **EVE Developer Credentials:**  
   Create an application via [EVE Online Developers](https://developers.eveonline.com/applications) to get:
     - `EVE_CLIENT_ID`

@@ -1,7 +1,7 @@
 # User Documentation Implementation Plan
 
 ## Overview
-This document outlines a comprehensive plan tocreate user documentation for CanIFly v1.1 GA release.
+This document outlines a comprehensive plan to create user documentation for CanIFly v1.1 GA release.
 
 
 ### Phase 1: Documentation Structure & Setup (Week 1)

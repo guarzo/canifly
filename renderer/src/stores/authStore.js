@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import apiService from '../api/apiService';
+import { clearSessionCookie } from '../utils/clearCookies';
 
 // Track if auth check is in progress globally
 let authCheckInProgress = false;
@@ -36,6 +37,13 @@ const useAuthStore = create(
             return isAuthenticated;
           } catch (error) {
             console.error('Auth check failed:', error);
+            
+            // If we get a specific error about authentication, clear the invalid cookie
+            if (error.message && error.message.includes('user is not logged in')) {
+              console.log('Clearing invalid session cookie');
+              clearSessionCookie();
+            }
+            
             set({ 
               isAuthenticated: false,
               authCheckComplete: true,

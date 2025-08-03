@@ -31,7 +31,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	fuzzworksHandler := flyHandlers.NewFuzzworksHandler(logger, basePath, appServices.HTTPCacheService, appServices.WebSocketHub)
 
 	// Public routes
-	r.HandleFunc("/callback/", authHandler.CallBack())
+	r.HandleFunc("/callback", authHandler.CallBack())
 	r.HandleFunc("/api/add-character", authHandler.AddCharacterHandler())
 	r.HandleFunc("/api/finalize-login", authHandler.FinalizeLogin())
 

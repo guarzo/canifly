@@ -56,6 +56,8 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 			cfg.ClientSecret = storedClientSecret
 			cfg.CallbackURL = storedCallbackURL
 			logger.Info("Loaded EVE credentials from storage")
+		} else {
+			logger.Warn("No EVE credentials found in environment or storage")
 		}
 	}
 	
@@ -83,7 +85,10 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	}
 
 	loginService := initLoginService(logger)
-	authClient := initAuthClient(logger, cfg)
+	
+	// Create dynamic auth client that loads credentials on each use
+	logger.Info("Creating dynamic auth client that loads credentials from storage")
+	authClient := initAuthClient(logger, cfg, configurationService)
 	
 	// Note: repository adapters are no longer needed for account and config services
 	
@@ -181,8 +186,13 @@ func initLoginService(logger interfaces.Logger) interfaces.LoginService {
 	return accountSvc.NewLoginService(logger, loginStateStore)
 }
 
-func initAuthClient(logger interfaces.Logger, cfg Config) interfaces.AuthClient {
-	return accountSvc.NewAuthClient(logger, cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL)
+func initAuthClient(logger interfaces.Logger, cfg Config, configService interfaces.ConfigurationService) interfaces.AuthClient {
+	// Use dynamic auth client that loads credentials on each request
+	baseCallbackURL := cfg.CallbackURL
+	if baseCallbackURL == "" {
+		baseCallbackURL = "http://localhost:42423/callback"
+	}
+	return accountSvc.NewDynamicAuthClient(logger, configService, baseCallbackURL)
 }
 
 

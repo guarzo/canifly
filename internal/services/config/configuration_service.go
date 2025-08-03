@@ -215,8 +215,11 @@ func (s *ConfigurationService) NeedsEVEConfiguration() (bool, error) {
 }
 
 func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string) error {
+	s.logger.Infof("SaveEVECredentials called with ClientID: %s", clientID)
+	
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
+		s.logger.Errorf("Failed to load config data: %v", err)
 		return err
 	}
 	
@@ -224,7 +227,15 @@ func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string)
 	configData.EVEClientSecret = clientSecret
 	configData.EVECallbackURL = "http://localhost:42423/callback"
 	
-	return s.storage.SaveConfigData(configData)
+	s.logger.Infof("Saving EVE credentials to config data")
+	err = s.storage.SaveConfigData(configData)
+	if err != nil {
+		s.logger.Errorf("Failed to save config data: %v", err)
+		return err
+	}
+	
+	s.logger.Info("EVE credentials saved successfully")
+	return nil
 }
 
 func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, callbackURL string, err error) {

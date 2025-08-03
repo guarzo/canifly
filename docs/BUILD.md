@@ -4,8 +4,8 @@ This document describes how to build and package the CanIFly application.
 
 ## Prerequisites
 
-- **Go** 1.22.3 or higher
-- **Node.js** 22.2.0 or higher
+- **Go** 1.23.2 or higher
+- **Node.js** 20.0.0 or higher
 - **npm** 10.7.0 or higher
 - **Make** (optional but recommended)
 
@@ -150,8 +150,9 @@ make package-linux  # Linux AppImage and deb
 ## Version Management
 
 ```bash
-# Bump version (updates package.json and version.go)
-make bump
+# Create a release tag
+make release
+# Note: Version must be manually updated in 'version' file and package.json first
 ```
 
 ## Cleaning

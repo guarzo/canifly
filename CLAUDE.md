@@ -52,8 +52,9 @@ npm run package:app
 
 ### Version Management
 ```bash
-# Bump version (updates package.json and version.go)
-npm run bump
+# Create a release tag
+npm run release
+# Note: Version is manually updated in 'version' file and package.json
 ```
 
 ## Architecture
@@ -66,7 +67,7 @@ The Go backend follows internal package pattern with clean architecture:
 - `internal/persist/` - Data persistence (stores for accounts, config, EVE data)
 - `internal/model/` - Data models and structures
 - `internal/http/` - HTTP client, middleware, session management
-- `internal/embed/` - Embedded static resources (CSV data, skill plans)
+- `internal/embed/` - (Removed - skill plans now downloaded from GitHub)
 
 ### Frontend Structure (React)
 - `renderer/src/api/` - API client services
@@ -80,7 +81,8 @@ Backend serves REST APIs at `http://localhost:42423` with routes:
 - `/api/accounts/*` - Account management
 - `/api/config/*` - Configuration endpoints
 - `/api/esi/*` - EVE ESI proxy endpoints
-- `/api/skillplans/*` - Skill plan management
+- `/api/skill-plans/*` - Skill plan management
+- `/api/fuzzworks/*` - Fuzzworks data updates
 - `/api/sync/*` - Settings synchronization
 
 Frontend uses axios-based API services in `renderer/src/api/`.
@@ -100,8 +102,8 @@ SECRET_KEY=<your_generated_secret_key>
    - Request required scopes for character/skill/asset access
 
 3. **Dependencies**: 
-   - Go 1.24+
-   - npm 24+
+   - Go 1.23.2+
+   - npm 10.7.0+
    - Run `npm install` in root directory
 
 ## Code Quality Standards
@@ -121,8 +123,9 @@ SECRET_KEY=<your_generated_secret_key>
 4. Add frontend API client in `renderer/src/api/`
 
 ### Working with EVE Data
-- Static data CSVs in `internal/embed/sde/`
-- EVE ESI client wrapper in `internal/services/esi.go`
+- Fuzzworks integration for EVE static data downloads
+- GitHub integration for skill plan downloads
+- EVE ESI client integrated in `internal/services/eve/`
 - Character data models in `internal/model/`
 
 ### Electron Updates

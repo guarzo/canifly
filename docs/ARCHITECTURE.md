@@ -126,7 +126,15 @@ renderer/src/
 - Startup validation ensures data availability
 - Binary size reduced by 10MB+ through removal of embedded data
 
-### 4. Security
+### 4. GitHub Skill Plans Integration
+- Skill plans downloaded from GitHub repository
+- 24-hour cache to prevent frequent re-downloads
+- Manual refresh endpoint available
+- Graceful fallback to local files if download fails
+- Support for custom icon identifiers in skill plan format
+- Community-contributed skill plans via pull requests
+
+### 5. Security
 - Session-based authentication
 - Secure token storage
 - CORS protection

@@ -25,6 +25,8 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 				"/callback":           true,
 				"/api/add-character":  true,
 				"/api/finalize-login": true,
+				"/api/config/eve/status": true,       // Check if EVE config is needed
+				"/api/config/eve/credentials": true,  // Save EVE credentials during first-run
 			}
 
 			// Allow access if the request matches a public route
@@ -44,6 +46,13 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 			// Retrieve the session
 			session, err := s.Get(r, SessionName)
 			if err != nil {
+				// Check if this is a securecookie error (invalid value)
+				if strings.Contains(err.Error(), "securecookie: the value is not valid") {
+					logger.WithError(err).Warn("Invalid session cookie detected, treating as unauthenticated")
+					// Treat as unauthenticated rather than error
+					http.Error(w, `{"error":"user is not logged in"}`, http.StatusUnauthorized)
+					return
+				}
 				logger.WithError(err).Error("Failed to retrieve session")
 				http.Error(w, `{"error":"failed to retrieve session"}`, http.StatusInternalServerError)
 				return

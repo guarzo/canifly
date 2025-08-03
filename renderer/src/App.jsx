@@ -109,8 +109,7 @@ const App = () => {
                     open={true} 
                     onComplete={() => {
                         setNeedsEVEConfig(false);
-                        // Reload the page to reinitialize with new credentials
-                        window.location.reload();
+                        // Dynamic auth client will pick up new credentials automatically
                     }} 
                 />
             </ThemeProvider>

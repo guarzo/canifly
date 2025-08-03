@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	flyHttp "github.com/guarzo/canifly/internal/http"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -69,7 +70,9 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 			return
 		}
 
+		h.logger.Infof("Getting auth URL for state: %s", state)
 		url := h.authClient.GetAuthURL(state)
+		h.logger.Infof("Generated auth URL: %s", url)
 		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
 	}
 }
@@ -210,6 +213,16 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, err := h.sessionService.Get(r, flyHttp.SessionName)
 		if err != nil {
+			// Check if this is a securecookie error (invalid value)
+			if strings.Contains(err.Error(), "securecookie: the value is not valid") {
+				h.logger.Warnf("Invalid session cookie detected: %v", err)
+				// Return unauthenticated status instead of error
+				respondJSON(w, map[string]interface{}{
+					"status": "ok",
+					"authenticated": false,
+				})
+				return
+			}
 			h.logger.Errorf("Failed to get session: %v", err)
 			respondError(w, "Failed to get session", http.StatusInternalServerError)
 			return
