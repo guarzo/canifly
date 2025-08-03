@@ -1,0 +1,105 @@
+{
+  "name": "canifly",
+  "version": "0.0.52",
+  "description": "Can I Fly?",
+  "main": "main.js",
+  "scripts": {
+    "start": "concurrently \"go run .\" \"cd renderer && npm run dev\" \"wait-on http://localhost:3113 && electron . --no-sandbox\"",
+    "dev": "npm start",
+    "build": "npm run build:go && npm run build:react",
+    "build:go": "bash scripts/build.sh backend",
+    "build:react": "cd renderer && npm run build",
+    "test": "npm run test:go && npm run test:react",
+    "test:go": "go test ./...",
+    "test:react": "cd renderer && npm test",
+    "package:app": "npm run build && electron-builder",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "release": "bash scripts/release.sh",
+    "clean": "rm -rf dist release renderer/dist"
+  },
+  "build": {
+    "productName": "CanIFly",
+    "appId": "com.github.guarzo.canifly",
+    "files": [
+      "main.js",
+      "preload.js",
+      "static/**/*",
+      "node_modules/**/*",
+      "renderer/dist/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "renderer/dist/assets/**/*",
+      "renderer/dist/images/**/*",
+      "dist/win/canifly-backend.exe",
+      "dist/linux/canifly-backend",
+      "dist/mac/canifly-backend"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/win/canifly-backend.exe",
+        "to": "canifly-backend.exe"
+      },
+      {
+        "from": "dist/linux/canifly-backend",
+        "to": "canifly-backend"
+      },
+      {
+        "from": "dist/mac/canifly-backend",
+        "to": "canifly-backend-mac"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon/zoologo.png"
+    },
+    "win": {
+      "target": "nsis",
+      "forceCodeSigning": false,
+      "icon": "assets/icon/favicon.ico",
+      "artifactName": "CanIFly-Setup-${version}.exe"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon/zoologo.png"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "assets/icon"
+    }
+  },
+  "keywords": [],
+  "author": {
+    "name": "guarzo",
+    "email": "guarzo.eve2@gmail.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@electron/remote": "^2.1.2",
+    "axios": "^1.7.9",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "framer-motion": "^12.23.12",
+    "tailwind-merge": "^3.3.1",
+    "tar": "^7.4.3",
+    "vite": "^6.2.0",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "concurrently": "^9.1.0",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.14.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "standard-version": "^9.5.0",
+    "wait-on": "^8.0.1"
+  }
+}

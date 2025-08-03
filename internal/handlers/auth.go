@@ -1,0 +1,272 @@
+// handlers/auth_handler.go
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+	"os"
+	"strings"
+
+	flyHttp "github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/services/interfaces"
+)
+
+type AuthHandler struct {
+	sessionService interfaces.SessionService
+	esiAPIService  interfaces.ESIAPIService
+	logger         interfaces.Logger
+	accountService interfaces.AccountManagementService
+	stateService   interfaces.ConfigurationService
+	loginService   interfaces.LoginService
+	authClient     interfaces.AuthClient
+}
+
+func NewAuthHandler(
+	s interfaces.SessionService,
+	e interfaces.ESIAPIService,
+	l interfaces.Logger,
+	accountSvc interfaces.AccountManagementService,
+	stateSvc interfaces.ConfigurationService,
+	login interfaces.LoginService,
+	auth interfaces.AuthClient,
+) *AuthHandler {
+	return &AuthHandler{
+		sessionService: s,
+		esiAPIService:  e,
+		logger:         l,
+		accountService: accountSvc,
+		stateService:   stateSvc,
+		loginService:   login,
+		authClient:     auth,
+	}
+}
+
+func (h *AuthHandler) Login() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		w.Header().Set("Surrogate-Control", "no-store")
+		w.Header().Set("Content-Type", "application/json")
+
+		var request struct {
+			Account string `json:"account"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			h.logger.Errorf("Invalid request body: %v", err)
+			respondError(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if request.Account == "" {
+			respondError(w, "account must be provided", http.StatusBadRequest)
+			return
+		}
+
+		state, err := h.loginService.GenerateAndStoreInitialState(request.Account)
+		if err != nil {
+			respondError(w, "Unable to generate state", http.StatusInternalServerError)
+			return
+		}
+
+		h.logger.Infof("Getting auth URL for state: %s", state)
+		url := h.authClient.GetAuthURL(state)
+		h.logger.Infof("Generated auth URL: %s", url)
+		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
+	}
+}
+
+func (h *AuthHandler) AddCharacterHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		var request struct {
+			Account string `json:"account"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			h.logger.Errorf("Invalid request body: %v", err)
+			respondError(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if request.Account == "" {
+			respondError(w, "Invalid request body - account must be provided", http.StatusBadRequest)
+			return
+		}
+
+		state, err := h.loginService.GenerateAndStoreInitialState(request.Account)
+		if err != nil {
+			respondError(w, "Unable to generate state", http.StatusInternalServerError)
+			return
+		}
+
+		url := h.authClient.GetAuthURL(state)
+		respondJSON(w, map[string]string{"redirectURL": url, "state": state})
+	}
+}
+
+func (h *AuthHandler) CallBack() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.logger.Info("callback request received")
+		devMode := os.Getenv("DEV_MODE") == "true"
+
+		code := r.URL.Query().Get("code")
+		state := r.URL.Query().Get("state")
+
+		accountName, _, ok := h.loginService.ResolveAccountAndStatusByState(state)
+		if !ok {
+			h.logger.Error("unable to retrieve value from state")
+			handleErrorWithRedirect(w, r, "/")
+			return
+		}
+
+		h.logger.Infof("Received accountName (account name): %v", accountName)
+
+		token, err := h.authClient.ExchangeCode(code)
+		if err != nil {
+			h.logger.Errorf("Failed to exchange token for code: %s, %v", code, err)
+			handleErrorWithRedirect(w, r, "/")
+			return
+		}
+
+		user, err := h.esiAPIService.GetUserInfo(token)
+		if err != nil {
+			h.logger.Errorf("Failed to get user info: %v", err)
+			handleErrorWithRedirect(w, r, "/")
+			return
+		}
+		h.logger.Warnf("character is %s", user.CharacterName)
+
+		// Login state is now tracked only via session cookie
+
+		// Use AccountManagementService to handle account creation
+		if err = h.accountService.FindOrCreateAccount(accountName, user, token); err != nil {
+			h.logger.Errorf("%v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Set session cookie for both dev and production
+		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+		session.Values[flyHttp.LoggedIn] = true
+		if err = session.Save(r, w); err != nil {
+			h.logger.Errorf("Error saving session: %v", err)
+		}
+
+		if devMode {
+			// In dev, redirect back to dev server
+			frontendPort := os.Getenv("FRONTEND_PORT")
+			if frontendPort == "" {
+				frontendPort = "3113" // Default to 3113 if not set
+			}
+			http.Redirect(w, r, "http://localhost:"+frontendPort, http.StatusFound)
+			return
+		}
+
+		err = h.loginService.UpdateStateStatusAfterCallBack(state)
+		if err != nil {
+			respondError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Redirect to the frontend app root
+		frontendPort := os.Getenv("FRONTEND_PORT")
+		if frontendPort == "" {
+			frontendPort = "3113" // Default to 3113 if not set
+		}
+		redirectURL := "http://localhost:" + frontendPort + "/"
+		http.Redirect(w, r, redirectURL, http.StatusFound)
+
+	}
+}
+
+func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state := r.URL.Query().Get("state")
+		_, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
+		if !ok {
+			h.logger.Error("unable to retrieve value from state")
+			respondError(w, "invalid state", http.StatusUnauthorized)
+			return
+		}
+		if !status {
+			h.logger.Error("call back not yet completed")
+			respondError(w, "call back not yet completed", http.StatusUnauthorized)
+			return
+		}
+
+		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+		session.Values[flyHttp.LoggedIn] = true
+		if err := session.Save(r, w); err != nil {
+			respondError(w, "failed to set session", http.StatusInternalServerError)
+			return
+		}
+
+		//h.loginService.ClearState(state)
+
+		respondJSON(w, map[string]bool{"success": true})
+	}
+}
+
+func (h *AuthHandler) GetSession() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, err := h.sessionService.Get(r, flyHttp.SessionName)
+		if err != nil {
+			// Check if this is a securecookie error (invalid value)
+			if strings.Contains(err.Error(), "securecookie: the value is not valid") {
+				h.logger.Warnf("Invalid session cookie detected: %v", err)
+				// Return unauthenticated status instead of error
+				respondJSON(w, map[string]interface{}{
+					"status":        "ok",
+					"authenticated": false,
+				})
+				return
+			}
+			h.logger.Errorf("Failed to get session: %v", err)
+			respondError(w, "Failed to get session", http.StatusInternalServerError)
+			return
+		}
+
+		loggedIn, ok := session.Values[flyHttp.LoggedIn].(bool)
+		if !ok {
+			loggedIn = false
+		}
+
+		h.logger.Infof("Session check - Cookie LoggedIn: %v", loggedIn)
+
+		respondJSON(w, map[string]interface{}{
+			"status":        "ok",
+			"authenticated": loggedIn,
+		})
+	}
+}
+
+func (h *AuthHandler) Logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, err := h.sessionService.Get(r, flyHttp.SessionName)
+		if err != nil {
+			respondError(w, "Failed to get session", http.StatusInternalServerError)
+			return
+		}
+
+		clearSession(h.sessionService, w, r, h.logger)
+		if err := session.Save(r, w); err != nil {
+			respondError(w, "Failed to save session", http.StatusInternalServerError)
+			return
+		}
+		// Session cleared, no need to clear app state
+
+		respondJSON(w, map[string]bool{"success": true})
+	}
+}
+
+func (h *AuthHandler) ResetAccounts() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := h.accountService.DeleteAllAccounts()
+		if err != nil {
+			h.logger.Errorf("Failed to delete identity %v", err)
+		}
+		http.Redirect(w, r, "/logout", http.StatusSeeOther)
+	}
+}

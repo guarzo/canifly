@@ -1,0 +1,45 @@
+Project Familiarization
+- At the beginning of each conversation, review the following files to understand the project structure and architecture:
+  - `.notes/directory_structure.md`: Contains the current project directory structure
+  - `.notes/project_overview.md`: Provides a high-level overview of the project architecture and components
+- Use this information to provide context-aware responses that align with the existing project organization and design patterns.
+- When suggesting new code or modifications, ensure they follow the established patterns visible in these overview documents.
+
+You are an expert in Go (Golang) and modern web development (React with Vite). You understand idiomatic Go practices, golangci-lint rules, and frontend best practices (including Prettier formatting). Follow the guidelines below for all code suggestions in this monorepo project.
+
+Response Constraints  
+- Do not remove or significantly modify existing code or comments unless it is necessary.  
+- Do not reformat code arbitrarily; only apply standard formatting (gofmt for Go, Prettier for React code).  
+- Preserve import ordering and grouping as is, unless adjustments are needed for new imports.  
+- Ensure any new code integrates seamlessly with the existing codebase and respects the project structure.
+
+Linting and Formatting  
+- All Go code (in the `./internal` backend) **must** comply with `golangci-lint` rules and be properly formatted with Go standards (e.g. `gofmt`/`goimports`). Generated Go code should not produce linter errors or warnings.  
+- All React/Vite frontend code (in the `./renderer` directory) should be formatted with **Prettier** (consistent indentation, quotes, etc.). Ensure suggestions adhere to any established ESLint/Prettier config so that no linting issues occur in the front-end.  
+- Maintain a consistent code style. For example, in Go use idiomatic naming and formatting (camelCase for variables, PascalCase for exported names), and in React follow common style conventions (PascalCase for components, camelCase for functions/variables).  
+- Ensure that any code provided is lint-free and formatted correctly before suggesting it (the AI's output should not require major re-formatting by the developer).
+
+General Code Quality  
+- Write clear, **maintainable** and idiomatic code for both backend and frontend. Prioritize readability and simplicity over cleverness. Use descriptive names for variables, functions, and components.  
+- Avoid code duplication by reusing functions or components and by abstracting common logic. If similar code is needed in multiple places, refactor into a shared helper (in Go, a utility function; in React, a reusable component or hook).  
+- **Go (Backend)**: Follow Go best practices. Handle errors explicitly (check and return errors instead of ignoring them), and use idiomatic error handling patterns. Keep functions focused and reasonably small. Avoid global state and instead use dependency injection or pass context as needed for testability. Use comments to explain non-trivial logic, and adhere to Effective Go guidelines for style and structure.  
+- **React (Frontend)**: Follow React best practices. Use functional components and React Hooks; avoid using outdated class components unless absolutely required. Manage state wisely (use React's `useState`, `useReducer`, or context API where appropriate) and lift state up only when necessary. Clean up side effects in `useEffect` hooks to prevent memory leaks. Ensure the UI logic is split into small, focused components rather than monolithic ones.  
+- Make sure the code is **performance-conscious** and efficient. Choose appropriate data structures and algorithms (e.g., avoid unnecessary nested loops or overly complex computations in both Go and JS). However, do not micro-optimize prematurely—clarity and correctness come first, then optimize critical sections if needed.
+
+Project Structure Awareness  
+- This project uses a **monorepo** structure. The Go backend code resides in the `./internal` directory, and the React frontend code resides in the `./renderer` directory. Keep a clear separation between backend and frontend concerns.  
+- **Do not mix backend and frontend code.** For example, Go code should not attempt to import or use front-end React code, and vice versa. They communicate through well-defined interfaces (such as HTTP APIs).  
+- Follow idiomatic project structures for each side. In the Go `internal` module, organize packages by functionality (for instance, separate packages for handlers, services, models, etc., if applicable). In the React `renderer` app, organize files into logical folders (components, hooks, contexts, assets, etc.) according to the project's conventions.  
+- When generating or modifying code, place new files or functions in the appropriate location. For example, backend utilities belong in `./internal` (or a subpackage therein), whereas any UI component belongs in `./renderer` under the proper folder. Ensure that the suggestion respects these directory boundaries.
+
+Dependency Management  
+- **Go (Backend)**: Manage dependencies with Go modules. The project uses a `go.mod` (and `go.sum`) file—ensure any new import in Go code is reflected in `go.mod`. After adding new imports in suggestions, indicate running `go mod tidy` to keep modules up to date. Follow semantic versioning for module requirements and avoid using replaced or deprecated modules unless necessary.  
+- **React (Frontend)**: Use npm (Node package manager) for front-end dependencies. The `./renderer` directory should have a `package.json` and a lock file (like `package-lock.json`). When suggesting code that uses a new npm package, also mention adding it to `package.json` (e.g. via `npm install`) to maintain consistency. Use proper version ranges in `package.json` (respecting the project's versioning style, e.g. caret (^) for semver).  
+- Keep dependencies minimal and up-to-date. Avoid suggesting heavy or unnecessary libraries if the task can be done with existing dependencies or standard language features. Remove or avoid introducing unused dependencies.  
+- Ensure consistency in dependency usage. For example, do not mix package managers (npm vs yarn) — stick to the project's chosen tooling (the question implies npm). For Go, do not vendor packages manually; rely on Go modules unless instructed otherwise.
+
+Security and Performance Best Practices  
+- **Security**: Follow secure coding practices at all times. Validate and sanitize all inputs (user inputs in React, external data or request parameters in Go) to prevent common vulnerabilities (e.g., SQL injection, XSS). In Go, use proper encoding/escaping when outputting data (for example, use `html/template` for HTML to avoid injection issues). In React, avoid using `dangerouslySetInnerHTML` unless absolutely necessary, and never trust client-side input without validation. Store sensitive information (API keys, secrets) in environment variables or secure storage rather than hard-coding them.  
+- **Performance**: Write code that is mindful of performance. In Go, avoid blocking operations on critical paths and use concurrency (goroutines) wisely for parallelizable tasks, but also handle synchronization (mutexes, channels) properly to avoid race conditions. Use efficient algorithms and data structures — for example, prefer streaming large data instead of loading everything into memory at once. In React, prevent performance bottlenecks by avoiding heavy computations inside component rendering; use `useMemo`/`useCallback` to memoize expensive calculations or functions if they cause re-renders. Leverage code-splitting (dynamic `import()` in Vite) for large modules to improve initial load time. Use React's developer tools (Profiler) to identify and fix slow rendering issues if relevant.  
+- Ensure the application remains **scalable and robust**. For the backend, this means writing code that can handle increased load (e.g., efficient database queries, connection pooling, caching frequently used data, graceful error handling under high traffic). For the frontend, this means keeping the app responsive (e.g., paginate or virtualize long lists rather than rendering huge DOM lists, defer non-critical work with `requestIdleCallback` or similar, etc.).  
+- Avoid common pitfalls: in Go, avoid using `panic` for error handling (use errors properly), and be cautious with pointers or concurrency to not introduce memory leaks or race conditions. In React, avoid memory leaks by cleaning up timers or subscriptions in `useEffect`, and do not update state unnecessarily (which can cause extra renders). Following these practices will lead to more secure and high-performance code.
