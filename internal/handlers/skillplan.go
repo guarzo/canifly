@@ -12,20 +12,20 @@ import (
 )
 
 type SkillPlanHandler struct {
-	logger         interfaces.Logger
-	eveDataService interfaces.EVEDataService
-	accountService interfaces.AccountManagementService
-	cache          interfaces.HTTPCacheService
-	wsHub          *WebSocketHub
+	logger           interfaces.Logger
+	skillPlanService interfaces.SkillPlanService
+	accountService   interfaces.AccountManagementService
+	cache            interfaces.HTTPCacheService
+	wsHub            *WebSocketHub
 }
 
-func NewSkillPlanHandler(l interfaces.Logger, e interfaces.EVEDataService, a interfaces.AccountManagementService, cache interfaces.HTTPCacheService, wsHub *WebSocketHub) *SkillPlanHandler {
+func NewSkillPlanHandler(l interfaces.Logger, sp interfaces.SkillPlanService, a interfaces.AccountManagementService, cache interfaces.HTTPCacheService, wsHub *WebSocketHub) *SkillPlanHandler {
 	return &SkillPlanHandler{
-		logger:         l,
-		eveDataService: e,
-		accountService: a,
-		cache:          cache,
-		wsHub:          wsHub,
+		logger:           l,
+		skillPlanService: sp,
+		accountService:   a,
+		cache:            cache,
+		wsHub:            wsHub,
 	}
 }
 
@@ -53,10 +53,10 @@ func (h *SkillPlanHandler) ListSkillPlans() http.HandlerFunc {
 				}
 
 				// Get skill plans with calculated status
-				skillPlans, _ := h.eveDataService.GetPlanAndConversionData(
+				skillPlans, _ := h.skillPlanService.GetPlanAndConversionData(
 					accounts,
-					h.eveDataService.GetSkillPlans(),
-					h.eveDataService.GetSkillTypes(),
+					h.skillPlanService.GetSkillPlans(),
+					h.skillPlanService.GetSkillTypes(),
 				)
 
 				// Apply pagination to skill plans
@@ -80,7 +80,7 @@ func (h *SkillPlanHandler) GetSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		content, err := h.eveDataService.GetSkillPlanFile(planName)
+		content, err := h.skillPlanService.GetSkillPlanFile(planName)
 		if err != nil {
 			if os.IsNotExist(err) {
 				respondError(w, fmt.Sprintf("Skill plan %s not found", planName), http.StatusNotFound)
@@ -116,12 +116,12 @@ func (h *SkillPlanHandler) CreateSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		if h.eveDataService.CheckIfDuplicatePlan(request.Name) {
+		if h.skillPlanService.CheckIfDuplicatePlan(request.Name) {
 			respondError(w, fmt.Sprintf("Skill plan %s already exists", request.Name), http.StatusConflict)
 			return
 		}
 
-		if err := h.eveDataService.ParseAndSaveSkillPlan(request.Content, request.Name); err != nil {
+		if err := h.skillPlanService.ParseAndSaveSkillPlan(request.Content, request.Name); err != nil {
 			h.logger.Errorf("Failed to create skill plan: %v", err)
 			respondError(w, "Failed to create skill plan", http.StatusInternalServerError)
 			return
@@ -167,7 +167,7 @@ func (h *SkillPlanHandler) UpdateSkillPlan() http.HandlerFunc {
 		}
 
 		// Check if plan exists
-		_, err := h.eveDataService.GetSkillPlanFile(planName)
+		_, err := h.skillPlanService.GetSkillPlanFile(planName)
 		if err != nil {
 			if os.IsNotExist(err) {
 				respondError(w, fmt.Sprintf("Skill plan %s not found", planName), http.StatusNotFound)
@@ -178,18 +178,36 @@ func (h *SkillPlanHandler) UpdateSkillPlan() http.HandlerFunc {
 			return
 		}
 
-		// Delete and recreate (since the service doesn't have an update method)
-		if err := h.eveDataService.DeleteSkillPlan(planName); err != nil {
-			h.logger.Errorf("Failed to delete old skill plan: %v", err)
-			respondError(w, "Failed to update skill plan", http.StatusInternalServerError)
-			return
-		}
+		// Safe update: save to temporary name first
+		tempName := fmt.Sprintf("_temp_%s_%d", planName, time.Now().UnixNano())
 
-		if err := h.eveDataService.ParseAndSaveSkillPlan(request.Content, planName); err != nil {
+		// Save the new content with a temporary name
+		if err := h.skillPlanService.ParseAndSaveSkillPlan(request.Content, tempName); err != nil {
 			h.logger.Errorf("Failed to save updated skill plan: %v", err)
 			respondError(w, "Failed to update skill plan", http.StatusInternalServerError)
 			return
 		}
+
+		// Delete the old plan only after successful save
+		if err := h.skillPlanService.DeleteSkillPlan(planName); err != nil {
+			h.logger.Errorf("Failed to delete old skill plan: %v", err)
+			// Try to clean up the temp file
+			_ = h.skillPlanService.DeleteSkillPlan(tempName)
+			respondError(w, "Failed to update skill plan", http.StatusInternalServerError)
+			return
+		}
+
+		// Rename temp to original name
+		if err := h.skillPlanService.ParseAndSaveSkillPlan(request.Content, planName); err != nil {
+			h.logger.Errorf("Failed to save skill plan with original name: %v", err)
+			// Try to clean up the temp file
+			_ = h.skillPlanService.DeleteSkillPlan(tempName)
+			respondError(w, "Failed to update skill plan", http.StatusInternalServerError)
+			return
+		}
+
+		// Clean up temp file
+		_ = h.skillPlanService.DeleteSkillPlan(tempName)
 
 		respondJSON(w, map[string]interface{}{
 			"name":    planName,
@@ -209,7 +227,7 @@ func (h *SkillPlanHandler) DeleteSkillPlanRESTful() http.HandlerFunc {
 			return
 		}
 
-		if err := h.eveDataService.DeleteSkillPlan(planName); err != nil {
+		if err := h.skillPlanService.DeleteSkillPlan(planName); err != nil {
 			if os.IsNotExist(err) {
 				respondError(w, fmt.Sprintf("Skill plan %s not found", planName), http.StatusNotFound)
 			} else {
@@ -244,7 +262,7 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 		}
 
 		// Get source plan
-		content, err := h.eveDataService.GetSkillPlanFile(sourceName)
+		content, err := h.skillPlanService.GetSkillPlanFile(sourceName)
 		if err != nil {
 			if os.IsNotExist(err) {
 				respondError(w, fmt.Sprintf("Source skill plan %s not found", sourceName), http.StatusNotFound)
@@ -256,13 +274,13 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 		}
 
 		// Check if new name already exists
-		if h.eveDataService.CheckIfDuplicatePlan(request.NewName) {
+		if h.skillPlanService.CheckIfDuplicatePlan(request.NewName) {
 			respondError(w, fmt.Sprintf("Skill plan %s already exists", request.NewName), http.StatusConflict)
 			return
 		}
 
 		// Create copy
-		if err := h.eveDataService.ParseAndSaveSkillPlan(string(content), request.NewName); err != nil {
+		if err := h.skillPlanService.ParseAndSaveSkillPlan(string(content), request.NewName); err != nil {
 			h.logger.Errorf("Failed to create skill plan copy: %v", err)
 			respondError(w, "Failed to copy skill plan", http.StatusInternalServerError)
 			return
@@ -280,7 +298,7 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 func (h *SkillPlanHandler) RefreshSkillPlans() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Refresh skill plans from remote repository
-		if err := h.eveDataService.RefreshRemotePlans(); err != nil {
+		if err := h.skillPlanService.RefreshRemotePlans(); err != nil {
 			h.logger.Errorf("Failed to refresh skill plans: %v", err)
 			respondError(w, "Failed to refresh skill plans", http.StatusInternalServerError)
 			return

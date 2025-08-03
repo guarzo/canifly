@@ -48,29 +48,9 @@ func ParsePaginationParams(r *http.Request) PaginationParams {
 }
 
 // PaginateSlice applies pagination to a slice and returns paginated response
-func PaginateSlice(data interface{}, params PaginationParams) PaginatedResponse {
-	// Convert to slice for length calculation
-	var items []interface{}
-	switch v := data.(type) {
-	case []interface{}:
-		items = v
-	default:
-		// For specific types, we'd need type assertions
-		// For now, return unpaginated data
-		return PaginatedResponse{
-			Data: data,
-			Pagination: PaginationParams{
-				Page:    1,
-				Limit:   0,
-				Offset:  0,
-				HasNext: false,
-				HasPrev: false,
-				Total:   0,
-			},
-		}
-	}
-
-	total := len(items)
+// This generic version works with any slice type
+func PaginateSlice[T any](data []T, params PaginationParams) PaginatedResponse {
+	total := len(data)
 	start := params.Offset
 	end := start + params.Limit
 
@@ -78,16 +58,16 @@ func PaginateSlice(data interface{}, params PaginationParams) PaginatedResponse 
 	if start >= total {
 		start = total
 		end = total
-	} else if end > total {
+	} else if end > total || params.Limit == 0 {
 		end = total
 	}
 
 	// Get paginated slice
-	var paginatedData []interface{}
+	var paginatedData interface{}
 	if start < total {
-		paginatedData = items[start:end]
+		paginatedData = data[start:end]
 	} else {
-		paginatedData = []interface{}{}
+		paginatedData = []T{}
 	}
 
 	// Calculate pagination metadata

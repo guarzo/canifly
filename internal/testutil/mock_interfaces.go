@@ -42,21 +42,33 @@ type MockEVEDataService struct {
 // ESI API Operations
 func (m *MockEVEDataService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error) {
 	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*model.UserInfoResponse), args.Error(1)
 }
 
 func (m *MockEVEDataService) GetCharacter(id string) (*model.CharacterResponse, error) {
 	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*model.CharacterResponse), args.Error(1)
 }
 
 func (m *MockEVEDataService) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
 	args := m.Called(characterID, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*model.CharacterSkillsResponse), args.Error(1)
 }
 
 func (m *MockEVEDataService) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
 	args := m.Called(characterID, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*[]model.SkillQueue), args.Error(1)
 }
 
@@ -72,11 +84,17 @@ func (m *MockEVEDataService) ResolveCharacterNames(charIds []string) (map[string
 
 func (m *MockEVEDataService) GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error) {
 	args := m.Called(id, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*model.Corporation), args.Error(1)
 }
 
 func (m *MockEVEDataService) GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error) {
 	args := m.Called(id, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*model.Alliance), args.Error(1)
 }
 

@@ -14,6 +14,8 @@ type FileSystem interface {
 	Open(path string) (io.ReadCloser, error)
 	MkdirAll(path string, perm os.FileMode) error
 	Remove(path string) error
+	ReadDir(path string) ([]os.DirEntry, error)
+	Rename(oldpath, newpath string) error
 }
 
 type OSFileSystem struct{}
@@ -44,4 +46,12 @@ func (OSFileSystem) MkdirAll(path string, perm os.FileMode) error {
 
 func (OSFileSystem) Remove(path string) error {
 	return os.Remove(path)
+}
+
+func (OSFileSystem) ReadDir(path string) ([]os.DirEntry, error) {
+	return os.ReadDir(path)
+}
+
+func (OSFileSystem) Rename(oldpath, newpath string) error {
+	return os.Rename(oldpath, newpath)
 }

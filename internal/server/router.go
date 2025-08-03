@@ -113,7 +113,7 @@ func createCORSHandler(h http.Handler) http.Handler {
 
 	return handlers.CORS(
 		handlers.AllowedOrigins([]string{allowedOrigin}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"}),
 		handlers.AllowCredentials(),
 	)(h)

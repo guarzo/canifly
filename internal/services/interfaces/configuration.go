@@ -19,6 +19,6 @@ type ConfigurationService interface {
 
 	// EVE Credentials Management
 	NeedsEVEConfiguration() (bool, error)
-	SaveEVECredentials(clientID, clientSecret string) error
+	SaveEVECredentials(clientID, clientSecret, callbackURL string) error
 	GetEVECredentials() (clientID, clientSecret, callbackURL string, err error)
 }

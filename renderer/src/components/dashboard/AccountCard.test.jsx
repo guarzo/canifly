@@ -27,6 +27,7 @@ test('renders account name and status', () => {
         <AccountCard
             account={mockAccount}
             onToggleAccountStatus={() => {}}
+            onToggleAccountVisibility={() => {}}
             onUpdateAccountName={() => {}}
             onUpdateCharacter={() => {}}
             onRemoveCharacter={() => {}}

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type HTTPCacheService struct {
 	entries map[string]*cacheEntry
 	mu      sync.RWMutex
 	logger  interfaces.Logger
+	done    chan struct{}
 }
 
 // NewHTTPCacheService creates a new HTTP cache service
@@ -28,6 +30,7 @@ func NewHTTPCacheService(logger interfaces.Logger) *HTTPCacheService {
 	service := &HTTPCacheService{
 		entries: make(map[string]*cacheEntry),
 		logger:  logger,
+		done:    make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
@@ -74,14 +77,23 @@ func (s *HTTPCacheService) Set(key string, data interface{}, ttl time.Duration) 
 }
 
 // Invalidate removes entries matching the pattern
+// Pattern supports prefix matching (e.g., "accounts:" invalidates all keys starting with "accounts:")
 func (s *HTTPCacheService) Invalidate(pattern string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	keysToDelete := []string{}
 	for key := range s.entries {
-		if strings.Contains(key, pattern) {
+		// Support prefix matching (most common case)
+		if strings.HasPrefix(key, pattern) {
 			keysToDelete = append(keysToDelete, key)
+		} else if strings.Contains(pattern, "*") {
+			// Support simple wildcard matching if pattern contains *
+			// Convert pattern to simple regex (replace * with .*)
+			regexPattern := strings.ReplaceAll(pattern, "*", ".*")
+			if matched, _ := regexp.MatchString("^"+regexPattern+"$", key); matched {
+				keysToDelete = append(keysToDelete, key)
+			}
 		}
 	}
 
@@ -118,24 +130,36 @@ func (s *HTTPCacheService) cleanupExpired() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		s.mu.Lock()
-		now := time.Now()
-		keysToDelete := []string{}
+	for {
+		select {
+		case <-s.done:
+			s.logger.Info("Cache cleanup goroutine shutting down")
+			return
+		case <-ticker.C:
+			s.mu.Lock()
+			now := time.Now()
+			keysToDelete := []string{}
 
-		for key, entry := range s.entries {
-			if now.After(entry.expiration) {
-				keysToDelete = append(keysToDelete, key)
+			for key, entry := range s.entries {
+				if now.After(entry.expiration) {
+					keysToDelete = append(keysToDelete, key)
+				}
 			}
-		}
 
-		for _, key := range keysToDelete {
-			delete(s.entries, key)
-		}
+			for _, key := range keysToDelete {
+				delete(s.entries, key)
+			}
 
-		if len(keysToDelete) > 0 {
-			s.logger.Debugf("Cleaned up %d expired cache entries", len(keysToDelete))
+			if len(keysToDelete) > 0 {
+				s.logger.Debugf("Cleaned up %d expired cache entries", len(keysToDelete))
+			}
+			s.mu.Unlock()
 		}
-		s.mu.Unlock()
 	}
+}
+
+// Shutdown gracefully shuts down the cache service
+func (s *HTTPCacheService) Shutdown() {
+	close(s.done)
+	s.logger.Info("Cache service shutdown initiated")
 }

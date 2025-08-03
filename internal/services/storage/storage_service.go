@@ -165,7 +165,7 @@ func (s *StorageService) ListSkillPlans() ([]string, error) {
 	defer s.mu.RUnlock()
 
 	plansDir := filepath.Join(s.basePath, "plans")
-	entries, err := os.ReadDir(plansDir)
+	entries, err := s.fs.ReadDir(plansDir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return []string{}, nil

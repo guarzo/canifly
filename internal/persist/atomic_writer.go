@@ -20,15 +20,15 @@ func AtomicWriteJSON(fs FileSystem, path string, data interface{}) error {
 		return fmt.Errorf("failed to marshal JSON data for %s: %w", path, err)
 	}
 
-	// Write to temporary file
-	tempPath := path + ".tmp"
+	// Write to temporary file with unique name
+	tempPath := fmt.Sprintf("%s.tmp.%d", path, os.Getpid())
 	if err := fs.WriteFile(tempPath, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write temp file %s: %w", tempPath, err)
 	}
 
 	// Atomic rename - this is the key operation that ensures atomicity
-	// Note: os.Rename is atomic on POSIX systems and Windows NTFS
-	if err := os.Rename(tempPath, path); err != nil {
+	// Note: Rename is atomic on POSIX systems and Windows NTFS
+	if err := fs.Rename(tempPath, path); err != nil {
 		// Cleanup temp file on failure
 		fs.Remove(tempPath)
 		return fmt.Errorf("failed to rename temp file %s to %s: %w", tempPath, path, err)
@@ -44,14 +44,14 @@ func AtomicWriteFile(fs FileSystem, path string, data []byte, perm os.FileMode) 
 		return fmt.Errorf("failed to create directories for %s: %w", path, err)
 	}
 
-	// Write to temporary file
-	tempPath := path + ".tmp"
+	// Write to temporary file with unique name
+	tempPath := fmt.Sprintf("%s.tmp.%d", path, os.Getpid())
 	if err := fs.WriteFile(tempPath, data, perm); err != nil {
 		return fmt.Errorf("failed to write temp file %s: %w", tempPath, err)
 	}
 
 	// Atomic rename - this is the key operation that ensures atomicity
-	if err := os.Rename(tempPath, path); err != nil {
+	if err := fs.Rename(tempPath, path); err != nil {
 		// Cleanup temp file on failure
 		fs.Remove(tempPath)
 		return fmt.Errorf("failed to rename temp file %s to %s: %w", tempPath, path, err)

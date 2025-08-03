@@ -109,9 +109,16 @@ func (h *ConfigHandler) GetEVEConfigStatus() http.HandlerFunc {
 			return
 		}
 
+		// Get the configured callback URL
+		_, _, callbackURL, _ := h.configService.GetEVECredentials()
+		if callbackURL == "" {
+			// Default fallback if not configured
+			callbackURL = "http://localhost:42423/callback"
+		}
+
 		respondJSON(w, map[string]interface{}{
 			"needsConfiguration": needsConfig,
-			"callbackURL":        "http://localhost:42423/callback",
+			"callbackURL":        callbackURL,
 		})
 	}
 }
@@ -122,6 +129,7 @@ func (h *ConfigHandler) SaveEVECredentials() http.HandlerFunc {
 		var request struct {
 			ClientID     string `json:"clientId"`
 			ClientSecret string `json:"clientSecret"`
+			CallbackURL  string `json:"callbackUrl,omitempty"`
 		}
 
 		if err := decodeJSONBody(r, &request); err != nil {
@@ -134,7 +142,7 @@ func (h *ConfigHandler) SaveEVECredentials() http.HandlerFunc {
 			return
 		}
 
-		if err := h.configService.SaveEVECredentials(request.ClientID, request.ClientSecret); err != nil {
+		if err := h.configService.SaveEVECredentials(request.ClientID, request.ClientSecret, request.CallbackURL); err != nil {
 			respondError(w, fmt.Sprintf("Failed to save EVE credentials: %v", err), http.StatusInternalServerError)
 			return
 		}

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -70,7 +69,7 @@ func (h *AssociationHandler) CreateAssociation() http.HandlerFunc {
 
 		if err := h.assocService.AssociateCharacter(request.UserID, request.CharacterID); err != nil {
 			h.logger.Errorf("Failed to create association: %v", err)
-			respondError(w, fmt.Sprintf("Failed to create association: %v", err), http.StatusInternalServerError)
+			respondError(w, "Failed to create association", http.StatusInternalServerError)
 			return
 		}
 

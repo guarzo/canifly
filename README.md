@@ -60,24 +60,6 @@
     - `EVE_CLIENT_SECRET`
     - `EVE_CALLBACK_URL`
 
-- ** Secret Key:**  
-  Generate a secret key for encryption:
-  ```sh
-  openssl rand -base64 32
-  ```
-  Use this output as `SECRET_KEY`.
-
-### Environment Setup
-
-Create a `.env` file at the project root with the following variables:
-
-```
-EVE_CLIENT_ID=<your_client_id>
-EVE_CLIENT_SECRET=<your_client_secret>
-EVE_CALLBACK_URL=<your_callback_url>
-SECRET_KEY=<your_generated_secret_key>
-```
-
 1. **Clone the Repository:**
    ```sh
    git clone https://github.com/guarzo/canifly.git
@@ -102,5 +84,3 @@ We welcome contributions! If you find a bug, have a feature request, or want to 
 
 This project is licensed under the ISC License. For details, see the [LICENSE](./LICENSE) file.
 
-## TODO
-- clones, implants, corp sort

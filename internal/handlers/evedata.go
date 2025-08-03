@@ -5,34 +5,36 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
 type EveDataHandler struct {
-	logger         interfaces.Logger
-	syncService    interfaces.SyncService
-	configService  interfaces.ConfigurationService
-	eveDataService interfaces.EVEDataService
-	accountService interfaces.AccountManagementService
-	cache          interfaces.HTTPCacheService
+	logger           interfaces.Logger
+	syncService      interfaces.SyncService
+	configService    interfaces.ConfigurationService
+	skillPlanService interfaces.SkillPlanService
+	profileService   interfaces.ProfileService
+	accountService   interfaces.AccountManagementService
+	cache            interfaces.HTTPCacheService
 }
 
 func NewEveDataHandler(
 	l interfaces.Logger,
 	s interfaces.SyncService,
 	configService interfaces.ConfigurationService,
-	eveDataService interfaces.EVEDataService,
+	skillPlanService interfaces.SkillPlanService,
+	profileService interfaces.ProfileService,
 	accountService interfaces.AccountManagementService,
 	cache interfaces.HTTPCacheService,
 ) *EveDataHandler {
 	return &EveDataHandler{
-		logger:         l,
-		syncService:    s,
-		configService:  configService,
-		eveDataService: eveDataService,
-		accountService: accountService,
-		cache:          cache,
+		logger:           l,
+		syncService:      s,
+		configService:    configService,
+		skillPlanService: skillPlanService,
+		profileService:   profileService,
+		accountService:   accountService,
+		cache:            cache,
 	}
 }
 
@@ -129,10 +131,10 @@ func (h *EveDataHandler) GetSkillPlans(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Get skill plans with calculated status
-			skillPlans, _ := h.eveDataService.GetPlanAndConversionData(
+			skillPlans, _ := h.skillPlanService.GetPlanAndConversionData(
 				accounts,
-				h.eveDataService.GetSkillPlans(),
-				h.eveDataService.GetSkillTypes(),
+				h.skillPlanService.GetSkillPlans(),
+				h.skillPlanService.GetSkillTypes(),
 			)
 
 			return skillPlans, nil
@@ -152,10 +154,10 @@ func (h *EveDataHandler) GetEveProfiles(w http.ResponseWriter, r *http.Request) 
 			h.logger.Debug("Getting EVE profiles")
 
 			// Load character settings (EVE profiles)
-			eveProfiles, err := h.eveDataService.LoadCharacterSettings()
+			eveProfiles, err := h.profileService.LoadCharacterSettings()
 			if err != nil {
 				h.logger.Errorf("Failed to load character settings: %v", err)
-				return []model.EveProfile{}, nil // Return empty array on error
+				return nil, err // Return nil and error so WithCache can handle it properly
 			}
 
 			return eveProfiles, nil
@@ -181,10 +183,10 @@ func (h *EveDataHandler) GetEveConversions(w http.ResponseWriter, r *http.Reques
 			}
 
 			// Get conversions
-			_, eveConversions := h.eveDataService.GetPlanAndConversionData(
+			_, eveConversions := h.skillPlanService.GetPlanAndConversionData(
 				accounts,
-				h.eveDataService.GetSkillPlans(),
-				h.eveDataService.GetSkillTypes(),
+				h.skillPlanService.GetSkillPlans(),
+				h.skillPlanService.GetSkillTypes(),
 			)
 
 			return eveConversions, nil

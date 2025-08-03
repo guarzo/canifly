@@ -231,7 +231,7 @@ func (s *SkillStore) LoadSkillTypes() error {
 
 	// Load from downloaded Fuzzworks data only
 	fuzzworksPath := filepath.Join(s.basePath, "config", "fuzzworks", "invTypes.csv")
-	file, err := os.Open(fuzzworksPath)
+	file, err := s.fs.Open(fuzzworksPath)
 	if err != nil {
 		return fmt.Errorf("skill types not found - ensure Fuzzworks data is downloaded: %w", err)
 	}

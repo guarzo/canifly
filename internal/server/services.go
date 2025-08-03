@@ -46,7 +46,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	}
 
 	// Create configuration service first (no dependencies)
-	configurationService := configSvc.NewConfigurationService(storageService, logger, cfg.BasePath)
+	configurationService := configSvc.NewConfigurationService(storageService, logger, cfg.BasePath, cfg.SecretKey)
 
 	// Load EVE credentials from storage if not set in environment
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
@@ -140,7 +140,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	eveDataService.SetHTTPClient(httpClient)
 
 	// Now create account management service with EVE data service as user info fetcher
-	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger)
+	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger, authClient)
 
 	// Set the account management service in EVE data service
 	eveDataService.SetAccountManagementService(accountManagementService)

@@ -62,7 +62,7 @@ func Start() error {
 	}
 
 	logger.Infof("Server successfully bound on port %s", cfg.Port)
-	return runServer(srv, listener, logger)
+	return runServer(srv, listener, logger, services)
 }
 
 // createServerWithListener attempts to bind to the provided port before creating the HTTP server.
@@ -82,7 +82,7 @@ func createServerWithListener(r http.Handler, port string, logger interfaces.Log
 
 // runServer starts the HTTP server and adds enhanced logging to capture startup and shutdown details.
 // In DEV_MODE, the startup timeout is increased to give the backend more time to initialize.
-func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger) error {
+func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger, services *server.AppServices) error {
 	startTime := time.Now()
 	shutdownCh := make(chan error, 1)
 	startupCh := make(chan struct{}, 1) // Channel to signal successful startup
@@ -141,6 +141,13 @@ func runServer(srv *http.Server, listener net.Listener, logger interfaces.Logger
 	}
 
 	logger.Info("Initiating graceful shutdown")
+
+	// Shutdown WebSocket hub first
+	if services != nil && services.WebSocketHub != nil {
+		logger.Info("Shutting down WebSocket hub...")
+		services.WebSocketHub.Shutdown()
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {

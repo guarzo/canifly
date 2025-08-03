@@ -18,6 +18,7 @@
     "@mui/material": "^6.1.9",
     "@mui/styles": "^6.1.9",
     "electron-is-dev": "^3.0.1",
+    "framer-motion": "^12.23.12",
     "next-themes": "^0.4.3",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",

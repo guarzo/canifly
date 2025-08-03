@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
@@ -106,7 +107,8 @@ func getPort() string {
 // ValidateStartupPaths ensures all required directories exist and are writable
 func ValidateStartupPaths(cfg Config, logger interfaces.Logger) error {
 	// Check base path exists and is writable
-	testFile := filepath.Join(cfg.BasePath, ".write_test")
+	timestamp := time.Now().UnixNano()
+	testFile := filepath.Join(cfg.BasePath, fmt.Sprintf(".write_test_%d", timestamp))
 	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
 		return fmt.Errorf("base path %s is not writable: %w", cfg.BasePath, err)
 	}

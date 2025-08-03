@@ -88,12 +88,12 @@ describe('SkillPlans', () => {
             />
         );
 
-        // The toggle buttons are controlled, so let's find the "View Skill Plans" button
-        const plansToggle = screen.getByRole('button', { name: /View Skill Plans/i });
+        // The toggle buttons are controlled, so let's find the "View Skill Plans" button by title
+        const plansToggle = screen.getByTitle('View Skill Plans');
         await user.click(plansToggle);
 
-        // Now we should see the "By Skill Plan" section
-        expect(screen.getByText('By Skill Plan')).toBeInTheDocument();
+        // Wait for the animation and state update
+        await screen.findByText('By Skill Plan', {}, { timeout: 2000 });
     });
 
 });

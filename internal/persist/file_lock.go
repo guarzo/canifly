@@ -21,22 +21,29 @@ type FileLock struct {
 func AcquireLock(basePath string) (*FileLock, error) {
 	lockPath := filepath.Join(basePath, ".lock")
 
-	// Check if lock file exists and if the process is still running
-	if existingPID, exists := checkExistingLock(lockPath); exists {
-		if isProcessRunning(existingPID) {
-			return nil, fmt.Errorf("another instance is already running (PID: %d)", existingPID)
-		}
-		// Stale lock file, remove it
-		os.Remove(lockPath)
-	}
-
-	// Create lock file exclusively
+	// Try to create lock file exclusively (atomic operation)
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {
 		if os.IsExist(err) {
-			return nil, fmt.Errorf("failed to acquire lock: another instance may be running")
+			// Lock file exists, check if it's stale
+			if existingPID, exists := checkExistingLock(lockPath); exists {
+				if isProcessRunning(existingPID) {
+					return nil, fmt.Errorf("another instance is already running (PID: %d)", existingPID)
+				}
+				// Stale lock file, remove it and retry once
+				os.Remove(lockPath)
+
+				// Retry creating the lock file
+				file, err = os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+				if err != nil {
+					return nil, fmt.Errorf("failed to acquire lock after removing stale lock: %w", err)
+				}
+			} else {
+				return nil, fmt.Errorf("failed to acquire lock: another instance may be running")
+			}
+		} else {
+			return nil, fmt.Errorf("failed to create lock file: %w", err)
 		}
-		return nil, fmt.Errorf("failed to create lock file: %w", err)
 	}
 
 	// Write PID and timestamp to lock file
@@ -98,21 +105,16 @@ func isProcessRunning(pid int) bool {
 			return false
 		}
 		// On Windows, FindProcess always succeeds for any PID
-		// We need to use a different approach - try to wait with timeout
-		done := make(chan struct{})
-		go func() {
-			proc.Wait()
-			close(done)
-		}()
-
-		select {
-		case <-done:
-			// Process exited, so it wasn't running
-			return false
-		case <-time.After(1 * time.Millisecond):
-			// Process is still running
+		// Try to send signal 0 to check if process actually exists
+		err = proc.Signal(syscall.Signal(0))
+		if err == nil {
+			// Process exists and is running
 			return true
 		}
+		// Check error to determine if process exists
+		// "not supported by windows" means process exists but signal not supported
+		// Other errors typically mean process doesn't exist
+		return strings.Contains(err.Error(), "not supported by windows")
 	default:
 		// On Unix-like systems, send signal 0 to check if process exists
 		// This doesn't actually send a signal, just checks if we can

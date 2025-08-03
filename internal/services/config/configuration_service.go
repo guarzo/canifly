@@ -17,10 +17,11 @@ import (
 
 // ConfigurationService handles application configuration
 type ConfigurationService struct {
-	storage  interfaces.StorageService
-	logger   interfaces.Logger
-	basePath string
-	osfs     persist.OSFileSystem
+	storage   interfaces.StorageService
+	logger    interfaces.Logger
+	basePath  string
+	osfs      persist.OSFileSystem
+	secretKey string
 }
 
 // NewConfigurationService creates a new consolidated configuration service
@@ -28,12 +29,32 @@ func NewConfigurationService(
 	storage interfaces.StorageService,
 	logger interfaces.Logger,
 	basePath string,
+	secretKey string,
 ) *ConfigurationService {
+	// Initialize crypto with the secret key
+	if secretKey != "" {
+		// Convert hex string to bytes
+		keyBytes := []byte(secretKey)
+		// Ensure key is exactly 32 bytes (pad or truncate as needed)
+		if len(keyBytes) < 32 {
+			paddedKey := make([]byte, 32)
+			copy(paddedKey, keyBytes)
+			keyBytes = paddedKey
+		} else if len(keyBytes) > 32 {
+			keyBytes = keyBytes[:32]
+		}
+
+		if err := persist.Initialize(keyBytes); err != nil {
+			logger.Errorf("Failed to initialize crypto: %v", err)
+		}
+	}
+
 	return &ConfigurationService{
-		storage:  storage,
-		logger:   logger,
-		basePath: basePath,
-		osfs:     persist.OSFileSystem{},
+		storage:   storage,
+		logger:    logger,
+		basePath:  basePath,
+		osfs:      persist.OSFileSystem{},
+		secretKey: secretKey,
 	}
 }
 
@@ -226,8 +247,8 @@ func (s *ConfigurationService) NeedsEVEConfiguration() (bool, error) {
 	return configData.EVEClientID == "" || configData.EVEClientSecret == "", nil
 }
 
-func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string) error {
-	s.logger.Infof("SaveEVECredentials called with ClientID: %s", clientID)
+func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret, callbackURL string) error {
+	s.logger.Debug("SaveEVECredentials called")
 
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
@@ -236,8 +257,23 @@ func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret string)
 	}
 
 	configData.EVEClientID = clientID
-	configData.EVEClientSecret = clientSecret
-	configData.EVECallbackURL = "http://localhost:42423/callback"
+
+	// Encrypt the client secret before storing
+	encryptedSecret, err := persist.EncryptString(clientSecret)
+	if err != nil {
+		s.logger.Errorf("Failed to encrypt client secret: %v", err)
+		// Fall back to plain text if encryption fails
+		configData.EVEClientSecret = clientSecret
+	} else {
+		configData.EVEClientSecret = encryptedSecret
+	}
+
+	// Use provided callback URL or default
+	if callbackURL != "" {
+		configData.EVECallbackURL = callbackURL
+	} else {
+		configData.EVECallbackURL = "http://localhost:42423/callback"
+	}
 
 	s.logger.Infof("Saving EVE credentials to config data")
 	err = s.storage.SaveConfigData(configData)
@@ -256,7 +292,22 @@ func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, call
 		return "", "", "", err
 	}
 
-	return configData.EVEClientID, configData.EVEClientSecret, configData.EVECallbackURL, nil
+	clientID = configData.EVEClientID
+	callbackURL = configData.EVECallbackURL
+
+	// Decrypt the client secret if it's encrypted
+	if configData.EVEClientSecret != "" {
+		decryptedSecret, err := persist.DecryptString(configData.EVEClientSecret)
+		if err != nil {
+			// If decryption fails, assume it's not encrypted (backward compatibility)
+			s.logger.Debugf("Failed to decrypt client secret, assuming plain text: %v", err)
+			clientSecret = configData.EVEClientSecret
+		} else {
+			clientSecret = decryptedSecret
+		}
+	}
+
+	return clientID, clientSecret, callbackURL, nil
 }
 
 // Helper methods

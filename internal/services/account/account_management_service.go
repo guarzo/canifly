@@ -15,6 +15,7 @@ type AccountManagementService struct {
 	storage         interfaces.StorageService
 	userInfoFetcher interfaces.UserInfoFetcher
 	logger          interfaces.Logger
+	authClient      interfaces.AuthClient
 }
 
 // NewAccountManagementService creates a new consolidated account management service
@@ -22,11 +23,13 @@ func NewAccountManagementService(
 	storage interfaces.StorageService,
 	userInfoFetcher interfaces.UserInfoFetcher,
 	logger interfaces.Logger,
+	authClient interfaces.AuthClient,
 ) *AccountManagementService {
 	return &AccountManagementService{
 		storage:         storage,
 		userInfoFetcher: userInfoFetcher,
 		logger:          logger,
+		authClient:      authClient,
 	}
 }
 
@@ -73,6 +76,53 @@ func (s *AccountManagementService) FindOrCreateAccount(state string, char *model
 	}
 
 	accountData.Accounts = accounts
+	return s.storage.SaveAccountData(accountData)
+}
+
+func (s *AccountManagementService) GetAccountByID(accountID int64) (*model.Account, error) {
+	accountData, err := s.storage.LoadAccountData()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range accountData.Accounts {
+		if accountData.Accounts[i].ID == accountID {
+			// Return a copy to prevent external modifications
+			account := accountData.Accounts[i]
+			return &account, nil
+		}
+	}
+	return nil, fmt.Errorf("account with ID %d not found", accountID)
+}
+
+func (s *AccountManagementService) UpdateAccount(accountID int64, updates interfaces.AccountUpdateRequest) error {
+	accountData, err := s.storage.LoadAccountData()
+	if err != nil {
+		return err
+	}
+
+	var found bool
+	for i := range accountData.Accounts {
+		if accountData.Accounts[i].ID == accountID {
+			// Apply all updates atomically
+			if updates.Name != nil {
+				accountData.Accounts[i].Name = *updates.Name
+			}
+			if updates.Status != nil {
+				accountData.Accounts[i].Status = *updates.Status
+			}
+			if updates.Visible != nil {
+				accountData.Accounts[i].Visible = *updates.Visible
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("account not found")
+	}
+
 	return s.storage.SaveAccountData(accountData)
 }
 
@@ -148,6 +198,31 @@ func (s *AccountManagementService) RemoveAccountByName(accountName string) error
 	return s.storage.SaveAccountData(accountData)
 }
 
+func (s *AccountManagementService) RemoveAccountByID(accountID int64) error {
+	accountData, err := s.storage.LoadAccountData()
+	if err != nil {
+		return err
+	}
+
+	accounts := accountData.Accounts
+	var updatedAccounts []model.Account
+	var found bool
+	for _, account := range accounts {
+		if account.ID != accountID {
+			updatedAccounts = append(updatedAccounts, account)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("account with ID %d not found", accountID)
+	}
+
+	accountData.Accounts = updatedAccounts
+	return s.storage.SaveAccountData(accountData)
+}
+
 func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
@@ -165,16 +240,17 @@ func (s *AccountManagementService) RefreshAccountData(eveDataService interfaces.
 			char := &account.Characters[j]
 
 			// Refresh token if needed
-			// Note: GetTokenSource may not exist, we'll need to check ESIService interface
-			newToken := &char.Token
-			if err != nil {
-				s.logger.Errorf("Failed to refresh token for character %d: %v", char.Character.CharacterID, err)
-				continue
+			if char.Token.RefreshToken != "" {
+				newToken, err := s.authClient.RefreshToken(char.Token.RefreshToken)
+				if err != nil {
+					s.logger.Errorf("Failed to refresh token for character %d: %v", char.Character.CharacterID, err)
+					continue
+				}
+				char.Token = *newToken
 			}
-			char.Token = *newToken
 
 			// Update character data
-			updatedChar, err := s.userInfoFetcher.GetUserInfo(newToken)
+			updatedChar, err := s.userInfoFetcher.GetUserInfo(&char.Token)
 			if err != nil {
 				s.logger.Errorf("Failed to get user info for character %d: %v", char.Character.CharacterID, err)
 				continue

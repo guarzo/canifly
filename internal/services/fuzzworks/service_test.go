@@ -62,7 +62,6 @@ func TestService_ParseSolarSystemsCSV(t *testing.T) {
 	service.dataPath = filepath.Dir(tempFile.Name())
 
 	// Test parsing
-	service.dataPath = ""
 	idToName, nameToId, err := service.ParseSolarSystemsCSV()
 
 	// Since we're not actually downloading in the test, this should fail

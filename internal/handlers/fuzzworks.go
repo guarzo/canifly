@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
@@ -74,7 +75,7 @@ func (h *FuzzworksHandler) UpdateData() http.HandlerFunc {
 func (h *FuzzworksHandler) GetStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get the metadata file path
-		metadataPath := h.basePath + "/config/fuzzworks/fuzzworks_metadata.json"
+		metadataPath := filepath.Join(h.basePath, "config", "fuzzworks", "fuzzworks_metadata.json")
 
 		// Try to read the metadata
 		var metadata struct {
@@ -84,7 +85,9 @@ func (h *FuzzworksHandler) GetStatus() http.HandlerFunc {
 
 		// Read metadata file if it exists
 		if data, err := os.ReadFile(metadataPath); err == nil {
-			json.Unmarshal(data, &metadata)
+			if err := json.Unmarshal(data, &metadata); err != nil {
+				h.logger.Errorf("Failed to unmarshal fuzzworks metadata: %v", err)
+			}
 		}
 
 		status := map[string]interface{}{

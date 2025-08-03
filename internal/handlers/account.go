@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -69,20 +70,17 @@ func (h *AccountHandler) GetAccount() http.HandlerFunc {
 			return
 		}
 
-		accounts, err := h.accountService.FetchAccounts()
+		account, err := h.accountService.GetAccountByID(accountID)
 		if err != nil {
-			respondError(w, "Failed to fetch accounts", http.StatusInternalServerError)
+			if err.Error() == fmt.Sprintf("account with ID %d not found", accountID) {
+				respondError(w, "Account not found", http.StatusNotFound)
+			} else {
+				respondError(w, "Failed to fetch account", http.StatusInternalServerError)
+			}
 			return
 		}
 
-		for _, acc := range accounts {
-			if acc.ID == accountID {
-				respondJSON(w, acc)
-				return
-			}
-		}
-
-		respondError(w, "Account not found", http.StatusNotFound)
+		respondJSON(w, account)
 	}
 }
 
@@ -106,43 +104,43 @@ func (h *AccountHandler) UpdateAccount() http.HandlerFunc {
 			return
 		}
 
-		// Update name if provided
+		// Build update request
+		updates := interfaces.AccountUpdateRequest{}
+
+		// Validate and set name if provided
 		if request.Name != nil {
 			if *request.Name == "" {
 				respondError(w, "Account name cannot be empty", http.StatusBadRequest)
 				return
 			}
-			err := h.accountService.UpdateAccountName(accountID, *request.Name)
-			if err != nil {
-				respondError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			updates.Name = request.Name
 		}
 
-		// Toggle active status if provided
+		// Set status if provided (convert bool to AccountStatus)
 		if request.IsActive != nil {
-			err := h.accountService.ToggleAccountStatus(accountID)
-			if err != nil {
-				if err.Error() == "account not found" {
-					respondError(w, "Account not found", http.StatusNotFound)
-				} else {
-					respondError(w, fmt.Sprintf("Failed to toggle account status: %v", err), http.StatusInternalServerError)
-				}
-				return
+			if *request.IsActive {
+				status := model.Omega
+				updates.Status = &status
+			} else {
+				status := model.Alpha
+				updates.Status = &status
 			}
 		}
 
-		// Toggle visibility if provided
+		// Set visibility if provided
 		if request.IsVisible != nil {
-			err := h.accountService.ToggleAccountVisibility(accountID)
-			if err != nil {
-				if err.Error() == "account not found" {
-					respondError(w, "Account not found", http.StatusNotFound)
-				} else {
-					respondError(w, fmt.Sprintf("Failed to toggle account visibility: %v", err), http.StatusInternalServerError)
-				}
-				return
+			updates.Visible = request.IsVisible
+		}
+
+		// Perform atomic update
+		err = h.accountService.UpdateAccount(accountID, updates)
+		if err != nil {
+			if err.Error() == "account not found" {
+				respondError(w, "Account not found", http.StatusNotFound)
+			} else {
+				respondError(w, fmt.Sprintf("Failed to update account: %v", err), http.StatusInternalServerError)
 			}
+			return
 		}
 
 		// Invalidate accounts cache after successful update
@@ -169,29 +167,9 @@ func (h *AccountHandler) DeleteAccount() http.HandlerFunc {
 			return
 		}
 
-		// Get account to find its name (needed for RemoveAccountByName)
-		accounts, err := h.accountService.FetchAccounts()
+		err = h.accountService.RemoveAccountByID(accountID)
 		if err != nil {
-			respondError(w, "Failed to fetch accounts", http.StatusInternalServerError)
-			return
-		}
-
-		var accountName string
-		for _, acc := range accounts {
-			if acc.ID == accountID {
-				accountName = acc.Name
-				break
-			}
-		}
-
-		if accountName == "" {
-			respondError(w, "Account not found", http.StatusNotFound)
-			return
-		}
-
-		err = h.accountService.RemoveAccountByName(accountName)
-		if err != nil {
-			if err.Error() == fmt.Sprintf("account %s not found", accountName) {
+			if err.Error() == fmt.Sprintf("account with ID %d not found", accountID) {
 				respondError(w, "Account not found", http.StatusNotFound)
 			} else {
 				respondError(w, fmt.Sprintf("Failed to remove account: %v", err), http.StatusInternalServerError)
