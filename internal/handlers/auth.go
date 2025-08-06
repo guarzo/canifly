@@ -242,6 +242,27 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 
 func (h *AuthHandler) GetSession() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Check for token in Authorization header (for file:// protocol support)
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+			h.logger.Infof("Session check with token: %s", token)
+			
+			// Check if this token corresponds to a completed login
+			accountName, callbackComplete, ok := h.loginService.ResolveAccountAndStatusByState(token)
+			if ok && callbackComplete {
+				h.logger.Infof("Token valid - account: %s", accountName)
+				respondJSON(w, map[string]interface{}{
+					"status":        "ok",
+					"authenticated": true,
+					"user":          accountName,
+				})
+				return
+			}
+			h.logger.Warnf("Invalid or incomplete token: %s", token)
+		}
+		
+		// Fall back to cookie-based session (for development)
 		session, err := h.sessionService.Get(r, flyHttp.SessionName)
 		if err != nil {
 			// Check if this is a securecookie error (invalid value)

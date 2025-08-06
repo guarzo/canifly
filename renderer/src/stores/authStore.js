@@ -83,6 +83,8 @@ const useAuthStore = create(
           set({ loading: true, error: null });
           try {
             await apiService.logout();
+            // Clear the stored token
+            localStorage.removeItem('session_token');
             set({ 
               isAuthenticated: false,
               user: null,

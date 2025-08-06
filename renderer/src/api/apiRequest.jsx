@@ -15,6 +15,18 @@ export async function apiRequest(
     } = {}
 ) {
     try {
+        // Add Authorization header if we have a token (for file:// protocol support)
+        const token = localStorage.getItem('session_token');
+        if (token) {
+            fetchOptions = {
+                ...fetchOptions,
+                headers: {
+                    ...fetchOptions.headers,
+                    'Authorization': `Bearer ${token}`
+                }
+            };
+        }
+        
         const response = await fetch(backEndURL + url, fetchOptions);
 
         let result;
