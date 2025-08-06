@@ -148,15 +148,21 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		// Set session cookie for both dev and production
-		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
-		session.Values[flyHttp.LoggedIn] = true
-		if err = session.Save(r, w); err != nil {
-			h.logger.Errorf("Error saving session: %v", err)
+		// Mark the state as callback complete (but don't set session here - that happens in finalize-login)
+		err = h.loginService.UpdateStateStatusAfterCallBack(state)
+		if err != nil {
+			respondError(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		if devMode {
-			// In dev, redirect back to dev server
+			// In dev, set session cookie and redirect back to dev server
+			session, _ := h.sessionService.Get(r, flyHttp.SessionName)
+			session.Values[flyHttp.LoggedIn] = true
+			if err = session.Save(r, w); err != nil {
+				h.logger.Errorf("Error saving session: %v", err)
+			}
+			
 			frontendPort := os.Getenv("FRONTEND_PORT")
 			if frontendPort == "" {
 				frontendPort = "3113" // Default to 3113 if not set
@@ -165,12 +171,8 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			return
 		}
 
-		err = h.loginService.UpdateStateStatusAfterCallBack(state)
-		if err != nil {
-			respondError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 		// In production, redirect to static success page
+		// Session will be set when Electron app calls finalize-login
 		http.Redirect(w, r, "/static/success.html", http.StatusFound)
 
 	}
@@ -179,25 +181,32 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.URL.Query().Get("state")
-		_, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
+		h.logger.Infof("FinalizeLogin called with state: %s", state)
+		
+		accountName, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
-			h.logger.Error("unable to retrieve value from state")
+			h.logger.Errorf("FinalizeLogin: unable to retrieve value from state: %s", state)
 			respondError(w, "invalid state", http.StatusUnauthorized)
 			return
 		}
+		
+		h.logger.Infof("FinalizeLogin: state found - account: %s, callback complete: %v", accountName, status)
+		
 		if !status {
-			h.logger.Error("call back not yet completed")
-			respondError(w, "call back not yet completed", http.StatusUnauthorized)
+			h.logger.Info("FinalizeLogin: callback not yet completed, returning pending status")
+			respondJSON(w, map[string]bool{"success": false, "pending": true})
 			return
 		}
 
 		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
 		session.Values[flyHttp.LoggedIn] = true
 		if err := session.Save(r, w); err != nil {
+			h.logger.Errorf("FinalizeLogin: failed to save session: %v", err)
 			respondError(w, "failed to set session", http.StatusInternalServerError)
 			return
 		}
 
+		h.logger.Info("FinalizeLogin: session set successfully, login complete")
 		//h.loginService.ClearState(state)
 
 		respondJSON(w, map[string]bool{"success": true})

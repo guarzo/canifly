@@ -91,7 +91,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		logger.Infof("Fuzzworks auto-update disabled in configuration")
 	}
 
-	loginService := initLoginService(logger)
+	loginService := initLoginService(logger, cfg.BasePath)
 
 	// Create dynamic auth client that loads credentials on each use
 	logger.Info("Creating dynamic auth client that loads credentials from storage")
@@ -190,8 +190,15 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 // Initialization functions for services that haven't been consolidated yet
 
-func initLoginService(logger interfaces.Logger) interfaces.LoginService {
-	loginStateStore := account.NewLoginStateStore()
+func initLoginService(logger interfaces.Logger, basePath string) interfaces.LoginService {
+	// Use file-based store for persistence across restarts
+	loginStateStore, err := account.NewLoginStateFileStore(basePath, logger)
+	if err != nil {
+		logger.Errorf("Failed to create file-based login store, falling back to memory: %v", err)
+		// Fall back to memory store
+		memStore := account.NewLoginStateStore()
+		return accountSvc.NewLoginService(logger, memStore)
+	}
 	return accountSvc.NewLoginService(logger, loginStateStore)
 }
 
