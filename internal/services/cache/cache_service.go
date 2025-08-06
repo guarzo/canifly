@@ -82,6 +82,9 @@ func (s *HTTPCacheService) Invalidate(pattern string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	s.logger.Infof("Cache invalidation requested for pattern: %s", pattern)
+	s.logger.Infof("Current cache has %d entries", len(s.entries))
+	
 	keysToDelete := []string{}
 	for key := range s.entries {
 		// Support prefix matching (most common case)
@@ -97,9 +100,10 @@ func (s *HTTPCacheService) Invalidate(pattern string) {
 		}
 	}
 
+	s.logger.Infof("Found %d cache entries to invalidate", len(keysToDelete))
 	for _, key := range keysToDelete {
 		delete(s.entries, key)
-		s.logger.Debugf("Invalidated cache key: %s", key)
+		s.logger.Infof("Invalidated cache key: %s", key)
 	}
 }
 

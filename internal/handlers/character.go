@@ -120,8 +120,9 @@ func (h *CharacterHandler) RefreshCharacter() http.HandlerFunc {
 
 		// Clear account cache to ensure fresh data on next fetch
 		if h.cache != nil {
-			// Invalidate all account cache entries
-			h.cache.Invalidate("accounts:list:*")
+			// Invalidate all account cache entries using prefix
+			// Using "accounts:" prefix will match all keys starting with "accounts:"
+			h.cache.Invalidate("accounts:")
 			h.logger.Info("Cleared account cache after character refresh")
 		}
 
