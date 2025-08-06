@@ -64,6 +64,13 @@ const LoginButton = ({ onModalOpenChange }) => {
                             logger.info('Login finalized successfully!');
                             clearInterval(pollAuth);
                             sessionStorage.removeItem('oauth_state');
+                            
+                            // Store the token if provided (workaround for file:// protocol)
+                            if (result.token) {
+                                localStorage.setItem('session_token', result.token);
+                                logger.debug('Stored session token');
+                            }
+                            
                             // Now refresh auth to update the UI
                             await refreshAuth();
                             toast.success('Login successful!');

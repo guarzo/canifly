@@ -228,9 +228,14 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		h.logger.Info("FinalizeLogin: session set successfully, login complete")
 		//h.loginService.ClearState(state)
 
+		// Return a session token that the frontend can store
+		// This is a workaround for file:// protocol not supporting cookies
+		sessionToken := state // Use state as a simple token for now
+		
 		respondJSON(w, map[string]interface{}{
 			"success": true,
 			"message": "Login completed successfully",
+			"token": sessionToken,
 		})
 	}
 }

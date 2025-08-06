@@ -106,26 +106,6 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	staticFileServer := http.FileServer(http.Dir(staticDir))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
-	// Serve frontend app files (for Electron production)
-	frontendDir := "./renderer/dist"
-	if _, err := os.Stat(frontendDir); os.IsNotExist(err) {
-		// Try relative to executable location
-		if ex, err := os.Executable(); err == nil {
-			frontendDir = filepath.Join(filepath.Dir(ex), "renderer", "dist")
-		}
-	}
-	
-	// Serve index.html at root
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
-			http.ServeFile(w, r, filepath.Join(frontendDir, "index.html"))
-		} else {
-			http.NotFound(w, r)
-		}
-	})
-	
-	// Serve frontend assets
-	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(frontendDir, "assets")))))
 
 	return createCORSHandler(r)
 }
