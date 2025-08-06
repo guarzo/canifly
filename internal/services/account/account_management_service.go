@@ -35,16 +35,16 @@ func NewAccountManagementService(
 
 // Account Management Methods (from AccountService)
 
-func (s *AccountManagementService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
+func (s *AccountManagementService) FindOrCreateAccount(accountName string, char *model.UserInfoResponse, token *oauth2.Token) error {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
 	}
 	accounts := accountData.Accounts
 
-	account := s.findAccountByName(state, accounts)
+	account := s.findAccountByName(accountName, accounts)
 	if account == nil {
-		newAccount := createNewAccountWithCharacterConsolidated(state, token, char)
+		newAccount := createNewAccountWithCharacterConsolidated(accountName, token, char)
 		accounts = append(accounts, *newAccount)
 		// Get pointer to the newly added account in the slice
 		account = &accounts[len(accounts)-1]
@@ -396,10 +396,10 @@ func (s *AccountManagementService) updateAssociationsAfterNewCharacter(account *
 	return s.storage.SaveAccountData(accountData)
 }
 
-func createNewAccountWithCharacterConsolidated(state string, token *oauth2.Token, char *model.UserInfoResponse) *model.Account {
+func createNewAccountWithCharacterConsolidated(accountName string, token *oauth2.Token, char *model.UserInfoResponse) *model.Account {
 	return &model.Account{
 		ID:      time.Now().UnixNano(),
-		Name:    state,
+		Name:    accountName,
 		Visible: true,
 		Status:  model.Omega, // Default to Omega, will be updated later
 		Characters: []model.CharacterIdentity{

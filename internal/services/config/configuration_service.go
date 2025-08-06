@@ -75,10 +75,12 @@ func (s *ConfigurationService) UpdateSettingsDir(dir string) error {
 func (s *ConfigurationService) GetSettingsDir() (string, error) {
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
+		s.logger.Errorf("Failed to load config data: %v", err)
 		return "", err
 	}
 
 	if configData.SettingsDir == "" {
+		s.logger.Info("Settings directory not configured, attempting auto-detection...")
 		// Try to auto-detect and save it
 		defaultDir := s.getDefaultSettingsDir()
 		if defaultDir != "" {
@@ -89,10 +91,13 @@ func (s *ConfigurationService) GetSettingsDir() (string, error) {
 			} else {
 				s.logger.Infof("Auto-detected and saved settings directory: %s", defaultDir)
 			}
+		} else {
+			s.logger.Warn("Could not auto-detect settings directory")
 		}
 		return defaultDir, nil
 	}
 
+	s.logger.Debugf("Using configured settings directory: %s", configData.SettingsDir)
 	return configData.SettingsDir, nil
 }
 
@@ -315,8 +320,10 @@ func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, call
 func (s *ConfigurationService) getDefaultSettingsDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
+		s.logger.Errorf("Failed to get user home directory: %v", err)
 		return ""
 	}
+	s.logger.Debugf("Home directory: %s", homeDir)
 
 	platform := runtime.GOOS
 	if s.isWSL() {
@@ -326,7 +333,9 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 			s.logger.Warnf("Failed to get Windows home in WSL: %v", err)
 			return ""
 		}
+		s.logger.Debugf("WSL detected, using Windows home: %s", homeDir)
 	}
+	s.logger.Debugf("Platform detected: %s", platform)
 
 	var candidates []string
 	switch platform {
@@ -354,10 +363,14 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 		return ""
 	}
 
+	s.logger.Debugf("Checking %d candidate directories for EVE settings", len(candidates))
 	for _, dir := range candidates {
+		s.logger.Debugf("Checking candidate: %s", dir)
 		if info, err := os.Stat(dir); err == nil && info.IsDir() {
 			s.logger.Infof("Found EVE settings directory: %s", dir)
 			return dir
+		} else if err != nil {
+			s.logger.Debugf("  Not found or error: %v", err)
 		}
 	}
 

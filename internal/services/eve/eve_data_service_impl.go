@@ -791,23 +791,32 @@ func (s *EVEDataServiceImpl) updateEveConversionsWithSkillNames(typeIds []int32,
 func (s *EVEDataServiceImpl) LoadCharacterSettings() ([]model.EveProfile, error) {
 	settingsDir, err := s.configSvc.GetSettingsDir()
 	if err != nil {
+		s.logger.Errorf("Failed to get settings directory: %v", err)
 		return nil, err
 	}
+	s.logger.Infof("Loading character settings from directory: %s", settingsDir)
 
 	subDirs, err := s.eveProfileRepo.GetSubDirectories(settingsDir)
 	if err != nil {
+		s.logger.Errorf("Failed to get subdirectories from %s: %v", settingsDir, err)
 		return nil, err
+	}
+	s.logger.Infof("Found %d subdirectories in settings directory", len(subDirs))
+	for _, dir := range subDirs {
+		s.logger.Debugf("  - %s", dir)
 	}
 
 	var settingsData []model.EveProfile
 	allCharIDs := make(map[string]struct{})
 
 	for _, sd := range subDirs {
+		s.logger.Debugf("Processing subdirectory: %s", sd)
 		rawFiles, err := s.eveProfileRepo.ListSettingsFiles(sd, settingsDir)
 		if err != nil {
 			s.logger.Warnf("Error fetching settings files for subDir %s: %v", sd, err)
 			continue
 		}
+		s.logger.Debugf("Found %d settings files in %s", len(rawFiles), sd)
 
 		var charFiles []model.CharFile
 		var userFiles []model.UserFile

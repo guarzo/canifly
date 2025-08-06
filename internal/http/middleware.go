@@ -41,21 +41,10 @@ func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginServic
 					return
 				}
 			}
-			
+
 			// Check for Authorization header with token (for file:// protocol support)
 			authHeader := r.Header.Get("Authorization")
-			// Log all headers for debugging
-			headerList := make([]string, 0)
-			for name := range r.Header {
-				headerList = append(headerList, name)
-			}
-			logger.WithFields(logrus.Fields{
-				"path": r.URL.Path,
-				"hasAuthHeader": authHeader != "",
-				"authHeaderLen": len(authHeader),
-				"headers": headerList,
-			}).Debug("Checking authorization header")
-			
+
 			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 				token := strings.TrimPrefix(authHeader, "Bearer ")
 				// Validate token against login state

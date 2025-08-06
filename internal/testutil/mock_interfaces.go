@@ -314,8 +314,8 @@ func (m *MockAccountService) ToggleAccountVisibility(accountID int64) error {
 	return nil
 }
 
-func (m *MockAccountService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
-	args := m.Called(state, char, token)
+func (m *MockAccountService) FindOrCreateAccount(accountName string, char *model.UserInfoResponse, token *oauth2.Token) error {
+	args := m.Called(accountName, char, token)
 	return args.Error(0)
 }
 
@@ -364,8 +364,8 @@ type MockAccountManagementService struct {
 	mock.Mock
 }
 
-func (m *MockAccountManagementService) FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error {
-	args := m.Called(state, char, token)
+func (m *MockAccountManagementService) FindOrCreateAccount(accountName string, char *model.UserInfoResponse, token *oauth2.Token) error {
+	args := m.Called(accountName, char, token)
 	return args.Error(0)
 }
 

@@ -15,7 +15,7 @@ type AccountUpdateRequest struct {
 // AccountManagementService consolidates AccountService and AssociationService interfaces
 type AccountManagementService interface {
 	// Account Management (from AccountService)
-	FindOrCreateAccount(state string, char *model.UserInfoResponse, token *oauth2.Token) error
+	FindOrCreateAccount(accountName string, char *model.UserInfoResponse, token *oauth2.Token) error
 	GetAccountByID(accountID int64) (*model.Account, error)
 	UpdateAccount(accountID int64, updates AccountUpdateRequest) error
 	UpdateAccountName(accountID int64, accountName string) error

@@ -163,7 +163,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			if err = session.Save(r, w); err != nil {
 				h.logger.Errorf("Error saving session: %v", err)
 			}
-			
+
 			frontendPort := os.Getenv("FRONTEND_PORT")
 			if frontendPort == "" {
 				frontendPort = "3113" // Default to 3113 if not set
@@ -183,28 +183,28 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.URL.Query().Get("state")
 		h.logger.Infof("FinalizeLogin called with state: %s from %s", state, r.RemoteAddr)
-		
+
 		// Debug: List all available states
 		h.logger.Debugf("FinalizeLogin: checking state store for state: %s", state)
-		
+
 		accountName, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
 			h.logger.Errorf("FinalizeLogin: state not found: %s", state)
 			// Return more informative error for debugging
 			respondJSON(w, map[string]interface{}{
 				"success": false,
-				"error": "state_not_found",
+				"error":   "state_not_found",
 				"message": fmt.Sprintf("State %s not found in store", state),
 			})
 			return
 		}
-		
+
 		h.logger.Infof("FinalizeLogin: state found - account: %s, callback complete: %v", accountName, status)
-		
+
 		if !status {
 			h.logger.Info("FinalizeLogin: callback not yet completed, returning pending status")
 			respondJSON(w, map[string]interface{}{
-				"success": false, 
+				"success": false,
 				"pending": true,
 				"message": "Waiting for OAuth callback to complete",
 			})
@@ -231,11 +231,11 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		// Return a session token that the frontend can store
 		// This is a workaround for file:// protocol not supporting cookies
 		sessionToken := state // Use state as a simple token for now
-		
+
 		respondJSON(w, map[string]interface{}{
 			"success": true,
 			"message": "Login completed successfully",
-			"token": sessionToken,
+			"token":   sessionToken,
 		})
 	}
 }
@@ -247,7 +247,7 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 			h.logger.Infof("Session check with token: %s", token)
-			
+
 			// Check if this token corresponds to a completed login
 			accountName, callbackComplete, ok := h.loginService.ResolveAccountAndStatusByState(token)
 			if ok && callbackComplete {
@@ -261,7 +261,7 @@ func (h *AuthHandler) GetSession() http.HandlerFunc {
 			}
 			h.logger.Warnf("Invalid or incomplete token: %s", token)
 		}
-		
+
 		// Fall back to cookie-based session (for development)
 		session, err := h.sessionService.Get(r, flyHttp.SessionName)
 		if err != nil {

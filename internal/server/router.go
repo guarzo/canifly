@@ -106,7 +106,6 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	staticFileServer := http.FileServer(http.Dir(staticDir))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticFileServer))
 
-
 	return createCORSHandler(r)
 }
 

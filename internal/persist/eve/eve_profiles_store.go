@@ -160,18 +160,24 @@ func (e *EveProfilesStore) BackupDirectory(targetDir, backupDir string) error {
 
 // GetSubDirectories returns subdirs in settingsDir that start with "settings_".
 func (e *EveProfilesStore) GetSubDirectories(settingsDir string) ([]string, error) {
+	e.logger.Debugf("Getting subdirectories from: %s", settingsDir)
 	entries, err := os.ReadDir(settingsDir)
 	if err != nil {
 		e.logger.Errorf("failed to read %s, with error %v", settingsDir, err)
 		return nil, err
 	}
+	e.logger.Debugf("Found %d entries in settings directory", len(entries))
 
 	var dirs []string
 	for _, ent := range entries {
-		if ent.IsDir() && strings.HasPrefix(ent.Name(), "settings_") {
-			dirs = append(dirs, ent.Name())
+		if ent.IsDir() {
+			e.logger.Debugf("  Directory: %s (has 'settings_' prefix: %v)", ent.Name(), strings.HasPrefix(ent.Name(), "settings_"))
+			if strings.HasPrefix(ent.Name(), "settings_") {
+				dirs = append(dirs, ent.Name())
+			}
 		}
 	}
+	e.logger.Infof("Found %d settings directories (with 'settings_' prefix)", len(dirs))
 	return dirs, nil
 }
 
