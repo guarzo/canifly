@@ -170,13 +170,8 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// Redirect to the frontend app root
-		frontendPort := os.Getenv("FRONTEND_PORT")
-		if frontendPort == "" {
-			frontendPort = "3113" // Default to 3113 if not set
-		}
-		redirectURL := "http://localhost:" + frontendPort + "/"
-		http.Redirect(w, r, redirectURL, http.StatusFound)
+		// In production, redirect to static success page
+		http.Redirect(w, r, "/static/success.html", http.StatusFound)
 
 	}
 }
