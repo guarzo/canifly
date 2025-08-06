@@ -39,10 +39,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wine32 wine64
       
-      - name: Clean build artifacts
+      - name: Clean build artifacts (Unix)
+        if: matrix.os != 'windows-latest'
         run: |
           rm -rf dist release
-          mkdir dist release
+          mkdir -p dist release
+
+      - name: Clean build artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path release) { Remove-Item -Recurse -Force release }
+          New-Item -ItemType Directory -Force -Path dist
+          New-Item -ItemType Directory -Force -Path release
+        shell: powershell
 
       - name: Get version
         id: get_version
@@ -82,9 +92,14 @@ jobs:
           npm run build
           npm run dist:mac
 
-      - name: List release directory files
+      - name: List release directory files (Unix)
+        if: matrix.os != 'windows-latest'
         run: ls -la release
-        shell: bash
+
+      - name: List release directory files (Windows)
+        if: matrix.os == 'windows-latest'
+        run: Get-ChildItem -Path release -Force
+        shell: powershell
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
