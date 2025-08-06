@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -181,12 +182,20 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.URL.Query().Get("state")
-		h.logger.Infof("FinalizeLogin called with state: %s", state)
+		h.logger.Infof("FinalizeLogin called with state: %s from %s", state, r.RemoteAddr)
+		
+		// Debug: List all available states
+		h.logger.Debugf("FinalizeLogin: checking state store for state: %s", state)
 		
 		accountName, status, ok := h.loginService.ResolveAccountAndStatusByState(state)
 		if !ok {
-			h.logger.Errorf("FinalizeLogin: unable to retrieve value from state: %s", state)
-			respondError(w, "invalid state", http.StatusUnauthorized)
+			h.logger.Errorf("FinalizeLogin: state not found: %s", state)
+			// Return more informative error for debugging
+			respondJSON(w, map[string]interface{}{
+				"success": false,
+				"error": "state_not_found",
+				"message": fmt.Sprintf("State %s not found in store", state),
+			})
 			return
 		}
 		
@@ -194,7 +203,11 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		
 		if !status {
 			h.logger.Info("FinalizeLogin: callback not yet completed, returning pending status")
-			respondJSON(w, map[string]bool{"success": false, "pending": true})
+			respondJSON(w, map[string]interface{}{
+				"success": false, 
+				"pending": true,
+				"message": "Waiting for OAuth callback to complete",
+			})
 			return
 		}
 
@@ -209,7 +222,10 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 		h.logger.Info("FinalizeLogin: session set successfully, login complete")
 		//h.loginService.ClearState(state)
 
-		respondJSON(w, map[string]bool{"success": true})
+		respondJSON(w, map[string]interface{}{
+			"success": true,
+			"message": "Login completed successfully",
+		})
 	}
 }
 

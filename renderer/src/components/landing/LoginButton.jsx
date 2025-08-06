@@ -56,18 +56,31 @@ const LoginButton = ({ onModalOpenChange }) => {
                     try {
                         // Import finalizelogin from apiService
                         const { finalizelogin } = await import('../../api/apiService');
+                        logger.debug(`Polling attempt ${attempts} - calling finalize-login with state:`, data.state);
                         const result = await finalizelogin(data.state);
+                        logger.debug(`Finalize-login response:`, result);
                         
                         if (result && result.success) {
+                            logger.info('Login finalized successfully!');
                             clearInterval(pollAuth);
                             sessionStorage.removeItem('oauth_state');
                             // Now refresh auth to update the UI
                             await refreshAuth();
+                            toast.success('Login successful!');
+                        } else if (result && result.pending) {
+                            logger.debug('OAuth callback pending, continuing to poll...');
+                        } else if (result && result.error) {
+                            logger.error('Finalize-login error:', result.error, result.message);
+                            if (result.error === 'state_not_found') {
+                                // State not found - might need to restart login
+                                clearInterval(pollAuth);
+                                toast.error('Login session expired. Please try again.');
+                            }
                         }
                         // If not success, continue polling
                     } catch (error) {
-                        // Ignore errors and continue polling
-                        logger.debug('Polling attempt', attempts, 'error:', error);
+                        // Log errors but continue polling
+                        logger.error('Polling error:', error);
                     }
                 }, 2000);
             } else {

@@ -52,15 +52,19 @@ func (l *LoginStateFileStore) Set(state string, authStatus *model.AuthStatus) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	
+	l.logger.Infof("Setting login state: %s -> account=%s, callback=%v", state, authStatus.AccountName, authStatus.CallBackComplete)
 	l.store[state] = authStatus
 	if err := l.save(); err != nil {
 		l.logger.Errorf("Failed to save login states: %v", err)
+	} else {
+		l.logger.Debugf("Successfully saved login state to file: %s", l.filePath)
 	}
 }
 
 func (l *LoginStateFileStore) Get(state string) (*model.AuthStatus, bool) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+	// Need write lock since we're reloading from file
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	
 	// Reload from file to get latest state
 	if err := l.loadWithoutLock(); err != nil && !os.IsNotExist(err) {
@@ -68,6 +72,15 @@ func (l *LoginStateFileStore) Get(state string) (*model.AuthStatus, bool) {
 	}
 	
 	val, ok := l.store[state]
+	if ok {
+		l.logger.Infof("Found login state: %s -> account=%s, callback=%v", state, val.AccountName, val.CallBackComplete)
+	} else {
+		l.logger.Warnf("Login state not found: %s. Available states: %d", state, len(l.store))
+		// Log available states for debugging
+		for s := range l.store {
+			l.logger.Debugf("  Available state: %s", s)
+		}
+	}
 	return val, ok
 }
 
