@@ -41,27 +41,19 @@ export async function apiRequest(
             const errorMsg =
                 result?.error || errorMessage || 'An unexpected error occurred.';
 
-            // Handle 401 specifically
-            if (response.status === 401) {
-                // 2) Only show the toast if disableErrorToast is false
-                if (!disableErrorToast) {
-                    toast.error(errorMsg);
-                }
 
-                if (onError) {
-                    onError(errorMsg);
-                }
-            } else {
-                // For other error statuses, log but still show error
-                console.log('API error response:', response.status, result);
-                
-                if (!disableErrorToast) {
-                    toast.error(errorMsg);
-                }
-                
-                if (onError) {
-                    onError(errorMsg);
-                }
+            if (response.status !== 401) {
+                console.log(result)
+                return null
+            }
+
+            // 2) Only show the toast if disableErrorToast is false
+            if (!disableErrorToast) {
+                toast.error(errorMsg);
+            }
+
+            if (onError) {
+                onError(errorMsg);
             }
 
             // Return null or throw error, depending on your preferred flow
