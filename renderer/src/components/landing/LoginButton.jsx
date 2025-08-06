@@ -40,12 +40,34 @@ const LoginButton = ({ onModalOpenChange }) => {
                     toast.info("Please complete the login in your browser");
                 }
                 
-                // Start polling for auth status
+                // Start polling for auth completion using finalize-login
+                let attempts = 0;
+                const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute
                 const pollAuth = setInterval(async () => {
-                    const authenticated = await refreshAuth();
-                    if (authenticated) {
+                    attempts++;
+                    
+                    if (attempts > maxAttempts) {
                         clearInterval(pollAuth);
                         sessionStorage.removeItem('oauth_state');
+                        toast.warning('Login timeout. Please try again.');
+                        return;
+                    }
+                    
+                    try {
+                        // Import finalizelogin from apiService
+                        const { finalizelogin } = await import('../../api/apiService');
+                        const result = await finalizelogin(data.state);
+                        
+                        if (result && result.success) {
+                            clearInterval(pollAuth);
+                            sessionStorage.removeItem('oauth_state');
+                            // Now refresh auth to update the UI
+                            await refreshAuth();
+                        }
+                        // If not success, continue polling
+                    } catch (error) {
+                        // Ignore errors and continue polling
+                        logger.debug('Polling attempt', attempts, 'error:', error);
                     }
                 }, 2000);
             } else {

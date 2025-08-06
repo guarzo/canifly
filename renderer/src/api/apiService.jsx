@@ -458,8 +458,7 @@ export async function initiateLogin(account) {
 
 export async function finalizelogin(state) {
     return apiRequest(`/api/finalize-login?state=${state}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'GET',
         credentials: 'include',
     }, {
         disableErrorToast: true,
