@@ -17,6 +17,7 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 			logger.Info(r.URL.Path)
 			// Define public routes that don't require authentication
 			publicRoutes := map[string]bool{
+				"/health":                     true, // Health check endpoint
 				"/static":                     true,
 				"/landing":                    true,
 				"/api/login":                  true,

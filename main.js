@@ -46,7 +46,7 @@ function startGoBackend() {
         goProcess.stderr.on('data', (data) => {
             // Go's standard logger writes INFO logs to stderr, so don't treat them as errors
             const output = data.toString().trim();
-            if (output.includes('INFO[') || output.includes('DEBU[')) {
+            if (output.includes('INFO[') || output.includes('DEBU[') || output.includes('WARN[')) {
                 logger.info(`Go backend: ${output}`);
             } else {
                 logger.error(`Go backend error: ${output}`);
