@@ -16,9 +16,14 @@ const useAuthStore = create(
         loading: false,
         error: null,
 
-        checkAuth: async () => {
+        checkAuth: async (force = false) => {
           // Prevent multiple concurrent auth checks
-          if (authCheckInProgress || get().authCheckComplete) {
+          if (!force && authCheckInProgress) {
+            return get().isAuthenticated;
+          }
+          
+          // Allow force refresh even if authCheckComplete is true
+          if (!force && get().authCheckComplete) {
             return get().isAuthenticated;
           }
           

@@ -35,7 +35,7 @@ export function useAuth() {
   };
 
   const refreshAuth = async () => {
-    return executeCheckAuth(checkAuth, {
+    return executeCheckAuth(() => checkAuth(true), {  // Force refresh
       showToast: false
     });
   };
