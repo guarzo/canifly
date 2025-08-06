@@ -11,7 +11,7 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.MiddlewareFunc {
+func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginService, logger interfaces.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger.Info(r.URL.Path)
@@ -40,6 +40,38 @@ func AuthMiddleware(s interfaces.SessionService, logger interfaces.Logger) mux.M
 					next.ServeHTTP(w, r)
 					return
 				}
+			}
+			
+			// Check for Authorization header with token (for file:// protocol support)
+			authHeader := r.Header.Get("Authorization")
+			// Log all headers for debugging
+			headerList := make([]string, 0)
+			for name := range r.Header {
+				headerList = append(headerList, name)
+			}
+			logger.WithFields(logrus.Fields{
+				"path": r.URL.Path,
+				"hasAuthHeader": authHeader != "",
+				"authHeaderLen": len(authHeader),
+				"headers": headerList,
+			}).Debug("Checking authorization header")
+			
+			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				// Validate token against login state
+				accountName, callbackComplete, ok := loginSvc.ResolveAccountAndStatusByState(token)
+				if ok && callbackComplete {
+					logger.WithFields(logrus.Fields{
+						"path":    r.URL.Path,
+						"account": accountName,
+						"method":  "token",
+					}).Debug("Token authentication successful")
+					next.ServeHTTP(w, r)
+					return
+				}
+				logger.WithField("path", r.URL.Path).Warn("Invalid or incomplete token")
+				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+				return
 			}
 
 			logger.WithField("path", r.URL.Path).Debug("Authentication required for private route")

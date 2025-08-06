@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
     AppBar,
     Toolbar,
@@ -121,12 +122,22 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
     };
 
     const handleAddCharacterSubmit = async (account) => {
-        await executeAddCharacter(async () => {
+        const result = await executeAddCharacter(async () => {
             const { addCharacter } = await import('../../api/apiService');
             return addCharacter(account);
         }, {
-            successMessage: 'Character added successfully'
+            showToast: false // We'll handle the success/error message manually
         });
+        
+        // If we got a redirect URL, open it in the browser
+        if (result && result.redirectURL) {
+            console.log('Opening SSO page:', result.redirectURL);
+            window.open(result.redirectURL, '_blank');
+            toast.info('Please complete the authorization in your browser');
+        } else {
+            toast.success('Character added successfully');
+        }
+        
         setModalOpen(false);
     };
 

@@ -22,10 +22,51 @@ const (
 	LoggedIn    = "logged_in"
 )
 
+// MockLoginService is a mock implementation of LoginService for testing
+type MockLoginService struct {
+	states map[string]struct {
+		accountName      string
+		callbackComplete bool
+	}
+}
+
+func NewMockLoginService() *MockLoginService {
+	return &MockLoginService{
+		states: make(map[string]struct {
+			accountName      string
+			callbackComplete bool
+		}),
+	}
+}
+
+func (m *MockLoginService) GenerateAndStoreInitialState(value string) (string, error) {
+	return "test-state", nil
+}
+
+func (m *MockLoginService) ResolveAccountAndStatusByState(state string) (string, bool, bool) {
+	if s, ok := m.states[state]; ok {
+		return s.accountName, s.callbackComplete, true
+	}
+	return "", false, false
+}
+
+func (m *MockLoginService) UpdateStateStatusAfterCallBack(state string) error {
+	if s, ok := m.states[state]; ok {
+		s.callbackComplete = true
+		m.states[state] = s
+		return nil
+	}
+	return errors.New("state not found")
+}
+
+func (m *MockLoginService) ClearState(state string) {
+	delete(m.states, state)
+}
+
 // createTestRouter creates a router with the AuthMiddleware applied and test handlers.
-func createTestRouter(sessionService interfaces.SessionService, logger interfaces.Logger) *mux.Router {
+func createTestRouter(sessionService interfaces.SessionService, loginService interfaces.LoginService, logger interfaces.Logger) *mux.Router {
 	r := mux.NewRouter()
-	r.Use(flyHttp.AuthMiddleware(sessionService, logger))
+	r.Use(flyHttp.AuthMiddleware(sessionService, loginService, logger))
 
 	// Public routes
 	r.HandleFunc("/static", func(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +91,8 @@ func TestAuthMiddleware_PublicRoute(t *testing.T) {
 	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
-	router := createTestRouter(sessionService, logger)
+	loginService := NewMockLoginService()
+	router := createTestRouter(sessionService, loginService, logger)
 
 	req, _ := http.NewRequest("GET", "/static", nil)
 	rr := httptest.NewRecorder()
@@ -66,7 +108,8 @@ func TestAuthMiddleware_PublicRoute_Landing(t *testing.T) {
 	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
-	router := createTestRouter(sessionService, logger)
+	loginService := NewMockLoginService()
+	router := createTestRouter(sessionService, loginService, logger)
 
 	req, _ := http.NewRequest("GET", "/landing", nil)
 	rr := httptest.NewRecorder()
@@ -82,7 +125,8 @@ func TestAuthMiddleware_PrivateRoute_NotLoggedIn(t *testing.T) {
 	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
 	logger := &testutil.MockLogger{}
 
-	router := createTestRouter(sessionService, logger)
+	loginService := NewMockLoginService()
+	router := createTestRouter(sessionService, loginService, logger)
 
 	req, _ := http.NewRequest("GET", "/private", nil)
 	rr := httptest.NewRecorder()
@@ -100,7 +144,8 @@ func TestAuthMiddleware_PrivateRoute_SessionError(t *testing.T) {
 	}
 	logger := &testutil.MockLogger{}
 
-	router := createTestRouter(sessionService, logger)
+	loginService := NewMockLoginService()
+	router := createTestRouter(sessionService, loginService, logger)
 
 	req, _ := http.NewRequest("GET", "/private", nil)
 	rr := httptest.NewRecorder()
@@ -119,7 +164,8 @@ func TestAuthMiddleware_PrivateRoute_LoggedIn(t *testing.T) {
 	}
 	logger := &testutil.MockLogger{}
 
-	router := createTestRouter(sessionService, logger)
+	loginService := NewMockLoginService()
+	router := createTestRouter(sessionService, loginService, logger)
 
 	req, _ := http.NewRequest("GET", "/private", nil)
 	rr := httptest.NewRecorder()

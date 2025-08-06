@@ -19,7 +19,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r := mux.NewRouter()
 
 	// Add authentication middleware
-	r.Use(flyHttp.AuthMiddleware(sessionStore, logger))
+	r.Use(flyHttp.AuthMiddleware(sessionStore, appServices.LoginService, logger))
 
 	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
