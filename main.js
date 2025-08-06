@@ -34,6 +34,7 @@ function startGoBackend() {
             ? path.join(process.resourcesPath, 'canifly-backend.exe')
             : path.join(process.resourcesPath, 'canifly-backend');
 
+        // Set working directory to resources path where static files are located
         goProcess = spawn(backendPath, [], {
             cwd: process.resourcesPath
         });
@@ -43,7 +44,13 @@ function startGoBackend() {
         });
 
         goProcess.stderr.on('data', (data) => {
-            logger.error(`Go backend error: ${data}`);
+            // Go's standard logger writes INFO logs to stderr, so don't treat them as errors
+            const output = data.toString().trim();
+            if (output.includes('INFO[') || output.includes('DEBU[')) {
+                logger.info(`Go backend: ${output}`);
+            } else {
+                logger.error(`Go backend error: ${output}`);
+            }
         });
 
         goProcess.on('close', (code) => {
@@ -164,7 +171,7 @@ function checkBackendReady(retries) {
         return;
     }
 
-    http.get('http://localhost:42423/static/', (res) => {
+    http.get('http://localhost:42423/health', (res) => {
         if (res.statusCode === 200) {
             const totalDelay = Date.now() - startTime;
             logger.info(`Go backend is ready, launching Electron window after ${totalDelay / 1000} seconds.`);

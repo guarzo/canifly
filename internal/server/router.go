@@ -31,6 +31,11 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	fuzzworksHandler := flyHandlers.NewFuzzworksHandler(logger, basePath, appServices.HTTPCacheService, appServices.WebSocketHub)
 
 	// Public routes
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok","service":"canifly-backend"}`))
+	}).Methods("GET")
 	r.HandleFunc("/callback", authHandler.CallBack())
 	r.HandleFunc("/api/add-character", authHandler.AddCharacterHandler())
 	r.HandleFunc("/api/finalize-login", authHandler.FinalizeLogin())
