@@ -803,20 +803,20 @@ func (s *EVEDataServiceImpl) LoadCharacterSettings() ([]model.EveProfile, error)
 	}
 	s.logger.Infof("Found %d subdirectories in settings directory", len(subDirs))
 	for _, dir := range subDirs {
-		s.logger.Debugf("  - %s", dir)
+		s.logger.Infof("  - %s", dir)
 	}
 
 	var settingsData []model.EveProfile
 	allCharIDs := make(map[string]struct{})
 
 	for _, sd := range subDirs {
-		s.logger.Debugf("Processing subdirectory: %s", sd)
+		s.logger.Infof("Processing subdirectory: %s", sd)
 		rawFiles, err := s.eveProfileRepo.ListSettingsFiles(sd, settingsDir)
 		if err != nil {
 			s.logger.Warnf("Error fetching settings files for subDir %s: %v", sd, err)
 			continue
 		}
-		s.logger.Debugf("Found %d settings files in %s", len(rawFiles), sd)
+		s.logger.Infof("Found %d settings files in %s", len(rawFiles), sd)
 
 		var charFiles []model.CharFile
 		var userFiles []model.UserFile

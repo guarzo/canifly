@@ -97,7 +97,7 @@ func (s *ConfigurationService) GetSettingsDir() (string, error) {
 		return defaultDir, nil
 	}
 
-	s.logger.Debugf("Using configured settings directory: %s", configData.SettingsDir)
+	s.logger.Infof("Using configured settings directory: %s", configData.SettingsDir)
 	return configData.SettingsDir, nil
 }
 
@@ -323,7 +323,7 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 		s.logger.Errorf("Failed to get user home directory: %v", err)
 		return ""
 	}
-	s.logger.Debugf("Home directory: %s", homeDir)
+	s.logger.Infof("Home directory: %s", homeDir)
 
 	platform := runtime.GOOS
 	if s.isWSL() {
@@ -333,9 +333,9 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 			s.logger.Warnf("Failed to get Windows home in WSL: %v", err)
 			return ""
 		}
-		s.logger.Debugf("WSL detected, using Windows home: %s", homeDir)
+		s.logger.Infof("WSL detected, using Windows home: %s", homeDir)
 	}
-	s.logger.Debugf("Platform detected: %s", platform)
+	s.logger.Infof("Platform detected: %s", platform)
 
 	var candidates []string
 	switch platform {
@@ -363,14 +363,14 @@ func (s *ConfigurationService) getDefaultSettingsDir() string {
 		return ""
 	}
 
-	s.logger.Debugf("Checking %d candidate directories for EVE settings", len(candidates))
+	s.logger.Infof("Checking %d candidate directories for EVE settings", len(candidates))
 	for _, dir := range candidates {
-		s.logger.Debugf("Checking candidate: %s", dir)
+		s.logger.Infof("Checking candidate: %s", dir)
 		if info, err := os.Stat(dir); err == nil && info.IsDir() {
 			s.logger.Infof("Found EVE settings directory: %s", dir)
 			return dir
 		} else if err != nil {
-			s.logger.Debugf("  Not found or error: %v", err)
+			s.logger.Infof("  Not found or error: %v", err)
 		}
 	}
 
