@@ -1,6 +1,6 @@
 {
   "name": "canifly",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Can I Fly?",
   "main": "main.js",
   "scripts": {
@@ -54,6 +54,10 @@
       {
         "from": "static",
         "to": "static"
+      },
+      {
+        "from": "renderer/dist",
+        "to": "renderer/dist"
       }
     ],
     "mac": {

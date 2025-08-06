@@ -83,7 +83,9 @@ function createWindow() {
         mainWindow.loadURL('http://localhost:3113');
         mainWindow.webContents.openDevTools();
     } else {
-        mainWindow.loadFile(path.join(__dirname, 'renderer', 'dist', 'index.html'));
+        // In production, load from http://localhost:42423 instead of file://
+        // This allows cookies to work properly
+        mainWindow.loadURL('http://localhost:42423/index.html');
     }
 
     mainWindow.webContents.on('did-finish-load', () => {

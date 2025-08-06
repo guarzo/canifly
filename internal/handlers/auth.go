@@ -213,10 +213,16 @@ func (h *AuthHandler) FinalizeLogin() http.HandlerFunc {
 
 		session, _ := h.sessionService.Get(r, flyHttp.SessionName)
 		session.Values[flyHttp.LoggedIn] = true
+		h.logger.Infof("FinalizeLogin: Setting session cookie - Domain: %s, Path: /", r.Host)
 		if err := session.Save(r, w); err != nil {
 			h.logger.Errorf("FinalizeLogin: failed to save session: %v", err)
 			respondError(w, "failed to set session", http.StatusInternalServerError)
 			return
+		}
+
+		// Debug: Check if cookie was actually set
+		for _, cookie := range w.Header()["Set-Cookie"] {
+			h.logger.Infof("FinalizeLogin: Set-Cookie header: %s", cookie)
 		}
 
 		h.logger.Info("FinalizeLogin: session set successfully, login complete")
