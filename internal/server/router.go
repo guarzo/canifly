@@ -21,7 +21,7 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, appServices.LoginService, logger))
 
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient, appServices.HTTPCacheService, appServices.WebSocketHub)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService, appServices.ESIAPIService, appServices.HTTPCacheService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillPlanService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)

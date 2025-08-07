@@ -20,6 +20,8 @@ type AuthHandler struct {
 	stateService   interfaces.ConfigurationService
 	loginService   interfaces.LoginService
 	authClient     interfaces.AuthClient
+	cache          interfaces.HTTPCacheService
+	wsHub          *WebSocketHub
 }
 
 func NewAuthHandler(
@@ -30,6 +32,8 @@ func NewAuthHandler(
 	stateSvc interfaces.ConfigurationService,
 	login interfaces.LoginService,
 	auth interfaces.AuthClient,
+	cache interfaces.HTTPCacheService,
+	wsHub *WebSocketHub,
 ) *AuthHandler {
 	return &AuthHandler{
 		sessionService: s,
@@ -39,6 +43,8 @@ func NewAuthHandler(
 		stateService:   stateSvc,
 		loginService:   login,
 		authClient:     auth,
+		cache:          cache,
+		wsHub:          wsHub,
 	}
 }
 
@@ -147,6 +153,20 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			h.logger.Errorf("%v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		// Clear account cache to ensure fresh data on next fetch
+		if h.cache != nil {
+			h.cache.Invalidate("accounts:")
+			h.logger.Info("Cleared account cache after adding character")
+		}
+
+		// Broadcast update via WebSocket
+		if h.wsHub != nil {
+			h.wsHub.BroadcastUpdate("account:updated", map[string]interface{}{
+				"message": "Character added successfully",
+			})
+			h.logger.Info("Broadcast account update via WebSocket")
 		}
 
 		// Mark the state as callback complete (but don't set session here - that happens in finalize-login)

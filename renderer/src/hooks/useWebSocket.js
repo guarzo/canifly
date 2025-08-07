@@ -1,11 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from './useAuth';
 import { logger } from '../utils/logger';
+import { isDev } from '../Config';
 
-// Use relative URL for WebSocket to work with proxy
-const WS_URL = window.location.protocol === 'https:' 
-  ? `wss://${window.location.host}/api/ws`
-  : `ws://${window.location.host}/api/ws`;
+// Use backend URL for WebSocket connection
+const WS_URL = isDev 
+  ? `ws://${window.location.host}/api/ws`  // Development mode uses proxy
+  : 'ws://localhost:42423/api/ws';          // Production mode connects directly to backend
 const RECONNECT_DELAY = 5000; // 5 seconds
 const PING_INTERVAL = 30000; // 30 seconds
 
