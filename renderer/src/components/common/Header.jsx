@@ -132,10 +132,28 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
         // If we got a redirect URL, open it in the browser
         if (result && result.redirectURL) {
             console.log('Opening SSO page:', result.redirectURL);
-            window.open(result.redirectURL, '_blank');
+            // Use Electron's API to open in default browser
+            if (window.electronAPI && window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(result.redirectURL);
+            } else {
+                // Fallback for development mode
+                window.open(result.redirectURL, '_blank');
+            }
             toast.info('Please complete the authorization in your browser');
+            
+            // Start polling to check when character is added
+            const checkForNewCharacter = setInterval(async () => {
+                await refreshData();
+                // Could add logic here to detect when new character appears
+                // For now, just keep refreshing periodically
+            }, 3000); // Check every 3 seconds
+            
+            // Stop checking after 60 seconds
+            setTimeout(() => clearInterval(checkForNewCharacter), 60000);
         } else {
             toast.success('Character added successfully');
+            // Refresh data immediately if no redirect
+            await refreshData();
         }
         
         setModalOpen(false);
