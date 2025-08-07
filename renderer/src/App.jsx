@@ -49,6 +49,9 @@ const App = () => {
         
         switch (message.type) {
             case 'account:updated':
+                // Only refresh accounts to avoid UI disruption
+                fetchAccounts();
+                break;
             case 'account:deleted':
                 fetchAccounts();
                 break;
