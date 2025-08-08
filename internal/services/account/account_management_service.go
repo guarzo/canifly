@@ -41,14 +41,18 @@ func (s *AccountManagementService) FindOrCreateAccount(accountName string, char 
 		return err
 	}
 	accounts := accountData.Accounts
+	s.logger.Infof("FindOrCreateAccount: loaded %d existing accounts", len(accounts))
 
 	account := s.findAccountByName(accountName, accounts)
 	if account == nil {
+		s.logger.Infof("Creating new account: %s", accountName)
 		newAccount := createNewAccountWithCharacterConsolidated(accountName, token, char)
 		accounts = append(accounts, *newAccount)
 		// Get pointer to the newly added account in the slice
 		account = &accounts[len(accounts)-1]
+		s.logger.Infof("New account created, total accounts now: %d", len(accounts))
 	} else {
+		s.logger.Infof("Account %s already exists, adding character", accountName)
 		// Check if character already exists in this account
 		var characterAssigned bool
 		for i := range account.Characters {
@@ -76,7 +80,14 @@ func (s *AccountManagementService) FindOrCreateAccount(accountName string, char 
 	}
 
 	accountData.Accounts = accounts
-	return s.storage.SaveAccountData(accountData)
+	s.logger.Infof("Saving account data with %d accounts", len(accounts))
+	err = s.storage.SaveAccountData(accountData)
+	if err != nil {
+		s.logger.Errorf("Failed to save account data: %v", err)
+		return err
+	}
+	s.logger.Infof("Account data saved successfully")
+	return nil
 }
 
 func (s *AccountManagementService) GetAccountByID(accountID int64) (*model.Account, error) {
