@@ -141,15 +141,7 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
             }
             toast.info('Please complete the authorization in your browser');
             
-            // Start polling to check when character is added
-            // Use fetchAccounts directly from the hook to avoid full page refresh
-            const checkForNewCharacter = setInterval(async () => {
-                // Just update accounts list without full page refresh
-                await fetchAccounts();
-            }, 3000); // Check every 3 seconds
-            
-            // Stop checking after 60 seconds
-            setTimeout(() => clearInterval(checkForNewCharacter), 60000);
+            // WebSocket will handle the update notification - no need to poll
         } else {
             toast.success('Character added successfully');
             // Refresh data immediately if no redirect

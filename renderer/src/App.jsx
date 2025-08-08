@@ -55,13 +55,15 @@ const App = () => {
         switch (message.type) {
             case 'account:updated':
                 console.log('Account updated - refreshing accounts');
-                // Call store's fetchAccounts directly to avoid wrapper issues
-                try {
-                    await storeFetchAccounts();
-                    console.log('Accounts refreshed successfully');
-                } catch (error) {
-                    console.error('Failed to refresh accounts:', error);
-                }
+                // Add a small delay to ensure backend operations complete
+                setTimeout(async () => {
+                    try {
+                        await storeFetchAccounts();
+                        console.log('Accounts refreshed successfully');
+                    } catch (error) {
+                        console.error('Failed to refresh accounts:', error);
+                    }
+                }, 500); // 500ms delay
                 break;
             case 'account:deleted':
                 console.log('Account deleted - refreshing accounts');

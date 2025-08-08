@@ -169,13 +169,16 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			}
 		}
 
+		// IMPORTANT: Clear cache and broadcast AFTER ESI data is fetched and saved
+		// This ensures the frontend gets the complete data including ESI information
+
 		// Clear account cache to ensure fresh data on next fetch
 		if h.cache != nil {
 			h.cache.Invalidate("accounts:")
-			h.logger.Info("Cleared account cache after adding character")
+			h.logger.Info("Cleared account cache after character and ESI data saved")
 		}
 
-		// Broadcast update via WebSocket
+		// Broadcast update via WebSocket - frontend will fetch fresh data
 		if h.wsHub != nil {
 			h.wsHub.BroadcastUpdate("account:updated", map[string]interface{}{
 				"message": "Character added successfully",
