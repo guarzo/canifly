@@ -75,10 +75,13 @@ const useAppDataStore = create(
       },
 
       fetchAccounts: async () => {
+        console.log('fetchAccounts called - fetching updated account list');
         set({ loading: { ...get().loading, accounts: true } });
         try {
           const response = await apiService.getAccounts();
+          console.log('Accounts API response:', response);
           const accounts = response?.data || [];
+          console.log('Setting accounts in store:', accounts);
           set({ 
             accounts,
             loading: { ...get().loading, accounts: false },

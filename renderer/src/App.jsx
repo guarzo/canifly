@@ -6,6 +6,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { ToastContainer } from 'react-toastify';
 
 import useAuthStore from './stores/authStore';
+import useAppDataStore from './stores/appDataStore';
 import { useAppData } from './hooks/useAppData';
 import { useEveData } from './hooks/useEveData';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -43,6 +44,9 @@ const App = () => {
     
     const { fetchSkillPlans } = useEveData();
     
+    // Get fetchAccounts directly from store for WebSocket updates
+    const storeFetchAccounts = useAppDataStore(state => state.fetchAccounts);
+    
     // Handle WebSocket messages for real-time updates
     const handleWebSocketMessage = (message) => {
         console.log('App.jsx - WebSocket message received:', message);
@@ -51,12 +55,12 @@ const App = () => {
         switch (message.type) {
             case 'account:updated':
                 console.log('Account updated - refreshing accounts');
-                // Only refresh accounts to avoid UI disruption
-                fetchAccounts();
+                // Call store's fetchAccounts directly to avoid wrapper issues
+                storeFetchAccounts();
                 break;
             case 'account:deleted':
                 console.log('Account deleted - refreshing accounts');
-                fetchAccounts();
+                storeFetchAccounts();
                 break;
             case 'skillplan:created':
             case 'skillplan:updated':
