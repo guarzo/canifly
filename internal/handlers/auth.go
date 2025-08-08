@@ -13,15 +13,16 @@ import (
 )
 
 type AuthHandler struct {
-	sessionService interfaces.SessionService
-	esiAPIService  interfaces.ESIAPIService
-	logger         interfaces.Logger
-	accountService interfaces.AccountManagementService
-	stateService   interfaces.ConfigurationService
-	loginService   interfaces.LoginService
-	authClient     interfaces.AuthClient
-	cache          interfaces.HTTPCacheService
-	wsHub          *WebSocketHub
+	sessionService   interfaces.SessionService
+	esiAPIService    interfaces.ESIAPIService
+	logger           interfaces.Logger
+	accountService   interfaces.AccountManagementService
+	stateService     interfaces.ConfigurationService
+	loginService     interfaces.LoginService
+	authClient       interfaces.AuthClient
+	cache            interfaces.HTTPCacheService
+	wsHub            *WebSocketHub
+	characterService interfaces.CharacterService
 }
 
 func NewAuthHandler(
@@ -34,17 +35,19 @@ func NewAuthHandler(
 	auth interfaces.AuthClient,
 	cache interfaces.HTTPCacheService,
 	wsHub *WebSocketHub,
+	characterSvc interfaces.CharacterService,
 ) *AuthHandler {
 	return &AuthHandler{
-		sessionService: s,
-		esiAPIService:  e,
-		logger:         l,
-		accountService: accountSvc,
-		stateService:   stateSvc,
-		loginService:   login,
-		authClient:     auth,
-		cache:          cache,
-		wsHub:          wsHub,
+		sessionService:   s,
+		esiAPIService:    e,
+		logger:           l,
+		accountService:   accountSvc,
+		stateService:     stateSvc,
+		loginService:     login,
+		authClient:       auth,
+		cache:            cache,
+		wsHub:            wsHub,
+		characterService: characterSvc,
 	}
 }
 
@@ -153,6 +156,17 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			h.logger.Errorf("%v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		
+		// Refresh the character to fetch ESI data
+		h.logger.Infof("Fetching ESI data for character %s (ID: %d)", user.CharacterName, user.CharacterID)
+		if h.characterService != nil {
+			updated, err := h.characterService.RefreshCharacterData(user.CharacterID)
+			if err != nil {
+				h.logger.Errorf("Failed to fetch ESI data: %v", err)
+			} else if updated {
+				h.logger.Infof("ESI data fetched successfully for %s", user.CharacterName)
+			}
 		}
 
 		// Clear account cache to ensure fresh data on next fetch

@@ -198,7 +198,9 @@ func (s *EVEDataServiceImpl) GetAlliance(id int64, token *oauth2.Token) (*model.
 
 // Character Management
 func (s *EVEDataServiceImpl) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
-	s.logger.Debugf("Processing identity for character ID: %d", charIdentity.Character.CharacterID)
+	s.logger.Infof("ProcessIdentity started for character %s (ID: %d)", 
+		charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
+	s.logger.Infof("Token expiry: %v", charIdentity.Token.Expiry)
 
 	user, err := s.GetUserInfo(&charIdentity.Token)
 	if err != nil {
@@ -213,10 +215,12 @@ func (s *EVEDataServiceImpl) ProcessIdentity(charIdentity *model.CharacterIdenti
 
 	skills, err := s.GetCharacterSkills(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		s.logger.Warnf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
+		s.logger.Errorf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
 		skills = &model.CharacterSkillsResponse{Skills: []model.SkillResponse{}}
+	} else {
+		s.logger.Infof("Successfully fetched %d skills for character %d, total SP: %d", 
+			len(skills.Skills), charIdentity.Character.CharacterID, skills.TotalSP)
 	}
-	s.logger.Debugf("Fetched %d skills for character %d", len(skills.Skills), charIdentity.Character.CharacterID)
 
 	skillQueue, err := s.GetCharacterSkillQueue(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
@@ -227,8 +231,10 @@ func (s *EVEDataServiceImpl) ProcessIdentity(charIdentity *model.CharacterIdenti
 
 	characterLocation, err := s.GetCharacterLocation(charIdentity.Character.CharacterID, &charIdentity.Token)
 	if err != nil {
-		s.logger.Warnf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
+		s.logger.Errorf("Failed to get location for character %d: %v", charIdentity.Character.CharacterID, err)
 		characterLocation = 0
+	} else {
+		s.logger.Infof("Successfully fetched location for character %d: %d", charIdentity.Character.CharacterID, characterLocation)
 	}
 
 	corporationName := ""
