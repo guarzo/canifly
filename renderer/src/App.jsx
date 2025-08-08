@@ -48,7 +48,7 @@ const App = () => {
     const storeFetchAccounts = useAppDataStore(state => state.fetchAccounts);
     
     // Handle WebSocket messages for real-time updates
-    const handleWebSocketMessage = (message) => {
+    const handleWebSocketMessage = async (message) => {
         console.log('App.jsx - WebSocket message received:', message);
         log('WebSocket message received:', message);
         
@@ -56,11 +56,20 @@ const App = () => {
             case 'account:updated':
                 console.log('Account updated - refreshing accounts');
                 // Call store's fetchAccounts directly to avoid wrapper issues
-                storeFetchAccounts();
+                try {
+                    await storeFetchAccounts();
+                    console.log('Accounts refreshed successfully');
+                } catch (error) {
+                    console.error('Failed to refresh accounts:', error);
+                }
                 break;
             case 'account:deleted':
                 console.log('Account deleted - refreshing accounts');
-                storeFetchAccounts();
+                try {
+                    await storeFetchAccounts();
+                } catch (error) {
+                    console.error('Failed to refresh accounts:', error);
+                }
                 break;
             case 'skillplan:created':
             case 'skillplan:updated':
