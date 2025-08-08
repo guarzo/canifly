@@ -30,7 +30,7 @@ import * as apiService from '../api/apiService';
 import { logger } from '../utils/logger';
 
 const CharacterOverview = ({ roles, skillConversions }) => {
-    const { accounts, updateAccount, deleteAccount, refreshData } = useAppData();
+    const { accounts, updateAccount, deleteAccount, refreshData, fetchAccounts } = useAppData();
     const { execute } = useAsyncOperation();
     
     const [view, setView] = useState('account');
@@ -112,7 +112,8 @@ const CharacterOverview = ({ roles, skillConversions }) => {
             if (successCount > 0) {
                 // Refresh the accounts data to show updated skills
                 logger.debug('Refreshing account data...');
-                await refreshData();
+                // Force a fresh fetch by calling fetchAccounts directly
+                await fetchAccounts();
                 logger.debug('Account data refreshed');
             }
         } finally {

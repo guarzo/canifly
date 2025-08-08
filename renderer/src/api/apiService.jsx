@@ -20,7 +20,8 @@ import {isDev} from '../Config';
 
 // New RESTful API functions
 export async function getAccounts() {
-    return apiRequest(`/api/accounts`, {
+    // Use a high limit to get all accounts - pagination handling can be added later if needed
+    return apiRequest(`/api/accounts?limit=1000`, {
         method: 'GET',
         credentials: 'include'
     }, {

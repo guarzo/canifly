@@ -157,7 +157,7 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Refresh the character to fetch ESI data
 		h.logger.Infof("Fetching ESI data for character %s (ID: %d)", user.CharacterName, user.CharacterID)
 		if h.characterService != nil {

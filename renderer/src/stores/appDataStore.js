@@ -46,7 +46,8 @@ const useAppDataStore = create(
             apiService.getConfig()
           ]);
 
-          const accounts = accountsRes?.data || [];
+          // Handle paginated response structure - the actual accounts are in accountsRes.data
+          const accounts = accountsRes?.data || accountsRes || [];
           const associations = associationsRes?.data || [];
           const config = configRes?.data || {};
 
@@ -80,7 +81,8 @@ const useAppDataStore = create(
         try {
           const response = await apiService.getAccounts();
           console.log('Accounts API response:', response);
-          const accounts = response?.data || [];
+          // Handle paginated response structure - the actual accounts are in response.data
+          const accounts = response?.data || response || [];
           console.log('Setting accounts in store:', accounts);
           set({ 
             accounts,

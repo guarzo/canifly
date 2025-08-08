@@ -198,7 +198,7 @@ func (s *EVEDataServiceImpl) GetAlliance(id int64, token *oauth2.Token) (*model.
 
 // Character Management
 func (s *EVEDataServiceImpl) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
-	s.logger.Infof("ProcessIdentity started for character %s (ID: %d)", 
+	s.logger.Infof("ProcessIdentity started for character %s (ID: %d)",
 		charIdentity.Character.CharacterName, charIdentity.Character.CharacterID)
 	s.logger.Infof("Token expiry: %v", charIdentity.Token.Expiry)
 
@@ -218,7 +218,7 @@ func (s *EVEDataServiceImpl) ProcessIdentity(charIdentity *model.CharacterIdenti
 		s.logger.Errorf("Failed to get skills for character %d: %v", charIdentity.Character.CharacterID, err)
 		skills = &model.CharacterSkillsResponse{Skills: []model.SkillResponse{}}
 	} else {
-		s.logger.Infof("Successfully fetched %d skills for character %d, total SP: %d", 
+		s.logger.Infof("Successfully fetched %d skills for character %d, total SP: %d",
 			len(skills.Skills), charIdentity.Character.CharacterID, skills.TotalSP)
 	}
 
@@ -414,13 +414,29 @@ func (s *EVEDataServiceImpl) RefreshCharacterData(characterID int64) (bool, erro
 				charIdentity := &accounts[i].Characters[j]
 				s.logger.Infof("Found character: %s (ID: %d)", charIdentity.Character.CharacterName, characterID)
 
-				// Check if token is expired
+				// Check if token is expired and refresh if needed
 				if time.Now().After(charIdentity.Token.Expiry) {
-					s.logger.Warnf("Token expired for character %s", charIdentity.Character.CharacterName)
-					return false, fmt.Errorf("token expired")
-				}
+					s.logger.Infof("Token expired for character %s, refreshing token", charIdentity.Character.CharacterName)
 
-				s.logger.Infof("Token valid until %v, proceeding with refresh", charIdentity.Token.Expiry)
+					if charIdentity.Token.RefreshToken == "" {
+						s.logger.Errorf("No refresh token available for character %s", charIdentity.Character.CharacterName)
+						return false, fmt.Errorf("no refresh token available")
+					}
+
+					newToken, err := s.authClient.RefreshToken(charIdentity.Token.RefreshToken)
+					if err != nil {
+						s.logger.Errorf("Failed to refresh token for character %s: %v", charIdentity.Character.CharacterName, err)
+						return false, fmt.Errorf("failed to refresh token: %w", err)
+					}
+
+					charIdentity.Token = *newToken
+					s.logger.Infof("Token refreshed successfully, new expiry: %v", newToken.Expiry)
+
+					// Update token in the accounts slice so it gets saved
+					accounts[i].Characters[j].Token = *newToken
+				} else {
+					s.logger.Infof("Token valid until %v, proceeding with refresh", charIdentity.Token.Expiry)
+				}
 
 				// Update character using existing ProcessIdentity method
 				updatedChar, err := s.ProcessIdentity(charIdentity)
