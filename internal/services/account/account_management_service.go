@@ -43,21 +43,28 @@ func (s *AccountManagementService) FindOrCreateAccount(accountName string, char 
 	accounts := accountData.Accounts
 	s.logger.Infof("FindOrCreateAccount: loaded %d existing accounts", len(accounts))
 
-	account := s.findAccountByName(accountName, accounts)
-	if account == nil {
+	// Find account index instead of pointer to ensure we modify the right element
+	var accountIndex int = -1
+	for i := range accounts {
+		if accounts[i].Name == accountName {
+			accountIndex = i
+			break
+		}
+	}
+
+	if accountIndex == -1 {
 		s.logger.Infof("Creating new account: %s", accountName)
 		newAccount := createNewAccountWithCharacterConsolidated(accountName, token, char)
 		accounts = append(accounts, *newAccount)
-		// Get pointer to the newly added account in the slice
-		account = &accounts[len(accounts)-1]
+		accountIndex = len(accounts) - 1
 		s.logger.Infof("New account created, total accounts now: %d", len(accounts))
 	} else {
-		s.logger.Infof("Account %s already exists, adding character", accountName)
+		s.logger.Infof("Account %s already exists at index %d, adding character", accountName, accountIndex)
 		// Check if character already exists in this account
 		var characterAssigned bool
-		for i := range account.Characters {
-			if account.Characters[i].Character.CharacterID == char.CharacterID {
-				account.Characters[i].Token = *token
+		for i := range accounts[accountIndex].Characters {
+			if accounts[accountIndex].Characters[i].Character.CharacterID == char.CharacterID {
+				accounts[accountIndex].Characters[i].Token = *token
 				characterAssigned = true
 				s.logger.Debugf("found character: %d already assigned", char.CharacterID)
 				break
@@ -65,7 +72,7 @@ func (s *AccountManagementService) FindOrCreateAccount(accountName string, char 
 		}
 
 		if !characterAssigned {
-			account.Characters = append(account.Characters, model.CharacterIdentity{
+			accounts[accountIndex].Characters = append(accounts[accountIndex].Characters, model.CharacterIdentity{
 				Token: *token,
 				Character: model.Character{
 					UserInfoResponse: *char,
@@ -73,7 +80,7 @@ func (s *AccountManagementService) FindOrCreateAccount(accountName string, char 
 			})
 
 			// Update associations for the new character
-			if err := s.updateAssociationsAfterNewCharacter(account, char.CharacterID); err != nil {
+			if err := s.updateAssociationsAfterNewCharacter(&accounts[accountIndex], char.CharacterID); err != nil {
 				return fmt.Errorf("failed to update associations after adding new character: %w", err)
 			}
 		}
