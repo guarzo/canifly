@@ -28,6 +28,7 @@ func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginServic
 				"/api/finalize-login":         true,
 				"/api/config/eve/status":      true, // Check if EVE config is needed
 				"/api/config/eve/credentials": true, // Save EVE credentials during first-run
+				"/api/ws":                     true, // WebSocket endpoint for real-time updates
 			}
 
 			// Allow access if the request matches a public route

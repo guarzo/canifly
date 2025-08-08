@@ -27,6 +27,7 @@ export function useWebSocket(onMessage) {
       wsRef.current = new WebSocket(WS_URL);
 
       wsRef.current.onopen = () => {
+        console.log('WebSocket connected successfully');
         logger.debug('WebSocket connected');
         setConnectionState('connected');
         
@@ -41,10 +42,12 @@ export function useWebSocket(onMessage) {
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
           if (data.type !== 'pong' && onMessage) {
             onMessage(data);
           }
         } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
           logger.error('Failed to parse WebSocket message:', error);
         }
       };

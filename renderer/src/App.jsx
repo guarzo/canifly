@@ -45,14 +45,17 @@ const App = () => {
     
     // Handle WebSocket messages for real-time updates
     const handleWebSocketMessage = (message) => {
+        console.log('App.jsx - WebSocket message received:', message);
         log('WebSocket message received:', message);
         
         switch (message.type) {
             case 'account:updated':
+                console.log('Account updated - refreshing accounts');
                 // Only refresh accounts to avoid UI disruption
                 fetchAccounts();
                 break;
             case 'account:deleted':
+                console.log('Account deleted - refreshing accounts');
                 fetchAccounts();
                 break;
             case 'skillplan:created':
@@ -61,6 +64,7 @@ const App = () => {
                 fetchSkillPlans();
                 break;
             default:
+                console.log('Unknown WebSocket message type:', message.type);
                 log('Unknown WebSocket message type:', message.type);
         }
     };

@@ -84,7 +84,12 @@ func (s *HTTPCacheService) Invalidate(pattern string) {
 
 	s.logger.Infof("Cache invalidation requested for pattern: %s", pattern)
 	s.logger.Infof("Current cache has %d entries", len(s.entries))
-	
+
+	// Log all current cache keys for debugging
+	for key := range s.entries {
+		s.logger.Debugf("Current cache key: %s", key)
+	}
+
 	keysToDelete := []string{}
 	for key := range s.entries {
 		// Support prefix matching (most common case)
