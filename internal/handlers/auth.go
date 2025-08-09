@@ -174,8 +174,9 @@ func (h *AuthHandler) CallBack() http.HandlerFunc {
 
 		// Clear account cache to ensure fresh data on next fetch
 		if h.cache != nil {
+			// Invalidate all account-related cache entries
 			h.cache.Invalidate("accounts:")
-			h.logger.Info("Cleared account cache after character and ESI data saved")
+			h.logger.Infof("Invalidated cache with pattern 'accounts:' after adding character %s", user.CharacterName)
 		}
 
 		// Broadcast update via WebSocket - frontend will fetch fresh data

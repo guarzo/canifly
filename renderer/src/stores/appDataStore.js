@@ -75,11 +75,11 @@ const useAppDataStore = create(
         }
       },
 
-      fetchAccounts: async () => {
-        console.log('fetchAccounts called - fetching updated account list');
+      fetchAccounts: async (bypassCache = false) => {
+        console.log('fetchAccounts called - fetching updated account list', bypassCache ? '(bypassing cache)' : '');
         set({ loading: { ...get().loading, accounts: true } });
         try {
-          const response = await apiService.getAccounts();
+          const response = await apiService.getAccounts(bypassCache);
           console.log('Accounts API response:', response);
           // Handle paginated response structure - the actual accounts are in response.data
           const accounts = response?.data || response || [];

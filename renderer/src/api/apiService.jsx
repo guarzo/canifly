@@ -19,9 +19,10 @@ import { apiRequest } from './apiRequest';
 import {isDev} from '../Config';
 
 // New RESTful API functions
-export async function getAccounts() {
+export async function getAccounts(bypassCache = false) {
     // Use a high limit to get all accounts - pagination handling can be added later if needed
-    return apiRequest(`/api/accounts?limit=1000`, {
+    const cacheParam = bypassCache ? '&bypass_cache=true' : '';
+    return apiRequest(`/api/accounts?limit=1000${cacheParam}`, {
         method: 'GET',
         credentials: 'include'
     }, {

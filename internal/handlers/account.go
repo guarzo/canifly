@@ -36,6 +36,24 @@ func (h *AccountHandler) ListAccounts() http.HandlerFunc {
 		// Parse pagination parameters
 		paginationParams := ParsePaginationParams(r)
 
+		// Check if we should bypass cache (e.g., after an update)
+		bypassCache := r.URL.Query().Get("bypass_cache") == "true"
+
+		if bypassCache {
+			// Fetch fresh data directly without caching
+			h.logger.Info("Bypassing cache for accounts list")
+			accounts, err := h.accountService.FetchAccounts()
+			if err != nil {
+				respondError(w, "Failed to fetch accounts", http.StatusInternalServerError)
+				return
+			}
+
+			// Apply pagination to accounts
+			paginatedResponse := PaginateAccounts(accounts, paginationParams)
+			respondJSON(w, paginatedResponse)
+			return
+		}
+
 		// Check cache first (cache key includes pagination params)
 		cacheKey := fmt.Sprintf("accounts:list:page:%d:limit:%d", paginationParams.Page, paginationParams.Limit)
 

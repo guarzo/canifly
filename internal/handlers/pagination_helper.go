@@ -33,7 +33,7 @@ func ParsePaginationParams(r *http.Request) PaginationParams {
 	}
 
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 { // Max 100 items per page
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 10000 { // Max 10000 items per page
 			limit = l
 		}
 	}
