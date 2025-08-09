@@ -141,7 +141,39 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
             }
             toast.info('Please complete the authorization in your browser');
             
-            // WebSocket will handle the update notification - no need to poll
+            // Poll for completion using finalize-login
+            const state = result.state;
+            if (state) {
+                let attempts = 0;
+                const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute
+                const pollAuth = setInterval(async () => {
+                    attempts++;
+                    
+                    if (attempts > maxAttempts) {
+                        clearInterval(pollAuth);
+                        toast.warning('Character add timeout. Please try again.');
+                        return;
+                    }
+                    
+                    try {
+                        const { finalizelogin } = await import('../../api/apiService');
+                        const finalizeResult = await finalizelogin(state);
+                        
+                        if (finalizeResult && finalizeResult.success) {
+                            clearInterval(pollAuth);
+                            toast.success('Character added successfully!');
+                            // Refresh accounts to show the new character
+                            await fetchAccounts();
+                        } else if (finalizeResult && finalizeResult.error === 'state_not_found') {
+                            clearInterval(pollAuth);
+                            toast.error('Session expired. Please try again.');
+                        }
+                        // If pending, continue polling
+                    } catch (error) {
+                        console.error('Polling error:', error);
+                    }
+                }, 2000);
+            }
         } else {
             toast.success('Character added successfully');
             // Refresh data immediately if no redirect
