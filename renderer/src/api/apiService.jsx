@@ -22,7 +22,9 @@ import {isDev} from '../Config';
 export async function getAccounts(bypassCache = false) {
     // Use a high limit to get all accounts - pagination handling can be added later if needed
     const cacheParam = bypassCache ? '&bypass_cache=true' : '';
-    return apiRequest(`/api/accounts?limit=1000${cacheParam}`, {
+    const url = `/api/accounts?limit=1000${cacheParam}`;
+    console.log('getAccounts API call with URL:', url);
+    return apiRequest(url, {
         method: 'GET',
         credentials: 'include'
     }, {

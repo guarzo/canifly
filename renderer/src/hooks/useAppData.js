@@ -110,7 +110,7 @@ export function useAppData() {
     error,
     isLoading: loading.accounts || loading.associations || loading.config,
     fetchAppData: (forceRefresh) => execute(() => fetchAppData(forceRefresh), { showToast: false }),
-    fetchAccounts: () => execute(fetchAccounts, { showToast: false }),
+    fetchAccounts: (bypassCache) => execute(() => fetchAccounts(bypassCache), { showToast: false }),
     fetchAssociations: () => execute(fetchAssociations, { showToast: false }),
     fetchConfig: () => execute(fetchConfig, { showToast: false }),
     updateAccount: handleUpdateAccount,

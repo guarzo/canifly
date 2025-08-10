@@ -39,6 +39,19 @@ func (h *AccountHandler) ListAccounts() http.HandlerFunc {
 		// Check if we should bypass cache (e.g., after an update)
 		bypassCache := r.URL.Query().Get("bypass_cache") == "true"
 
+		// For high limits (>=1000), always return all accounts without pagination wrapper
+		// This ensures consistency regardless of cache state
+		if paginationParams.Limit >= 1000 {
+			accounts, err := h.accountService.FetchAccounts()
+			if err != nil {
+				respondError(w, "Failed to fetch accounts", http.StatusInternalServerError)
+				return
+			}
+			// Return raw accounts array for high limits
+			respondJSON(w, accounts)
+			return
+		}
+
 		if bypassCache {
 			// Fetch fresh data directly without caching
 			h.logger.Info("Bypassing cache for accounts list")

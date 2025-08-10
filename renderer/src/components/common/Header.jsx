@@ -162,8 +162,8 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                         if (finalizeResult && finalizeResult.success) {
                             clearInterval(pollAuth);
                             toast.success('Character added successfully!');
-                            // Refresh accounts to show the new character (bypass cache)
-                            await fetchAccounts(true);
+                            // Don't fetch here - the WebSocket message will trigger the refresh
+                            // This avoids duplicate fetches
                         } else if (finalizeResult && finalizeResult.error === 'state_not_found') {
                             clearInterval(pollAuth);
                             toast.error('Session expired. Please try again.');

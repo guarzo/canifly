@@ -46,8 +46,8 @@ const useAppDataStore = create(
             apiService.getConfig()
           ]);
 
-          // Handle paginated response structure - the actual accounts are in accountsRes.data
-          const accounts = accountsRes?.data || accountsRes || [];
+          // Handle both paginated and non-paginated responses
+          const accounts = Array.isArray(accountsRes) ? accountsRes : (accountsRes?.data || []);
           const associations = associationsRes?.data || [];
           const config = configRes?.data || {};
 
@@ -81,8 +81,9 @@ const useAppDataStore = create(
         try {
           const response = await apiService.getAccounts(bypassCache);
           console.log('Accounts API response:', response);
-          // Handle paginated response structure - the actual accounts are in response.data
-          const accounts = response?.data || response || [];
+          // Handle both paginated and non-paginated responses
+          // If response has a 'data' field, it's paginated; otherwise it's the raw array
+          const accounts = Array.isArray(response) ? response : (response?.data || []);
           console.log('Setting accounts in store:', accounts);
           set({ 
             accounts,
