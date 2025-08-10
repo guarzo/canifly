@@ -3,6 +3,7 @@ package account
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/guarzo/canifly/internal/model"
@@ -16,6 +17,7 @@ type AccountManagementService struct {
 	userInfoFetcher interfaces.UserInfoFetcher
 	logger          interfaces.Logger
 	authClient      interfaces.AuthClient
+	mu              sync.Mutex // Protects concurrent account modifications
 }
 
 // NewAccountManagementService creates a new consolidated account management service
@@ -36,6 +38,10 @@ func NewAccountManagementService(
 // Account Management Methods (from AccountService)
 
 func (s *AccountManagementService) FindOrCreateAccount(accountName string, char *model.UserInfoResponse, token *oauth2.Token) error {
+	// Lock to prevent concurrent modifications
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
@@ -114,6 +120,9 @@ func (s *AccountManagementService) GetAccountByID(accountID int64) (*model.Accou
 }
 
 func (s *AccountManagementService) UpdateAccount(accountID int64, updates interfaces.AccountUpdateRequest) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
@@ -217,6 +226,9 @@ func (s *AccountManagementService) RemoveAccountByName(accountName string) error
 }
 
 func (s *AccountManagementService) RemoveAccountByID(accountID int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
@@ -242,6 +254,9 @@ func (s *AccountManagementService) RemoveAccountByID(accountID int64) error {
 }
 
 func (s *AccountManagementService) RefreshAccountData() (*model.AccountData, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return nil, err
