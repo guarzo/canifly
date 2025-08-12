@@ -33,7 +33,9 @@ const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
                 <Typography variant="h6" color="text.primary">
                     {char.name}
                 </Typography>
-                {/* Removed ID display */}
+                <Typography variant="body2" color="text.secondary">
+                    ID: {char.charId}
+                </Typography>
                 <Typography variant="caption" color="text.secondary">
                     {formattedDate}
                 </Typography>

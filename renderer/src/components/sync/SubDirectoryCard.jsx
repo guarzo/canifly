@@ -61,7 +61,7 @@ const SubDirectoryCard = ({
                             </MenuItem>
                             {sortedCharFiles.map(char => (
                                 <MenuItem key={char.charId} value={char.charId}>
-                                    {char.name}
+                                    {char.name} ({char.charId})
                                 </MenuItem>
                             ))}
                         </Select>

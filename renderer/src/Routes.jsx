@@ -26,7 +26,8 @@ function AppRoutes({ characters }) {
     React.useEffect(() => {
         logger.debug('Routes - associations:', associations);
         logger.debug('Routes - eveProfiles:', eveProfiles);
-    }, [associations, eveProfiles]);
+        logger.debug('Routes - eveConversions:', eveConversions);
+    }, [associations, eveProfiles, eveConversions]);
     
     if (!isAuthenticated) {
         return <Landing />;

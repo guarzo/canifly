@@ -132,7 +132,9 @@ const CharacterDetailModal = ({
                                 const finishDate = item.finish_date ? calculateDaysFromToday(item.finish_date) : 'N/A';
 
                                 // Convert skill_id to skill name
-                                const skillName = skillConversions[item.skill_id] || `Skill #${item.skill_id}`;
+                                const skillName = skillConversions && skillConversions[item.skill_id] 
+                                    ? skillConversions[item.skill_id] 
+                                    : `Skill #${item.skill_id}`;
 
                                 return (
                                     <tr key={index} className="border-b border-gray-600 text-gray-200">

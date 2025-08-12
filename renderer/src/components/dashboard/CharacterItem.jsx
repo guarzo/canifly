@@ -6,6 +6,7 @@ import { Delete, Check as CheckIcon } from '@mui/icons-material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CharacterDetailModal from "../common/CharacterDetailModal.jsx";
 import { formatSP } from "../../utils/formatter.jsx";
+import useAppDataStore from '../../stores/appDataStore';
 
 
 const characterVariants = {
@@ -81,12 +82,14 @@ const CharacterItem = ({
         }
     };
 
-    const handleAddRole = () => {
+    const handleAddRole = async () => {
         if (newRole.trim() !== '') {
             const trimmedRole = newRole.trim();
             setRole(trimmedRole);
             if (onUpdateCharacter && character.Character && character.Character.CharacterID) {
-                onUpdateCharacter(character.Character.CharacterID, { Role: trimmedRole });
+                await onUpdateCharacter(character.Character.CharacterID, { Role: trimmedRole });
+                // Refresh config to get updated roles list
+                await useAppDataStore.getState().fetchConfig();
             }
             setIsAddingRole(false);
             setNewRole('');
