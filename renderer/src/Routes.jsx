@@ -42,10 +42,10 @@ function AppRoutes({ characters }) {
     }
     
     // Extract data from stores
-    const roles = config?.Roles || [];
-    const userSelections = config?.DropDownSelections || {};
-    const currentSettingsDir = config?.SettingsDir || '';
-    const lastBackupDir = config?.LastBackupDir || [];
+    const roles = config?.roles || config?.Roles || [];
+    const userSelections = config?.userSelections || config?.DropDownSelections || {};
+    const currentSettingsDir = config?.settingsDir || config?.SettingsDir || '';
+    const lastBackupDir = config?.lastBackupDir || config?.LastBackupDir || [];
 
     return (
         <AnimatePresence mode="wait">

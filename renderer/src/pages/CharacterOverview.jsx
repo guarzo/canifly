@@ -31,6 +31,12 @@ import { logger } from '../utils/logger';
 
 const CharacterOverview = ({ roles, skillConversions }) => {
     const { accounts, updateAccount, deleteAccount, refreshData, fetchAccounts } = useAppData();
+    
+    // Debug: Log what we're receiving
+    React.useEffect(() => {
+        logger.debug('CharacterOverview - roles:', roles);
+        logger.debug('CharacterOverview - skillConversions:', skillConversions);
+    }, [roles, skillConversions]);
     const { execute } = useAsyncOperation();
     
     const [view, setView] = useState('account');

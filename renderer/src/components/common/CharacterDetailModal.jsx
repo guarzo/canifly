@@ -22,6 +22,17 @@ const CharacterDetailModal = ({
     if (!character || !character.Character) {
         return null;
     }
+    
+    // Debug: Log skillConversions to see what we're getting
+    React.useEffect(() => {
+        if (skillConversions) {
+            console.log('CharacterDetailModal - skillConversions:', skillConversions);
+            console.log('Type of skillConversions:', typeof skillConversions);
+            console.log('Keys in skillConversions:', Object.keys(skillConversions).slice(0, 5));
+        } else {
+            console.log('CharacterDetailModal - skillConversions is undefined or null');
+        }
+    }, [skillConversions]);
 
     const charId = character.Character.CharacterID;
     const charName = character.Character.CharacterName;
@@ -131,10 +142,9 @@ const CharacterDetailModal = ({
                             {skillQueueItems.map((item, index) => {
                                 const finishDate = item.finish_date ? calculateDaysFromToday(item.finish_date) : 'N/A';
 
-                                // Convert skill_id to skill name
-                                const skillName = skillConversions && skillConversions[item.skill_id] 
-                                    ? skillConversions[item.skill_id] 
-                                    : `Skill #${item.skill_id}`;
+                                // Convert skill_id to skill name (backend sends ID as string key)
+                                const skillIdStr = String(item.skill_id);
+                                const skillName = skillConversions?.[skillIdStr] || `Skill #${item.skill_id}`;
 
                                 return (
                                     <tr key={index} className="border-b border-gray-600 text-gray-200">

@@ -804,7 +804,8 @@ func (s *EVEDataServiceImpl) updateEveConversionsWithSkillNames(typeIds []int32,
 	for _, typeId := range typeIds {
 		skillName := s.GetSkillName(typeId)
 		if skillName != "" {
-			eveConversions[skillName] = strconv.Itoa(int(typeId))
+			// Map skill ID to skill name (ID as string key since JSON requires string keys)
+			eveConversions[strconv.Itoa(int(typeId))] = skillName
 		}
 	}
 }
