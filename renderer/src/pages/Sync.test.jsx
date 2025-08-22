@@ -106,7 +106,7 @@ describe('Sync component', () => {
 
         const charSelect = screen.getByLabelText('Select Character');
         fireEvent.mouseDown(charSelect);
-        fireEvent.click(screen.getByText('Char One'));
+        fireEvent.click(screen.getByText('Char One (char1)'));
 
         // After selection, user should be auto-selected if assoc found
         expect(saveUserSelections).toHaveBeenCalled();

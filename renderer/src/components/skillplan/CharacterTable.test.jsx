@@ -22,8 +22,8 @@ describe('CharacterTable', () => {
                     total_sp: 1000000
                 },
                 QualifiedPlans: { "Plan A": true },
-                PendingPlans: {},
-                PendingFinishDates: {},
+                PendingPlans: { "Plan B": true },
+                PendingFinishDates: { "Plan B": "2024-12-31T00:00:00Z" },
                 MissingSkills: {}
             }
         }

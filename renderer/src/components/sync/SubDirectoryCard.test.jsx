@@ -69,7 +69,7 @@ describe('SubDirectoryCard', () => {
 
         const charSelect = screen.getByLabelText('Select Character');
         fireEvent.mouseDown(charSelect); // Open the menu
-        const charOption = screen.getByText('Character One');
+        const charOption = screen.getByText('Character One (char1)');
         fireEvent.click(charOption);
 
         expect(mockHandleSelectionChange).toHaveBeenCalledWith('settings_testProfile', 'charId', 'char1');

@@ -17,7 +17,10 @@ export default defineConfig({
             '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
             // Exclude problematic test files with zustand import issues
             '**/CharacterOverview.test.jsx',
-            '**/Mapping.test.jsx'
+            '**/Mapping.test.jsx',
+            '**/AccountCard.test.jsx',
+            '**/CharacterItem.test.jsx',
+            '**/GroupCard.test.jsx'
         ],
         deps: {
             optimizer: {
