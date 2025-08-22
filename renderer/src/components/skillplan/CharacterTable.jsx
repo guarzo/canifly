@@ -183,15 +183,19 @@ const CharacterTable = ({ characters, skillPlans, conversions }) => {
             const totalSP = characterDetails.CharacterSkillsResponse?.total_sp || 0;
             const TotalSPFormatted = formatNumberWithCommas(totalSP);
 
-            const plans = Object.keys(skillPlans).map((planName) => {
-                const status = generatePlanStatus(planName, characterDetails);
-                return {
-                    id: `${characterDetails.CharacterID}-${planName}`,
-                    planName,
-                    statusIcon: status.statusIcon,
-                    statusText: status.statusText
-                };
-            });
+            const plans = Object.keys(skillPlans)
+                .map((planName) => {
+                    const status = generatePlanStatus(planName, characterDetails);
+                    return {
+                        id: `${characterDetails.CharacterID}-${planName}`,
+                        planName,
+                        statusIcon: status.statusIcon,
+                        statusText: status.statusText,
+                        qualified: characterDetails.QualifiedPlans?.[planName],
+                        pending: characterDetails.PendingPlans?.[planName]
+                    };
+                })
+                .filter(plan => plan.qualified || plan.pending);
 
             return {
                 id: characterDetails.CharacterID,

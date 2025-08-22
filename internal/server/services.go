@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/guarzo/canifly/internal/handlers"
 	"github.com/guarzo/canifly/internal/http"
@@ -77,6 +78,11 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 	// Default to true if not set
 	autoUpdate := configData.AutoUpdateFuzzworks == nil || *configData.AutoUpdateFuzzworks
+
+	// Load SkillPlansRepoURL from stored config if not set via environment
+	if os.Getenv("SKILLPLANS_REPO_URL") == "" && configData.SkillPlansRepoURL != "" {
+		cfg.SkillPlansRepoURL = configData.SkillPlansRepoURL
+	}
 
 	// Initialize Fuzzworks service to download latest EVE data
 	if autoUpdate {

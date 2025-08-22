@@ -590,6 +590,7 @@ func (s *EVEDataServiceImpl) initializeUpdatedPlans(skillPlans map[string]model.
 			Skills:              plan.Skills,
 			QualifiedCharacters: []string{},
 			PendingCharacters:   []string{},
+			MissingCharacters:   []string{},
 			MissingSkills:       make(map[string]map[string]int32),
 			Characters:          []model.CharacterSkillPlanStatus{},
 		}
@@ -790,6 +791,7 @@ func (s *EVEDataServiceImpl) updatePlanAndCharacterStatus(
 		delete(character.QualifiedPlans, planName)
 		delete(character.MissingSkills, planName)
 	} else {
+		planStatus.MissingCharacters = append(planStatus.MissingCharacters, character.CharacterName)
 		planStatus.MissingSkills[character.CharacterName] = result.MissingSkills
 		character.MissingSkills[planName] = result.MissingSkills
 		delete(character.QualifiedPlans, planName)

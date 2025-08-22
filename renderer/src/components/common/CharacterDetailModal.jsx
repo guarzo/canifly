@@ -23,16 +23,6 @@ const CharacterDetailModal = ({
         return null;
     }
     
-    // Debug: Log skillConversions to see what we're getting
-    React.useEffect(() => {
-        if (skillConversions) {
-            console.log('CharacterDetailModal - skillConversions:', skillConversions);
-            console.log('Type of skillConversions:', typeof skillConversions);
-            console.log('Keys in skillConversions:', Object.keys(skillConversions).slice(0, 5));
-        } else {
-            console.log('CharacterDetailModal - skillConversions is undefined or null');
-        }
-    }, [skillConversions]);
 
     const charId = character.Character.CharacterID;
     const charName = character.Character.CharacterName;

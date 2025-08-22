@@ -65,6 +65,7 @@ type SkillPlanWithStatus struct {
 	Skills              map[string]Skill
 	QualifiedCharacters []string
 	PendingCharacters   []string
+	MissingCharacters   []string
 	MissingSkills       map[string]map[string]int32 // Missing skills by character
 	Characters          []CharacterSkillPlanStatus  // List of characters with their status for this eve plan
 }

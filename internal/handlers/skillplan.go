@@ -138,8 +138,10 @@ func (h *SkillPlanHandler) CreateSkillPlan() http.HandlerFunc {
 			})
 		}
 
+		// Send response with 201 status
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		respondJSON(w, map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"name":    request.Name,
 			"content": request.Content,
 		})
@@ -209,6 +211,17 @@ func (h *SkillPlanHandler) UpdateSkillPlan() http.HandlerFunc {
 		// Clean up temp file
 		_ = h.skillPlanService.DeleteSkillPlan(tempName)
 
+		// Invalidate cache after successful update
+		InvalidateCache(h.cache, "skillplans:")
+		InvalidateCache(h.cache, "eve:skillplans")
+
+		// Broadcast update via WebSocket
+		if h.wsHub != nil {
+			h.wsHub.BroadcastUpdate("skillplan:updated", map[string]interface{}{
+				"name": planName,
+			})
+		}
+
 		respondJSON(w, map[string]interface{}{
 			"name":    planName,
 			"content": request.Content,
@@ -235,6 +248,17 @@ func (h *SkillPlanHandler) DeleteSkillPlanRESTful() http.HandlerFunc {
 				respondError(w, "Failed to delete skill plan", http.StatusInternalServerError)
 			}
 			return
+		}
+
+		// Invalidate cache after successful deletion
+		InvalidateCache(h.cache, "skillplans:")
+		InvalidateCache(h.cache, "eve:skillplans")
+
+		// Broadcast deletion via WebSocket
+		if h.wsHub != nil {
+			h.wsHub.BroadcastUpdate("skillplan:deleted", map[string]interface{}{
+				"name": planName,
+			})
 		}
 
 		w.WriteHeader(http.StatusNoContent)
@@ -286,8 +310,14 @@ func (h *SkillPlanHandler) CopySkillPlan() http.HandlerFunc {
 			return
 		}
 
+		// Invalidate cache after successful copy
+		InvalidateCache(h.cache, "skillplans:")
+		InvalidateCache(h.cache, "eve:skillplans")
+
+		// Send response with 201 status
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		respondJSON(w, map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"name":    request.NewName,
 			"content": content,
 		})

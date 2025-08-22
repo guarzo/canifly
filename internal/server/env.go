@@ -61,8 +61,12 @@ func LoadConfig(logger interfaces.Logger) (Config, error) {
 	cfg.ClientSecret = os.Getenv("EVE_CLIENT_SECRET")
 	cfg.CallbackURL = os.Getenv("EVE_CALLBACK_URL")
 
-	// Optional: Custom skill plans repository URL (defaults to guarzo/eve-skills)
+	// Optional: Custom skill plans repository URL (defaults to guarzo/canifly)
 	cfg.SkillPlansRepoURL = os.Getenv("SKILLPLANS_REPO_URL")
+	if cfg.SkillPlansRepoURL == "" {
+		// Set default GitHub repository for skill plans
+		cfg.SkillPlansRepoURL = "https://raw.githubusercontent.com/guarzo/canifly/main"
+	}
 
 	// Note: If EVE credentials are not set via environment variables,
 	// the config service will check for stored credentials and prompt
