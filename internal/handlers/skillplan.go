@@ -127,15 +127,21 @@ func (h *SkillPlanHandler) CreateSkillPlan() http.HandlerFunc {
 			return
 		}
 
+		h.logger.Infof("Successfully created skill plan: %s", request.Name)
+
 		// Invalidate skill plans cache after successful creation
 		InvalidateCache(h.cache, "skillplans:")
 		InvalidateCache(h.cache, "eve:skillplans")
+		h.logger.Infof("Cache invalidated for skill plans after creating: %s", request.Name)
 
 		// Broadcast creation via WebSocket
 		if h.wsHub != nil {
 			h.wsHub.BroadcastUpdate("skillplan:created", map[string]interface{}{
 				"name": request.Name,
 			})
+			h.logger.Infof("Broadcasted WebSocket update for new skill plan: %s", request.Name)
+		} else {
+			h.logger.Warnf("WebSocket hub is nil, cannot broadcast skill plan creation: %s", request.Name)
 		}
 
 		// Send response with 201 status

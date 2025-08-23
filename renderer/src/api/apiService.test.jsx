@@ -274,12 +274,44 @@ describe('apiService', () => {
     describe('initiateLogin', () => {
         test('calls apiRequest correctly', async () => {
             apiRequest.mockResolvedValue('login started');
-            const account = { Name: 'LoginAccount' };
+            const account = 'LoginAccount';
+            const rememberMe = false;
+            const result = await initiateLogin(account, rememberMe);
+            expect(apiRequest).toHaveBeenCalledWith(`/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account, rememberMe }),
+                credentials: 'include',
+            }, {
+                errorMessage: 'Failed to initiate login.'
+            });
+            expect(result).toBe('login started');
+        });
+
+        test('calls apiRequest with rememberMe true', async () => {
+            apiRequest.mockResolvedValue('login started');
+            const account = 'LoginAccount';
+            const rememberMe = true;
+            const result = await initiateLogin(account, rememberMe);
+            expect(apiRequest).toHaveBeenCalledWith(`/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account, rememberMe }),
+                credentials: 'include',
+            }, {
+                errorMessage: 'Failed to initiate login.'
+            });
+            expect(result).toBe('login started');
+        });
+
+        test('defaults rememberMe to false when not provided', async () => {
+            apiRequest.mockResolvedValue('login started');
+            const account = 'LoginAccount';
             const result = await initiateLogin(account);
             expect(apiRequest).toHaveBeenCalledWith(`/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account }),
+                body: JSON.stringify({ account, rememberMe: false }),
                 credentials: 'include',
             }, {
                 errorMessage: 'Failed to initiate login.'

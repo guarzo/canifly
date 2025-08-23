@@ -10,6 +10,7 @@ import (
 
 	flyHandlers "github.com/guarzo/canifly/internal/handlers"
 	flyHttp "github.com/guarzo/canifly/internal/http"
+	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -18,10 +19,17 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	sessionStore := flyHttp.NewSessionService(secret)
 	r := mux.NewRouter()
 
+	// Create persistent session store
+	persistentSessionStore, err := persist.NewSessionStore(basePath, logger)
+	if err != nil {
+		logger.Warnf("Failed to create persistent session store: %v", err)
+		// Continue without persistent sessions
+	}
+
 	// Add authentication middleware
 	r.Use(flyHttp.AuthMiddleware(sessionStore, appServices.LoginService, logger))
 
-	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient, appServices.HTTPCacheService, appServices.WebSocketHub, appServices.CharacterService)
+	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient, appServices.HTTPCacheService, appServices.WebSocketHub, appServices.CharacterService, persistentSessionStore)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
 	characterHandler := flyHandlers.NewCharacterHandler(logger, appServices.CharacterService, appServices.ESIAPIService, appServices.HTTPCacheService)
 	skillPlanHandler := flyHandlers.NewSkillPlanHandler(logger, appServices.SkillPlanService, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
@@ -41,8 +49,10 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 	r.HandleFunc("/api/finalize-login", authHandler.FinalizeLogin())
 
 	// Auth routes
-
 	r.HandleFunc("/api/session", authHandler.GetSession()).Methods("GET")
+	r.HandleFunc("/api/session/validate", authHandler.ValidateSession()).Methods("GET")
+	r.HandleFunc("/api/session/refresh", authHandler.RefreshSession()).Methods("POST")
+	r.HandleFunc("/api/session/active", authHandler.GetActiveSessions()).Methods("GET")
 	r.HandleFunc("/api/logout", authHandler.Logout())
 	r.HandleFunc("/api/login", authHandler.Login())
 	r.HandleFunc("/api/reset-identities", authHandler.ResetAccounts())

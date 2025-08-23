@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IconButton, Select, MenuItem, TextField, Typography } from '@mui/material';
+import { IconButton, Select, MenuItem, TextField, Typography, Checkbox, FormControlLabel } from '@mui/material';
 import { Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
 import GlassCard from '../ui/GlassCard';
 import FuturisticButton from '../ui/FuturisticButton';
 
-const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts }) => {
+const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts, showRememberMe, rememberMe, onRememberMeChange }) => {
     const [account, setAccount] = useState('');
     const [isAddingAccount, setIsAddingAccount] = useState(false);
     const [newAccount, setNewAccount] = useState('');
@@ -157,6 +157,30 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
                     </div>
                 )}
 
+                {showRememberMe && (
+                    <div className="mb-4">
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={rememberMe || false}
+                                    onChange={(e) => onRememberMeChange && onRememberMeChange(e.target.checked)}
+                                    sx={{
+                                        color: 'primary.main',
+                                        '&.Mui-checked': {
+                                            color: 'primary.main',
+                                        },
+                                    }}
+                                />
+                            }
+                            label={
+                                <Typography variant="body2" className="text-gray-300">
+                                    Keep me logged in for 30 days
+                                </Typography>
+                            }
+                        />
+                    </div>
+                )}
+
                             <div className="flex justify-end space-x-3 mt-6">
                                 <FuturisticButton
                                     onClick={onClose}
@@ -187,6 +211,9 @@ AccountPromptModal.propTypes = {
     onSubmit: PropTypes.func.isRequired,
     title: PropTypes.string,
     existingAccounts: PropTypes.arrayOf(PropTypes.string),
+    showRememberMe: PropTypes.bool,
+    rememberMe: PropTypes.bool,
+    onRememberMeChange: PropTypes.func,
 };
 
 export default AccountPromptModal;

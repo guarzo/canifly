@@ -31,6 +31,34 @@ const useAuthStore = create(
           set({ loading: true, error: null });
           
           try {
+            // First try to validate existing session (for persistent sessions)
+            const token = localStorage.getItem('session_token');
+            if (token) {
+              try {
+                const validation = await apiService.validateSession();
+                if (validation?.valid) {
+                  console.log('Valid persistent session found for:', validation.accountName);
+                  
+                  // Update token if a new session ID was provided
+                  if (validation.sessionId && validation.sessionId !== token) {
+                    localStorage.setItem('session_token', validation.sessionId);
+                  }
+                  
+                  set({ 
+                    isAuthenticated: true,
+                    authCheckComplete: true,
+                    user: validation.accountName,
+                    loading: false 
+                  });
+                  return true;
+                }
+              } catch (validationError) {
+                console.log('Session validation failed, falling back to regular check');
+                localStorage.removeItem('session_token');
+              }
+            }
+            
+            // Fall back to regular session check
             const response = await apiService.getSession();
             const isAuthenticated = response?.status === 'ok' && response?.authenticated === true;
             set({ 
@@ -62,11 +90,15 @@ const useAuthStore = create(
           }
         },
 
-        login: async (account) => {
+        login: async (account, rememberMe = false) => {
           set({ loading: true, error: null });
           try {
-            const response = await apiService.initiateLogin(account);
+            const response = await apiService.initiateLogin(account, rememberMe);
             if (response?.redirectURL) {
+              // Store remember me preference for use after OAuth callback
+              if (rememberMe) {
+                sessionStorage.setItem('remember_me', 'true');
+              }
               // Redirect to EVE SSO login
               window.location.href = response.redirectURL;
               return true;

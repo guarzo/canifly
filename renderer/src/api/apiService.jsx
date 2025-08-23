@@ -447,12 +447,12 @@ export async function deleteSkillPlan(planName) {
     });
 }
 
-export async function initiateLogin(account) {
+export async function initiateLogin(account, rememberMe = false) {
     // Removed isDev parameter; we can handle isDev in the component if needed
     return apiRequest(`/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account }),
+        body: JSON.stringify({ account, rememberMe }),
         credentials: 'include',
     }, {
         errorMessage: 'Failed to initiate login.'
@@ -460,12 +460,46 @@ export async function initiateLogin(account) {
 }
 
 
-export async function finalizelogin(state) {
-    return apiRequest(`/api/finalize-login?state=${state}`, {
+export async function finalizelogin(state, rememberMe = false) {
+    const params = new URLSearchParams({ state });
+    if (rememberMe) {
+        params.append('remember', 'true');
+    }
+    return apiRequest(`/api/finalize-login?${params.toString()}`, {
         method: 'GET',
         credentials: 'include',
     }, {
         disableErrorToast: true,
+    });
+}
+
+// Validate session with detailed info
+export async function validateSession() {
+    return apiRequest(`/api/session/validate`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        disableErrorToast: true // Don't show error toast for validation checks
+    });
+}
+
+// Refresh session token
+export async function refreshSession() {
+    return apiRequest(`/api/session/refresh`, {
+        method: 'POST',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to refresh session.'
+    });
+}
+
+// Get all active sessions for the current account
+export async function getActiveSessions() {
+    return apiRequest(`/api/session/active`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to get active sessions.'
     });
 }
 

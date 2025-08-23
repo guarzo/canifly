@@ -110,6 +110,13 @@ func (s *SkillStore) SaveSkillPlan(planName string, skills map[string]model.Skil
 	s.skillPlans[planKey] = model.SkillPlan{Name: planKey, Skills: skills}
 	s.mut.Unlock()
 	s.logger.Infof("Saved eve plan %s with %d skills", planKey, len(skills))
+
+	// Debug: log current number of plans in memory
+	s.mut.RLock()
+	planCount := len(s.skillPlans)
+	s.mut.RUnlock()
+	s.logger.Infof("Total skill plans in memory after save: %d", planCount)
+
 	return nil
 }
 
@@ -122,6 +129,13 @@ func (s *SkillStore) GetSkillPlans() map[string]model.SkillPlan {
 	for k, v := range s.skillPlans {
 		plansCopy[k] = v
 	}
+
+	// Debug: log what we're returning
+	s.logger.Debugf("GetSkillPlans returning %d plans", len(plansCopy))
+	for name := range plansCopy {
+		s.logger.Debugf("  - Plan: %s", name)
+	}
+
 	return plansCopy
 }
 

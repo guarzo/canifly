@@ -11,6 +11,7 @@ import { useAuth } from '../../hooks/useAuth';
 const LoginButton = ({ onModalOpenChange }) => {
     const { refreshAuth } = useAuth();
     const [modalOpen, setModalOpen] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true); // Default to remember me
 
     const handleOpenModal = () => {
         setModalOpen(true);
@@ -24,7 +25,7 @@ const LoginButton = ({ onModalOpenChange }) => {
 
     const handleLoginSubmit = async (account) => {
         try {
-            const data = await initiateLogin(account);
+            const data = await initiateLogin(account, rememberMe);
             logger.debug('Login response data:', data);
             // Data should have {redirectURL, state} on success
             if (data && data.redirectURL && data.state) {
@@ -57,7 +58,7 @@ const LoginButton = ({ onModalOpenChange }) => {
                         // Import finalizelogin from apiService
                         const { finalizelogin } = await import('../../api/apiService');
                         logger.debug(`Polling attempt ${attempts} - calling finalize-login with state:`, data.state);
-                        const result = await finalizelogin(data.state);
+                        const result = await finalizelogin(data.state, rememberMe);
                         logger.debug(`Finalize-login response:`, result);
                         
                         if (result && result.success) {
@@ -121,6 +122,9 @@ const LoginButton = ({ onModalOpenChange }) => {
                 onClose={handleCloseModal}
                 onSubmit={handleLoginSubmit}
                 title="Account Name"
+                showRememberMe={true}
+                rememberMe={rememberMe}
+                onRememberMeChange={setRememberMe}
             />
         </>
     );
