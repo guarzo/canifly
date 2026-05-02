@@ -3,7 +3,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import AccountPromptModal from '../common/AccountPromptModal.jsx';
-import { initiateLogin } from '../../api/apiService';
+import { initiateLogin } from '../../api/authApi';
 import { error as cError, logger } from '../../utils/logger';
 import { isDev } from '../../Config';
 import { useAuth } from '../../hooks/useAuth';
@@ -56,7 +56,7 @@ const LoginButton = ({ onModalOpenChange }) => {
                     
                     try {
                         // Import finalizelogin from apiService
-                        const { finalizelogin } = await import('../../api/apiService');
+                        const { finalizelogin } = await import('../../api/authApi');
                         logger.debug(`Polling attempt ${attempts} - calling finalize-login with state:`, data.state);
                         const result = await finalizelogin(data.state, rememberMe);
                         logger.debug(`Finalize-login response:`, result);

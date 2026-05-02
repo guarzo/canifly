@@ -112,7 +112,7 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                         return;
                     }
                     try {
-                        const { finalizelogin } = await import('../../api/apiService');
+                        const { finalizelogin } = await import('../../api/authApi');
                         const finalizeResult = await finalizelogin(state);
                         if (finalizeResult && finalizeResult.success) {
                             clearInterval(pollAuth);

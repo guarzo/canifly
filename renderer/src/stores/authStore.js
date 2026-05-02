@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import apiService from '../api/apiService';
+import { validateSession, getSession, initiateLogin, logout as logoutApi } from '../api/authApi';
 import { clearSessionCookie } from '../utils/clearCookies';
 
 // Track if auth check is in progress globally
@@ -35,7 +35,7 @@ const useAuthStore = create(
             const token = localStorage.getItem('session_token');
             if (token) {
               try {
-                const validation = await apiService.validateSession();
+                const validation = await validateSession();
                 if (validation?.valid) {
                   console.log('Valid persistent session found for:', validation.accountName);
                   
@@ -59,7 +59,7 @@ const useAuthStore = create(
             }
             
             // Fall back to regular session check
-            const response = await apiService.getSession();
+            const response = await getSession();
             const isAuthenticated = response?.status === 'ok' && response?.authenticated === true;
             set({ 
               isAuthenticated,
@@ -93,7 +93,7 @@ const useAuthStore = create(
         login: async (account, rememberMe = false) => {
           set({ loading: true, error: null });
           try {
-            const response = await apiService.initiateLogin(account, rememberMe);
+            const response = await initiateLogin(account, rememberMe);
             if (response?.redirectURL) {
               // Store remember me preference for use after OAuth callback
               if (rememberMe) {
@@ -114,7 +114,7 @@ const useAuthStore = create(
         logout: async () => {
           set({ loading: true, error: null });
           try {
-            await apiService.logout();
+            await logoutApi();
             // Clear the stored token
             localStorage.removeItem('session_token');
             set({ 
