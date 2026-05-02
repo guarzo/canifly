@@ -6,7 +6,7 @@ import { Refresh as RefreshIcon } from '@mui/icons-material';
 import Surface from '../ui/Surface.jsx';
 import { useAppData } from '../../hooks/useAppData';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
-import { getFuzzworksStatus, updateFuzzworks } from '../../api/apiService';
+import { getFuzzworksStatus, updateFuzzworks } from '../../api/fuzzworksApi';
 import { logger } from '../../utils/logger';
 
 const formatDate = (iso) => {

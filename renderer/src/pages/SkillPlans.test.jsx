@@ -5,13 +5,9 @@ import '@testing-library/jest-dom';
 import { vi, describe, test, expect } from 'vitest';
 import SkillPlans from './SkillPlans';
 
-vi.mock('../api/apiService.jsx', () => ({
-    default: {
-        copySkillPlan: vi.fn(),
-        deleteSkillPlan: vi.fn(),
-    },
-    copySkillPlan: vi.fn(),
-    deleteSkillPlan: vi.fn(),
+vi.mock('../api/skillPlansApi', () => ({
+    copySkillPlan: vi.fn().mockResolvedValue({ success: true }),
+    deleteSkillPlan: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('react-toastify', () => ({

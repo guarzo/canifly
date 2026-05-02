@@ -21,21 +21,12 @@ vi.mock('../hooks/useConfirmDialog.jsx', () => ({
     }
 }));
 
-// Mock apiService calls
-vi.mock('../api/apiService.jsx', () => ({
-    default: {
-        associateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character associated successfully!' }),
-        unassociateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character unassociated successfully!' }),
-        getAccounts: vi.fn().mockResolvedValue({ data: [] }),
-        getCharacters: vi.fn().mockResolvedValue({ data: [] }),
-        getAssociations: vi.fn().mockResolvedValue({ data: [] }),
-        getConfig: vi.fn().mockResolvedValue({ data: {} })
-    },
+vi.mock('../api/accountsApi', () => ({
     associateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character associated successfully!' }),
     unassociateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character unassociated successfully!' })
 }));
 
-import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
+import { associateCharacter, unassociateCharacter } from '../api/accountsApi';
 
 describe('Mapping', () => {
     const mockOnRefreshData = vi.fn();

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import apiService from '../api/apiService';
+import { getEveSkillPlans, getEveProfiles, getEveConversions } from '../api/esiApi';
 
 const useEveDataStore = create(
   devtools(
@@ -38,9 +38,9 @@ const useEveDataStore = create(
 
         try {
           const [skillPlansRes, eveProfilesRes, eveConversionsRes] = await Promise.all([
-            apiService.getEveSkillPlans(),
-            apiService.getEveProfiles(),
-            apiService.getEveConversions()
+            getEveSkillPlans(),
+            getEveProfiles(),
+            getEveConversions()
           ]);
 
           const skillPlans = skillPlansRes || {};
@@ -74,7 +74,7 @@ const useEveDataStore = create(
       fetchSkillPlans: async () => {
         set({ loading: { ...get().loading, skillPlans: true } });
         try {
-          const response = await apiService.getEveSkillPlans();
+          const response = await getEveSkillPlans();
           const skillPlans = response || {};
           set({ 
             skillPlans,
@@ -95,7 +95,7 @@ const useEveDataStore = create(
       fetchEveProfiles: async () => {
         set({ loading: { ...get().loading, eveProfiles: true } });
         try {
-          const response = await apiService.getEveProfiles();
+          const response = await getEveProfiles();
           const eveProfiles = response || [];
           set({ 
             eveProfiles,
@@ -116,7 +116,7 @@ const useEveDataStore = create(
       fetchEveConversions: async () => {
         set({ loading: { ...get().loading, eveConversions: true } });
         try {
-          const response = await apiService.getEveConversions();
+          const response = await getEveConversions();
           const eveConversions = response || {};
           set({ 
             eveConversions,

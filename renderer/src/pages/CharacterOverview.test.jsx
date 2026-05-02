@@ -6,14 +6,11 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import Overview from './CharacterOverview.jsx';
 
-// Mock apiService
-vi.mock('../api/apiService.jsx', () => ({
-    default: {
-        getAccounts: vi.fn().mockResolvedValue({ data: [] }),
-        getCharacters: vi.fn().mockResolvedValue({ data: [] }),
-        updateAccount: vi.fn().mockResolvedValue({ success: true }),
-        deleteAccount: vi.fn().mockResolvedValue({ success: true })
-    }
+// Mock per-domain API modules (apiService.jsx is being removed)
+vi.mock('../api/accountsApi', () => ({
+    updateCharacter: vi.fn().mockResolvedValue({ success: true }),
+    deleteCharacter: vi.fn().mockResolvedValue({ success: true }),
+    refreshCharacter: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 describe('Overview', () => {

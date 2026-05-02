@@ -20,7 +20,7 @@ import PlanMatrix from '../components/skillplan/PlanMatrix.jsx';
 import PlanList from '../components/skillplan/PlanList.jsx';
 import { skillPlanInstructions } from '../utils/instructions.jsx';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
-import apiService from '../api/apiService';
+import { copySkillPlan, deleteSkillPlan } from '../api/skillPlansApi';
 
 const LS = {
     view: 'sp.view',
@@ -72,11 +72,11 @@ const SkillPlans = ({ characters = [], skillPlans = {}, conversions = {} }) => {
     }, []);
 
     const handleCopy = (planName, newPlanName) => execute(
-        () => apiService.copySkillPlan(planName, newPlanName),
+        () => copySkillPlan(planName, newPlanName),
         { successMessage: 'Skill plan copied' },
     );
     const handleDelete = (planName) => execute(
-        () => apiService.deleteSkillPlan(planName),
+        () => deleteSkillPlan(planName),
         { successMessage: 'Skill plan deleted' },
     );
 

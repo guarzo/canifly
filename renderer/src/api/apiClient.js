@@ -1,4 +1,7 @@
-// src/api/apiRequest.js
+// src/api/apiClient.js
+//
+// Shared HTTP client used by every per-domain API module.
+// Owns the base URL, auth header injection, response parsing, and toast/error plumbing.
 import { toast } from 'react-toastify';
 import { log, error as cerr } from '../utils/logger.jsx';
 import { backEndURL } from '../Config.jsx';

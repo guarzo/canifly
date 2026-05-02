@@ -95,7 +95,7 @@ const App = () => {
     useEffect(() => {
         const checkConfig = async () => {
             try {
-                const { checkEVEConfiguration } = await import('./api/apiService');
+                const { checkEVEConfiguration } = await import('./api/configApi');
                 const result = await checkEVEConfiguration();
                 setNeedsEVEConfig(result.needsConfiguration);
             } catch (error) {
