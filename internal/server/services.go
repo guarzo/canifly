@@ -19,6 +19,7 @@ import (
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 	profileSvc "github.com/guarzo/canifly/internal/services/profile"
+	skillplanSvc "github.com/guarzo/canifly/internal/services/skillplan"
 	"github.com/guarzo/canifly/internal/services/skillplans"
 	"github.com/guarzo/canifly/internal/services/storage"
 	syncSvc "github.com/guarzo/canifly/internal/services/sync"
@@ -158,6 +159,9 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		persistentCache,
 	)
 
+	// Create skill plan service (narrow deps: just skillRepo + logger)
+	skillPlanService := skillplanSvc.NewService(logger, skillRepo)
+
 	// Create consolidated EVE data service (initially without dependencies that create circular refs)
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
@@ -166,10 +170,10 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		nil, // accountManagementService will be set later
 		configurationService,
 		storageService,
-		skillRepo,
 		systemRepo,
 		persistentCache,
 		characterService,
+		skillPlanService,
 	)
 
 	// Now create account management service with the character service as user info fetcher
@@ -209,7 +213,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		// Split EVE Services (all implemented by eveDataService)
 		ESIAPIService:    eveDataService,
 		CharacterService: characterService,
-		SkillPlanService: eveDataService,
+		SkillPlanService: skillPlanService,
 		ProfileService:   profileService,
 		CacheableService: persistentCache,
 
