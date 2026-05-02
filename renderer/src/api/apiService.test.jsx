@@ -2,14 +2,12 @@
 import { vi } from 'vitest';
 import {
     logout,
-    saveSkillPlan,
     saveUserSelections,
     syncSubdirectory,
     syncAllSubdirectories,
     chooseSettingsDir,
     backupDirectory,
     resetToDefaultDirectory,
-    deleteSkillPlan,
     initiateLogin
 } from './apiService';
 import { apiRequest } from './apiClient';
@@ -37,26 +35,6 @@ describe('apiService', () => {
                 errorMessage: 'Failed to log out.'
             });
             expect(result).toBe('success');
-        });
-    });
-
-
-// In apiService.test.js, update the saveSkillPlan test:
-    describe('saveSkillPlan', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue('saved');
-            const result = await saveSkillPlan('MyPlan', { skill: 'Level5' });
-            expect(apiRequest).toHaveBeenCalledWith('/api/skill-plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'MyPlan', content: { skill: 'Level5' } }),
-                credentials: 'include'
-            }, {
-                // Include successMessage here as well
-                successMessage: 'Skill Plan Created!',
-                errorMessage: 'Failed to create skill plan.'
-            });
-            expect(result).toBe('saved');
         });
     });
 
@@ -155,20 +133,6 @@ describe('apiService', () => {
                 errorMessage: 'Failed to reset directory.'
             });
             expect(result).toBe('reset');
-        });
-    });
-
-    describe('deleteSkillPlan', () => {
-        test('calls apiRequest correctly', async () => {
-            apiRequest.mockResolvedValue('deleted');
-            const result = await deleteSkillPlan('MyPlan');
-            expect(apiRequest).toHaveBeenCalledWith(`/api/skill-plans/MyPlan`, {
-                method: 'DELETE',
-                credentials: 'include',
-            }, {
-                errorMessage: 'Failed to delete skill plan.'
-            });
-            expect(result).toBe('deleted');
         });
     });
 

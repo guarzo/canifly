@@ -19,6 +19,14 @@ import {
     associateCharacter,
     unassociateCharacter,
 } from './accountsApi';
+import {
+    getSkillPlans,
+    getSkillPlan,
+    createSkillPlan,
+    copySkillPlan,
+    deleteSkillPlan,
+    saveSkillPlan,
+} from './skillPlansApi';
 import { apiRequest } from './apiClient';
 
 export {
@@ -34,6 +42,12 @@ export {
     getAssociations,
     associateCharacter,
     unassociateCharacter,
+    getSkillPlans,
+    getSkillPlan,
+    createSkillPlan,
+    copySkillPlan,
+    deleteSkillPlan,
+    saveSkillPlan,
 };
 
 // ─── Config ─────────────────────────────────────────────────────────────
@@ -87,96 +101,7 @@ export async function saveEVECredentials(clientId, clientSecret) {
     });
 }
 
-// ─── Skill plans ────────────────────────────────────────────────────────
-export async function getSkillPlans() {
-    return apiRequest(`/api/skill-plans`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch skill plans.'
-    });
-}
-
-export async function getSkillPlan(planName) {
-    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch skill plan.'
-    });
-}
-
-export async function createSkillPlan(planName, planContents) {
-    return apiRequest(`/api/skill-plans`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name: planName, content: planContents })
-    }, {
-        errorMessage: 'Failed to create skill plan.'
-    });
-}
-
-export async function copySkillPlan(sourcePlanName, targetPlanName) {
-    return apiRequest(`/api/skill-plans/${encodeURIComponent(sourcePlanName)}/copy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ newName: targetPlanName })
-    }, {
-        errorMessage: 'Failed to copy skill plan.'
-    });
-}
-
-export async function deleteSkillPlan(planName) {
-    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    }, {
-        errorMessage: 'Failed to delete skill plan.'
-    });
-}
-
-export async function saveSkillPlan(planName, planContents) {
-    try {
-        const response = await fetch(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-            method: 'GET',
-            credentials: 'include'
-        });
-
-        if (response.ok) {
-            return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: planContents }),
-                credentials: 'include'
-            }, {
-                successMessage: 'Skill Plan Updated!',
-                errorMessage: 'Failed to update skill plan.'
-            });
-        } else {
-            return apiRequest('/api/skill-plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: planName, content: planContents }),
-                credentials: 'include'
-            }, {
-                successMessage: 'Skill Plan Created!',
-                errorMessage: 'Failed to create skill plan.'
-            });
-        }
-    } catch (error) {
-        return apiRequest('/api/skill-plans', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: planName, content: planContents }),
-            credentials: 'include'
-        }, {
-            successMessage: 'Skill Plan Created!',
-            errorMessage: 'Failed to create skill plan.'
-        });
-    }
-}
+// ─── Skill plans (re-exported above from skillPlansApi) ─────────────────
 
 // ─── EVE static data ────────────────────────────────────────────────────
 export async function getEveSkillPlans() {

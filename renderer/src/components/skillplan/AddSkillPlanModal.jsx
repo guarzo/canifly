@@ -5,7 +5,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Dialog } from '@mui/material';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
-import apiService from '../../api/apiService';
+import { createSkillPlan } from '../../api/skillPlansApi';
 
 const AddSkillPlanModal = ({ onClose }) => {
     const [planName, setPlanName] = useState('');
@@ -15,7 +15,7 @@ const AddSkillPlanModal = ({ onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         await execute(
-            () => apiService.createSkillPlan(planName.trim(), planContents.trim()),
+            () => createSkillPlan(planName.trim(), planContents.trim()),
             { successMessage: 'Skill plan created', onSuccess: onClose },
         );
     };
