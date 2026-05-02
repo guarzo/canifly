@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import PropTypes from 'prop-types';
 import {
     AppBar,
     Toolbar,
     IconButton,
-    Typography,
     Box,
     Drawer,
     List,
@@ -15,275 +15,238 @@ import {
     ListItemButton,
     Tooltip,
     CircularProgress,
-    Divider
 } from '@mui/material';
 import {
     Menu as MenuIcon,
-    AddCircleOutline,
-    ExitToApp,
+    PersonAddAlt1Outlined,
+    LogoutOutlined,
     Close,
-    Dashboard as CharacterOverviewIcon,
-    ListAlt as SkillPlansIcon,
-    Sync as SyncIcon,
-    AccountTree as MappingIcon,
-    Cached as RefreshIcon,
-    Settings as SettingsIcon
+    SpaceDashboardOutlined as CharacterOverviewIcon,
+    ListAltOutlined as SkillPlansIcon,
+    SyncOutlined as SyncIcon,
+    AccountTreeOutlined as MappingIcon,
+    RefreshOutlined as RefreshIcon,
+    SettingsOutlined as SettingsIcon,
+    AddchartOutlined,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppData } from '../../hooks/useAppData';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import AccountPromptModal from './AccountPromptModal.jsx';
-import nav_img1 from '../../assets/images/nav-logo.png';
-import nav_img2 from '../../assets/images/nav-logo2.webp';
 
+// Calm AppBar — surface-1 with a single hairline rule, no glass, no shimmer.
 const StyledAppBar = styled(AppBar)(() => ({
-    background: 'rgba(17, 24, 39, 0.8)',
-    backdropFilter: 'blur(20px)',
-    borderBottom: '1px solid rgba(20, 184, 166, 0.2)',
-    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-    '&::after': {
-        content: '""',
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: '2px',
-        background: 'linear-gradient(90deg, transparent, #14b8a6, transparent)',
-        animation: 'shimmer 3s linear infinite',
-    }
+    background: 'var(--surface-1)',
+    backgroundImage: 'none',
+    backdropFilter: 'none',
+    borderBottom: '1px solid var(--rule-1)',
+    boxShadow: 'none',
+    color: 'var(--ink-1)',
 }));
 
 const StyledDrawer = styled(Drawer)(() => ({
     '& .MuiPaper-root': {
-        background: 'rgba(17, 24, 39, 0.95)',
-        backdropFilter: 'blur(20px)',
-        borderRight: '1px solid rgba(148, 163, 184, 0.1)',
-        boxShadow: '0 0 40px rgba(0, 0, 0, 0.5)',
-        color: '#5eead4',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        width: 280,
-        overflow: 'hidden',
-        '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'radial-gradient(circle at top right, rgba(20, 184, 166, 0.1), transparent 60%)',
-            pointerEvents: 'none',
-        }
-    }
+        background: 'var(--surface-1)',
+        backgroundImage: 'none',
+        backdropFilter: 'none',
+        borderRight: '1px solid var(--rule-1)',
+        boxShadow: 'none',
+        color: 'var(--ink-1)',
+        width: 260,
+    },
 }));
 
 const Header = ({ openSkillPlanModal, existingAccounts }) => {
     const location = useLocation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    const [useAlternateImage, setUseAlternateImage] = useState(false);
-    
+
     const { isAuthenticated, logout } = useAuth();
-    const { refreshData, fetchAccounts } = useAppData();
+    const { refreshData } = useAppData();
     const { execute: executeRefresh, isLoading: isRefreshing } = useAsyncOperation();
     const { execute: executeAddCharacter } = useAsyncOperation();
 
     const handleCloseWindow = () => {
         if (window.electronAPI && window.electronAPI.closeWindow) {
             window.electronAPI.closeWindow();
-        } else {
-            console.error('Electron API not available');
         }
     };
 
-    const toggleDrawer = (open) => () => {
-        setDrawerOpen(open);
-        if (open === true) {
-            setUseAlternateImage((prev) => !prev);
-        }
-    };
+    const toggleDrawer = (open) => () => setDrawerOpen(open);
 
     const navigationLinks = [
-        { text: 'Overview', icon: <CharacterOverviewIcon />, path: '/' },
-        { text: 'Skill Plans', icon: <SkillPlansIcon />, path: '/skill-plans' },
-        { text: 'Mapping', icon: <MappingIcon />, path: '/mapping' },
-        { text: 'Sync', icon: <SyncIcon />, path: '/sync' },
-        { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+        { text: 'Overview', icon: <CharacterOverviewIcon fontSize="small" />, path: '/' },
+        { text: 'Skill Plans', icon: <SkillPlansIcon fontSize="small" />, path: '/skill-plans' },
+        { text: 'Mapping', icon: <MappingIcon fontSize="small" />, path: '/mapping' },
+        { text: 'Sync', icon: <SyncIcon fontSize="small" />, path: '/sync' },
+        { text: 'Settings', icon: <SettingsIcon fontSize="small" />, path: '/settings' },
     ];
 
-    const handleAddCharacterClick = () => {
-        setModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setModalOpen(false);
-    };
+    const handleAddCharacterClick = () => setModalOpen(true);
+    const handleCloseModal = () => setModalOpen(false);
 
     const handleAddCharacterSubmit = async (account) => {
         const result = await executeAddCharacter(async () => {
             const { addCharacter } = await import('../../api/apiService');
             return addCharacter(account);
-        }, {
-            showToast: false // We'll handle the success/error message manually
-        });
-        
-        // If we got a redirect URL, open it in the browser
+        }, { showToast: false });
+
         if (result && result.redirectURL) {
-            console.log('Opening SSO page:', result.redirectURL);
-            // Use Electron's API to open in default browser
             if (window.electronAPI && window.electronAPI.openExternal) {
                 window.electronAPI.openExternal(result.redirectURL);
             } else {
-                // Fallback for development mode
                 window.open(result.redirectURL, '_blank');
             }
-            toast.info('Please complete the authorization in your browser');
-            
-            // Poll for completion using finalize-login
+            toast.info('Complete authorization in your browser');
+
             const state = result.state;
             if (state) {
                 let attempts = 0;
-                const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute
+                const maxAttempts = 30;
                 const pollAuth = setInterval(async () => {
                     attempts++;
-                    
                     if (attempts > maxAttempts) {
                         clearInterval(pollAuth);
                         toast.warning('Character add timeout. Please try again.');
                         return;
                     }
-                    
                     try {
                         const { finalizelogin } = await import('../../api/apiService');
                         const finalizeResult = await finalizelogin(state);
-                        
                         if (finalizeResult && finalizeResult.success) {
                             clearInterval(pollAuth);
-                            toast.success('Character added successfully!');
-                            // Don't fetch here - the WebSocket message will trigger the refresh
-                            // This avoids duplicate fetches
+                            toast.success('Character added');
                         } else if (finalizeResult && finalizeResult.error === 'state_not_found') {
                             clearInterval(pollAuth);
                             toast.error('Session expired. Please try again.');
                         }
-                        // If pending, continue polling
                     } catch (error) {
-                        console.error('Polling error:', error);
+                        // Polling failure is not fatal — keep retrying until maxAttempts.
+                        void error;
                     }
                 }, 2000);
             }
         } else {
-            toast.success('Character added successfully');
-            // Refresh data immediately if no redirect
+            toast.success('Character added');
             await refreshData();
         }
-        
+
         setModalOpen(false);
     };
 
     const handleRefreshClick = async () => {
-        await executeRefresh(() => refreshData(), {
-            showToast: false
-        });
+        await executeRefresh(() => refreshData(), { showToast: false });
     };
 
-    const chosenImage = useAlternateImage ? nav_img2 : nav_img1;
+    // Reusable styling for header icon buttons — no scale, no glow.
+    const headerIconSx = {
+        color: 'var(--ink-2)',
+        width: 32,
+        height: 32,
+        borderRadius: '6px',
+        transition: 'background-color var(--motion-duration-fast, 120ms) var(--motion-ease, ease), color var(--motion-duration-fast, 120ms) var(--motion-ease, ease)',
+        '&:hover': {
+            backgroundColor: 'var(--surface-2)',
+            color: 'var(--ink-1)',
+            transform: 'none',
+        },
+    };
 
     return (
         <>
             <StyledAppBar position="fixed">
-                <Toolbar style={{ WebkitAppRegion: 'drag', display: 'flex', alignItems: 'center' }}>
+                <Toolbar
+                    variant="dense"
+                    sx={{
+                        WebkitAppRegion: 'drag',
+                        minHeight: 44,
+                        gap: 0.5,
+                        px: 1.5,
+                    }}
+                >
                     {isAuthenticated && (
                         <>
-                            <IconButton
-                                edge="start"
-                                color="inherit"
-                                aria-label="menu"
-                                onClick={toggleDrawer(true)}
-                                style={{ WebkitAppRegion: 'no-drag' }}
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                            <Tooltip title="Add Character">
-                                <IconButton 
-                                    onClick={handleAddCharacterClick} 
-                                    className="group"
-                                    style={{ WebkitAppRegion: 'no-drag' }}
-                                    sx={{
-                                        transition: 'all 0.3s',
-                                        '&:hover': {
-                                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                            transform: 'scale(1.1)',
-                                        }
-                                    }}
+                            <Tooltip title="Menu">
+                                <IconButton
+                                    edge="start"
+                                    aria-label="Menu"
+                                    onClick={toggleDrawer(true)}
+                                    sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
                                 >
-                                    <AddCircleOutline 
-                                        className="transition-all duration-300 group-hover:rotate-90"
-                                        sx={{ color: '#22c55e' }} 
-                                    />
+                                    <MenuIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title="Add Skill Plan">
-                                <IconButton 
-                                    onClick={openSkillPlanModal} 
-                                    className="group"
-                                    style={{ WebkitAppRegion: 'no-drag' }}
-                                    sx={{
-                                        transition: 'all 0.3s',
-                                        '&:hover': {
-                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                            transform: 'scale(1.1)',
-                                        }
-                                    }}
+                            <Tooltip title="Add character">
+                                <IconButton
+                                    onClick={handleAddCharacterClick}
+                                    aria-label="Add character"
+                                    sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
                                 >
-                                    <SkillPlansIcon 
-                                        className="transition-all duration-300 group-hover:rotate-12"
-                                        sx={{ color: '#f59e0b' }} 
-                                    />
+                                    <PersonAddAlt1Outlined fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Add skill plan">
+                                <IconButton
+                                    onClick={openSkillPlanModal}
+                                    aria-label="Add skill plan"
+                                    sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
+                                >
+                                    <AddchartOutlined fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         </>
                     )}
 
-                    <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                        <Typography
-                            variant="h6"
-                            className="text-gradient font-display"
-                            sx={{ 
-                                textAlign: 'center',
-                                fontSize: '1.5rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.05em'
+                    <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+                        <span
+                            style={{
+                                fontFamily: 'Inter, system-ui, sans-serif',
+                                fontWeight: 600,
+                                fontSize: 13,
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                                color: 'var(--ink-2)',
                             }}
                         >
                             CanIFly
-                        </Typography>
+                        </span>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, WebkitAppRegion: 'no-drag' }}>
                         {isAuthenticated && (
                             <>
-                                <Tooltip title="Refresh Data">
-                                    <IconButton onClick={handleRefreshClick}>
+                                <Tooltip title="Refresh data">
+                                    <IconButton
+                                        onClick={handleRefreshClick}
+                                        aria-label="Refresh data"
+                                        sx={headerIconSx}
+                                    >
                                         {isRefreshing ? (
-                                            <CircularProgress size={24} sx={{ color: '#9ca3af' }} />
+                                            <CircularProgress size={16} sx={{ color: 'var(--ink-2)' }} />
                                         ) : (
-                                            <RefreshIcon sx={{ color: '#9ca3af' }} />
+                                            <RefreshIcon fontSize="small" />
                                         )}
                                     </IconButton>
                                 </Tooltip>
-                                <Tooltip title="Logout">
-                                    <IconButton onClick={logout}>
-                                        <ExitToApp sx={{ color: '#ef4444' }} />
+                                <Tooltip title="Log out">
+                                    <IconButton
+                                        onClick={logout}
+                                        aria-label="Log out"
+                                        sx={headerIconSx}
+                                    >
+                                        <LogoutOutlined fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
                             </>
                         )}
                         <Tooltip title="Close">
-                            <IconButton onClick={handleCloseWindow}>
-                                <Close sx={{ color: '#9ca3af' }} />
+                            <IconButton
+                                onClick={handleCloseWindow}
+                                aria-label="Close window"
+                                sx={headerIconSx}
+                            >
+                                <Close fontSize="small" />
                             </IconButton>
                         </Tooltip>
                     </Box>
@@ -295,88 +258,74 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
                     role="presentation"
                     onClick={toggleDrawer(false)}
                     onKeyDown={toggleDrawer(false)}
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                 >
-                    <List sx={{ flex: 1 }}>
-                        {navigationLinks.map((item, index) => (
-                            <div key={item.text}>
-                                <ListItem disablePadding>
+                    <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+                        <span
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 500,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                color: 'var(--ink-3)',
+                            }}
+                        >
+                            CanIFly
+                        </span>
+                    </Box>
+                    <Box sx={{ height: '1px', bgcolor: 'var(--rule-1)', mx: 2 }} />
+                    <List sx={{ flex: 1, py: 1, px: 1 }}>
+                        {navigationLinks.map((item) => {
+                            const selected = location.pathname === item.path;
+                            return (
+                                <ListItem key={item.text} disablePadding sx={{ mb: 0.25 }}>
                                     <ListItemButton
                                         component={Link}
                                         to={item.path}
-                                        selected={location.pathname === item.path}
+                                        selected={selected}
                                         sx={{
-                                            borderRadius: '12px',
-                                            margin: '4px 8px',
-                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            '&::before': {
-                                                content: '""',
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: '-100%',
-                                                width: '100%',
-                                                height: '100%',
-                                                background: 'linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent)',
-                                                transition: 'left 0.5s',
+                                            borderRadius: '6px',
+                                            px: 1.5,
+                                            py: 1,
+                                            transition: 'background-color var(--motion-duration-fast, 120ms) var(--motion-ease, ease)',
+                                            color: 'var(--ink-2)',
+                                            '& .MuiListItemIcon-root': {
+                                                color: 'var(--ink-3)',
+                                                minWidth: 28,
                                             },
                                             '&:hover': {
-                                                backgroundColor: 'rgba(20, 184, 166, 0.1)',
-                                                transform: 'translateX(4px)',
-                                                '&::before': {
-                                                    left: '100%',
-                                                },
-                                                '& .MuiListItemText-primary': {
-                                                    color: '#5eead4',
-                                                },
+                                                backgroundColor: 'var(--surface-2)',
+                                                color: 'var(--ink-1)',
+                                                transform: 'none',
                                                 '& .MuiListItemIcon-root': {
-                                                    color: '#5eead4',
-                                                    transform: 'scale(1.1)',
+                                                    color: 'var(--ink-1)',
+                                                    transform: 'none',
                                                 },
                                             },
                                             '&.Mui-selected': {
-                                                backgroundColor: 'rgba(20, 184, 166, 0.2)',
-                                                borderLeft: '3px solid #14b8a6',
-                                                '&:hover': {
-                                                    backgroundColor: 'rgba(20, 184, 166, 0.3)',
-                                                },
+                                                backgroundColor: 'var(--accent-soft)',
+                                                color: 'var(--ink-1)',
+                                                '& .MuiListItemIcon-root': { color: 'var(--accent)' },
+                                                '&:hover': { backgroundColor: 'var(--accent-soft)' },
                                             },
                                         }}
                                     >
-                                        <ListItemIcon sx={{ color: '#5eead4' }}>{item.icon}</ListItemIcon>
+                                        <ListItemIcon>{item.icon}</ListItemIcon>
                                         <ListItemText
                                             primary={item.text}
-                                            primaryTypographyProps={{ sx: { color: '#5eead4' } }}
+                                            primaryTypographyProps={{
+                                                sx: {
+                                                    fontSize: 14,
+                                                    fontWeight: selected ? 500 : 400,
+                                                    color: 'inherit',
+                                                },
+                                            }}
                                         />
                                     </ListItemButton>
                                 </ListItem>
-
-                                {index === 1 && (
-                                    <Divider
-                                        sx={{
-                                            backgroundColor: '#14b8a6',
-                                            marginY: '4px',
-                                            opacity: 0.5
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </List>
-                    {/* Image at the bottom of the nav drawer */}
-                    <Box sx={{ p: 2, textAlign: 'center' }}>
-                        <img
-                            src={chosenImage}
-                            alt="Nav Logo"
-                            style={{
-                                maxWidth: '220px',
-                                height: 'auto',
-                                display: 'block',
-                                margin: '0 auto'
-                            }}
-                        />
-                    </Box>
                 </div>
             </StyledDrawer>
 
@@ -389,6 +338,11 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
             />
         </>
     );
+};
+
+Header.propTypes = {
+    openSkillPlanModal: PropTypes.func.isRequired,
+    existingAccounts: PropTypes.array,
 };
 
 export default Header;

@@ -1,41 +1,42 @@
-import { motion } from 'framer-motion';
-import footerImg from '../../assets/images/footer-logo.jpg';
+// Footer — minimal. A hairline rule, version, and a couple of links.
+// No glass, no glow, no animation. text-micro sizing per DESIGN.md.
 
+import { version as pkgVersion } from '../../../../package.json';
 
-const Footer = () => {
-    return (
-        <motion.footer
-            className="fixed bottom-0 left-0 w-full glass border-t border-teal-500/20 z-50"
-            style={{ WebkitAppRegion: 'drag' }}
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-        >
-            <div className="container mx-auto px-4 py-3 flex flex-col items-center justify-center">
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    className="relative"
-                >
-                    <div className="absolute inset-0 blur-xl bg-teal-500/30 rounded-full" />
-                    <img
-                        src={footerImg}
-                        alt="Logo"
-                        className="h-8 w-8 mb-2 rounded-full border border-teal-500/50 relative z-10"
-                    />
-                </motion.div>
-                <motion.span 
-                    className="text-sm text-gray-400"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.7 }}
-                >
-                    &copy; {new Date().getFullYear()} CanIFly. All rights reserved.
-                </motion.span>
-            </div>
-        </motion.footer>
-    );
+const openExternal = (url) => (e) => {
+    e.preventDefault();
+    if (window.electronAPI?.openExternal) window.electronAPI.openExternal(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
 };
+
+const Footer = () => (
+    <footer
+        className="mt-auto border-t border-rule-1 bg-surface-0"
+        style={{ WebkitAppRegion: 'drag' }}
+    >
+        <div
+            className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-6 py-2 text-micro text-ink-3 tabular"
+            style={{ WebkitAppRegion: 'no-drag' }}
+        >
+            <span className="font-mono">CanIFly v{pkgVersion}</span>
+            <nav className="flex items-center gap-4">
+                <a
+                    href="https://github.com/guarzo/canifly"
+                    onClick={openExternal('https://github.com/guarzo/canifly')}
+                    className="hover:text-ink-1"
+                >
+                    GitHub
+                </a>
+                <a
+                    href="https://developers.eveonline.com"
+                    onClick={openExternal('https://developers.eveonline.com')}
+                    className="hover:text-ink-1"
+                >
+                    EVE Developers
+                </a>
+            </nav>
+        </div>
+    </footer>
+);
 
 export default Footer;

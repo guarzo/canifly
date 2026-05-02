@@ -1,114 +1,159 @@
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Link,
-  Box,
-  CircularProgress
-} from '@mui/material';
+// FirstRunDialog — first thing a new user sees. Calm tool tone:
+// short copy, one primary action, no hero, no gradients.
+
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import { Dialog, DialogContent } from '@mui/material';
 import { saveEVECredentials } from '../../api/apiService';
 
+const CALLBACK = 'http://localhost:42423/callback';
+
+const openExternal = (url) => (e) => {
+    e.preventDefault();
+    if (window.electronAPI?.openExternal) window.electronAPI.openExternal(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 const FirstRunDialog = ({ open, onComplete }) => {
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const [clientId, setClientId] = useState('');
+    const [clientSecret, setClientSecret] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!clientId || !clientSecret) {
-      setError('Both Client ID and Client Secret are required');
-      return;
-    }
+    const canSubmit = clientId.trim() && clientSecret.trim() && !loading;
 
-    setLoading(true);
-    setError('');
+    const handleSubmit = async (e) => {
+        e?.preventDefault();
+        if (!canSubmit) {
+            setError('Both Client ID and Client Secret are required.');
+            return;
+        }
+        setLoading(true);
+        setError('');
+        try {
+            await saveEVECredentials(clientId.trim(), clientSecret.trim());
+            onComplete();
+        } catch (err) {
+            setError(err?.message || 'Failed to save EVE credentials.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    try {
-      await saveEVECredentials(clientId, clientSecret);
-      onComplete();
-    } catch (err) {
-      setError(err.message || 'Failed to save EVE credentials');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} maxWidth="sm" fullWidth disableEscapeKeyDown>
-      <DialogTitle>EVE Online Application Setup</DialogTitle>
-      <DialogContent>
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body1" paragraph>
-            To use CanIFly, you need to register an EVE Online application to access character data.
-          </Typography>
-          <Typography variant="body2" paragraph>
-            1. Go to{' '}
-            <Link
-              href="https://developers.eveonline.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              EVE Online Developers
-            </Link>{' '}
-            and create a new application
-          </Typography>
-          <Typography variant="body2" paragraph>
-            2. Set the callback URL to: <code>http://localhost:42423/callback</code>
-          </Typography>
-          <Typography variant="body2" paragraph>
-            3. Select the required scopes for character and skill access
-          </Typography>
-          <Typography variant="body2" paragraph>
-            4. Enter your Client ID and Client Secret below
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <TextField
-            label="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+    return (
+        <Dialog
+            open={open}
+            maxWidth="sm"
             fullWidth
-            margin="normal"
-            required
-            disabled={loading}
-          />
-          <TextField
-            label="Client Secret"
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            type="password"
-            fullWidth
-            margin="normal"
-            required
-            disabled={loading}
-          />
-          <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-            Callback URL: http://localhost:42423/callback
-          </Typography>
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || !clientId || !clientSecret}
+            disableEscapeKeyDown
+            PaperProps={{
+                sx: {
+                    backgroundColor: 'var(--surface-1)',
+                    border: '1px solid var(--rule-1)',
+                    backgroundImage: 'none',
+                },
+            }}
         >
-          {loading ? <CircularProgress size={24} /> : 'Save Configuration'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+            <DialogContent sx={{ p: 0 }}>
+                <form onSubmit={handleSubmit} className="px-6 py-6">
+                    <h2 className="text-h2 text-ink-1">Connect EVE application</h2>
+                    <p className="mt-1 text-meta text-ink-3">
+                        CanIFly needs an EVE Online developer application to read character data.
+                    </p>
+
+                    <ol className="mt-5 max-w-[65ch] list-decimal space-y-1.5 pl-5 text-body text-ink-2">
+                        <li>
+                            Open{' '}
+                            <a
+                                href="https://developers.eveonline.com"
+                                onClick={openExternal('https://developers.eveonline.com')}
+                                className="text-accent hover:text-accent-strong"
+                            >
+                                developers.eveonline.com
+                            </a>{' '}
+                            and create a new application.
+                        </li>
+                        <li>
+                            Set the callback URL to{' '}
+                            <code className="font-mono text-meta text-ink-1 px-1 py-0.5 rounded-sm bg-surface-2 border border-rule-1">
+                                {CALLBACK}
+                            </code>
+                            .
+                        </li>
+                        <li>Select the scopes for character, skill, and asset access.</li>
+                        <li>Paste the Client ID and Secret below.</li>
+                    </ol>
+
+                    <div className="mt-6 space-y-4 max-w-[480px]">
+                        <Field
+                            label="Client ID"
+                            value={clientId}
+                            onChange={setClientId}
+                            disabled={loading}
+                            autoFocus
+                        />
+                        <Field
+                            label="Client Secret"
+                            type="password"
+                            value={clientSecret}
+                            onChange={setClientSecret}
+                            disabled={loading}
+                        />
+                    </div>
+
+                    {error ? (
+                        <p
+                            role="alert"
+                            className="mt-4 text-meta text-status-error"
+                        >
+                            {error}
+                        </p>
+                    ) : null}
+
+                    <div className="mt-6 flex items-center justify-between gap-4 pt-4 border-t border-rule-1">
+                        <span className="text-micro text-ink-3 font-mono tabular">
+                            Callback: {CALLBACK}
+                        </span>
+                        <button
+                            type="submit"
+                            disabled={!canSubmit}
+                            className="h-9 px-4 rounded-md bg-accent text-accent-ink text-meta hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? 'Saving…' : 'Save and continue'}
+                        </button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+FirstRunDialog.propTypes = {
+    open: PropTypes.bool.isRequired,
+    onComplete: PropTypes.func.isRequired,
+};
+
+const Field = ({ label, value, onChange, type = 'text', disabled, autoFocus }) => (
+    <label className="block">
+        <span className="block text-meta text-ink-3 mb-1">{label}</span>
+        <input
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            autoFocus={autoFocus}
+            className="w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:border-accent focus:outline-none disabled:opacity-50"
+        />
+    </label>
+);
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired,
+    type: PropTypes.string,
+    disabled: PropTypes.bool,
+    autoFocus: PropTypes.bool,
 };
 
 export default FirstRunDialog;

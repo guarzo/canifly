@@ -146,12 +146,12 @@ const App = () => {
         <ErrorBoundary>
             <ThemeProvider theme={theme}>
                 <Router>
-                    <div className="flex flex-col min-h-screen bg-gray-900 text-teal-200">
+                    <div className="flex flex-col min-h-screen bg-surface-0 text-ink-1">
                         <Header
                             openSkillPlanModal={openSkillPlanModal}
                             existingAccounts={existingAccounts}
                         />
-                        <main className="flex-grow container mx-auto px-4 py-8 pb-16">
+                        <main className="flex-grow w-full px-4 py-8 pb-16">
                             <AppRoutes
                                 characters={characters}
                             />

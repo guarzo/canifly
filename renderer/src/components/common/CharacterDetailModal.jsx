@@ -1,163 +1,160 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import {
     Dialog,
-    DialogTitle,
     DialogContent,
-    DialogActions,
     IconButton,
     Tooltip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { calculateDaysFromToday } from "../../utils/formatter.jsx";
+import StatusDot from '../ui/StatusDot.jsx';
+import { calculateDaysFromToday } from '../../utils/formatter.jsx';
 
+const CharacterDetailModal = ({ open, onClose, character, skillConversions }) => {
+    if (!character || !character.Character) return null;
 
-const CharacterDetailModal = ({
-                                  open,
-                                  onClose,
-                                  character,
-                                  skillConversions,
-                              }) => {
-    if (!character || !character.Character) {
-        return null;
-    }
-    
-
-    const charId = character.Character.CharacterID;
-    const charName = character.Character.CharacterName;
-    const portraitUrl = `https://images.evetech.net/characters/${charId}/portrait`;
-    const totalSp = character?.Character?.CharacterSkillsResponse?.total_sp;
-    const formattedSP = totalSp ? totalSp.toLocaleString() : '0';
+    const c = character.Character;
+    const charId = c.CharacterID;
+    const charName = c.CharacterName;
+    const portraitUrl = `https://images.evetech.net/characters/${charId}/portrait?size=128`;
+    const totalSp = c.CharacterSkillsResponse?.total_sp || 0;
+    const formattedSP = totalSp.toLocaleString();
     const zKillUrl = `https://zkillboard.com/character/${charId}/`;
+    const queue = Array.isArray(c.SkillQueue) ? c.SkillQueue : [];
+    const status = queue.length === 0 ? 'idle' : (character.MCT ? 'training' : 'queued');
+    const statusLabel = status === 'training' ? `Training: ${character.Training || 'Unknown'}`
+        : status === 'queued' ? 'Queue paused (MCT off)'
+        : 'No skill queue';
 
-    const mctTooltip = character.MCT
-        ? `Training: ${character.Training || 'Unknown'}`
-        : 'Skill queue paused';
-
-    // Use the entire skill queue
-    const skillQueueItems = character.Character.SkillQueue || [];
+    const openZkill = () => {
+        if (window.electronAPI?.openExternal) window.electronAPI.openExternal(zKillUrl);
+        else window.open(zKillUrl, '_blank', 'noopener,noreferrer');
+    };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            {/* Modal Title Bar */}
-            <div className="flex justify-between items-center px-4 py-2 bg-gray-700">
-                <DialogTitle className="text-teal-200 p-0">
-                    {charName}
-                </DialogTitle>
-                <IconButton aria-label="close" onClick={onClose} sx={{ color: '#99f6e4' }}>
-                    <CloseIcon />
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    bgcolor: 'var(--surface-1)',
+                    backgroundImage: 'none',
+                    color: 'var(--ink-1)',
+                    border: '1px solid var(--rule-1)',
+                    borderRadius: '10px',
+                    boxShadow: '0 12px 40px oklch(0 0 0 / 0.5)',
+                },
+            }}
+        >
+            <header className="flex items-center justify-between px-5 py-3 border-b border-rule-1">
+                <h2 className="text-h3 text-ink-1 truncate">{charName}</h2>
+                <IconButton
+                    aria-label="Close"
+                    onClick={onClose}
+                    size="small"
+                    sx={{ color: 'var(--ink-3)', '&:hover': { color: 'var(--ink-1)', bgcolor: 'var(--surface-2)' } }}
+                >
+                    <CloseIcon fontSize="small" />
                 </IconButton>
-            </div>
+            </header>
 
-            <DialogContent className="bg-gray-800 text-teal-100">
-                {/* Character Header Info */}
-                <div className="flex flex-col sm:flex-row sm:space-x-4 mt-4">
+            <DialogContent sx={{ p: 0 }}>
+                <div className="grid grid-cols-[88px_1fr] gap-5 px-5 py-5 border-b border-rule-1">
                     <img
                         src={portraitUrl}
-                        alt={`${charName} portrait`}
-                        className="w-32 h-32 rounded-md shadow-md border border-teal-600"
+                        alt=""
+                        aria-hidden
+                        className="h-22 w-22 rounded-md border border-rule-1"
+                        style={{ height: 88, width: 88 }}
                     />
-                    <div className="mt-2 sm:mt-0 flex-1">
-                        <div className="flex items-center space-x-2">
-                            <Tooltip title="Open zKillboard">
-                                <IconButton
-                                    aria-label="Open zKillboard"
-                                    size="small"
-                                    onClick={() => {
-                                        if (window.electronAPI && window.electronAPI.openExternal) {
-                                            window.electronAPI.openExternal(zKillUrl);
-                                        } else {
-                                            window.open(zKillUrl, '_blank', 'noopener,noreferrer');
-                                        }
-                                    }}
-                                    sx={{ color: '#99f6e4', '&:hover': { color: '#ffffff' } }}
-                                >
-                                    <OpenInNewIcon fontSize="inherit" />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title={mctTooltip}>
-                                <div
-                                    data-testid="mct-indicator"
-                                    className={`w-3 h-3 rounded-full ${character.MCT ? 'bg-green-400' : 'bg-gray-400'}`}
-                                ></div>
-                            </Tooltip>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                            <StatusDot state={status} label={statusLabel} />
+                            <span className="text-meta text-ink-3">{statusLabel}</span>
+                            <span className="ml-auto">
+                                <Tooltip title="Open zKillboard">
+                                    <IconButton
+                                        size="small"
+                                        onClick={openZkill}
+                                        aria-label="Open zKillboard"
+                                        sx={{ color: 'var(--ink-3)', '&:hover': { color: 'var(--ink-1)', bgcolor: 'var(--surface-2)' } }}
+                                    >
+                                        <OpenInNewIcon sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </span>
                         </div>
-                        <div className="flex flex-col mt-2 space-y-1">
-                            {character.Role && (
-                                <div className="text-sm">
-                                    <span className="text-teal-400 font-medium">Role:</span> {character.Role}
-                                </div>
-                            )}
-                            <div className="text-sm">
-                                <span className="text-teal-400 font-medium">Location:</span> {character.Character.LocationName || 'Unknown'}
-                            </div>
-                            <div className="text-sm">
-                                <span className="text-teal-400 font-medium">Total SP:</span> {formattedSP}
-                            </div>
-                            {character.CorporationName && (
-                                <div className="text-sm">
-                                    <span className="text-teal-400 font-medium">Corporation:</span>
-                                    <span className="text-gray-300 italic"> {character.CorporationName} </span>
-                                </div>
-                            )}
-                            {character.AllianceName && (
-                                <div className="text-sm">
-                                    <span className="text-teal-400 font-medium">Alliance:</span>
-                                    <span className="text-gray-300 italic"> {character.AllianceName} </span>
-                                </div>
-                            )}
-                        </div>
+                        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-meta">
+                            {character.Role ? (
+                                <>
+                                    <dt className="text-ink-3">Role</dt>
+                                    <dd className="text-ink-1">{character.Role}</dd>
+                                </>
+                            ) : null}
+                            <dt className="text-ink-3">Location</dt>
+                            <dd className="text-ink-1 truncate">{c.LocationName || 'Unknown'}</dd>
+                            <dt className="text-ink-3">Total SP</dt>
+                            <dd className="text-ink-1 font-mono tabular">{formattedSP}</dd>
+                            {character.CorporationName ? (
+                                <>
+                                    <dt className="text-ink-3">Corporation</dt>
+                                    <dd className="text-ink-1 truncate">{character.CorporationName}</dd>
+                                </>
+                            ) : null}
+                            {character.AllianceName ? (
+                                <>
+                                    <dt className="text-ink-3">Alliance</dt>
+                                    <dd className="text-ink-1 truncate">{character.AllianceName}</dd>
+                                </>
+                            ) : null}
+                        </dl>
                     </div>
                 </div>
 
-                {/* Skill Queue Section */}
-                <h3 className="text-teal-200 font-semibold text-md mt-6 mb-2">
-                    Skill Queue
-                </h3>
-                {skillQueueItems.length === 0 ? (
-                    <div className="text-gray-300 text-sm">No skill queue data available.</div>
-                ) : (
-                    <div className="overflow-x-auto max-h-64 overflow-y-auto border border-gray-700 rounded">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-gray-700 text-teal-300">
-                            <tr>
-                                <th className="px-2 py-1 text-left">Skill</th>
-                                <th className="px-2 py-1 text-left">Level</th>
-                                <th className="px-2 py-1 text-left">Completion</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {skillQueueItems.map((item, index) => {
-                                const finishDate = item.finish_date ? calculateDaysFromToday(item.finish_date) : 'N/A';
-
-                                // Convert skill_id to skill name (backend sends ID as string key)
-                                const skillIdStr = String(item.skill_id);
-                                const skillName = skillConversions?.[skillIdStr] || `Skill #${item.skill_id}`;
-
+                <div className="px-5 py-4">
+                    <div className="flex items-baseline justify-between mb-2">
+                        <h3 className="text-meta text-ink-3 uppercase tracking-wide">Skill queue</h3>
+                        <span className="text-micro text-ink-3 tabular">
+                            {queue.length} item{queue.length === 1 ? '' : 's'}
+                        </span>
+                    </div>
+                    {queue.length === 0 ? (
+                        <p className="text-meta text-ink-3">No skill queue.</p>
+                    ) : (
+                        <ol className="rounded-md border border-rule-1 max-h-72 overflow-y-auto">
+                            {queue.map((item, i) => {
+                                const skillName =
+                                    skillConversions?.[String(item.skill_id)] || `Skill #${item.skill_id}`;
+                                const finish = item.finish_date
+                                    ? calculateDaysFromToday(item.finish_date)
+                                    : '—';
                                 return (
-                                    <tr key={index} className="border-b border-gray-600 text-gray-200">
-                                        <td className="px-2 py-1">{skillName}</td>
-                                        <td className="px-2 py-1">{item.finished_level}</td>
-                                        <td className="px-2 py-1">{finishDate}</td>
-                                    </tr>
+                                    <li
+                                        key={`${item.skill_id}-${i}`}
+                                        className="grid grid-cols-[1fr_44px_92px] gap-3 items-center px-3 h-9 border-b border-rule-1 last:border-b-0 bg-surface-1"
+                                    >
+                                        <span className="text-meta text-ink-1 truncate">{skillName}</span>
+                                        <span className="text-meta text-ink-2 font-mono tabular text-right">L{item.finished_level}</span>
+                                        <span className="text-meta text-ink-2 font-mono tabular text-right">{finish}</span>
+                                    </li>
                                 );
                             })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                        </ol>
+                    )}
+                </div>
             </DialogContent>
 
-            <DialogActions className="bg-gray-800">
+            <footer className="flex justify-end gap-2 px-5 py-3 border-t border-rule-1">
                 <button
+                    type="button"
                     onClick={onClose}
-                    className="px-3 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-sm"
+                    className="h-8 px-3 rounded-md bg-accent text-accent-ink text-meta hover:bg-accent-strong transition-colors duration-fast ease-out-quart"
                 >
                     Close
                 </button>
-            </DialogActions>
+            </footer>
         </Dialog>
     );
 };

@@ -1,8 +1,8 @@
 // src/components/landing/LoginButton.jsx
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import AccountPromptModal from '../common/AccountPromptModal.jsx';
-import eveSsoImage from '../../assets/images/eve-sso.jpg';
 import { initiateLogin } from '../../api/apiService';
 import { error as cError, logger } from '../../utils/logger';
 import { isDev } from '../../Config';
@@ -11,16 +11,16 @@ import { useAuth } from '../../hooks/useAuth';
 const LoginButton = ({ onModalOpenChange }) => {
     const { refreshAuth } = useAuth();
     const [modalOpen, setModalOpen] = useState(false);
-    const [rememberMe, setRememberMe] = useState(true); // Default to remember me
+    const [rememberMe, setRememberMe] = useState(true);
 
     const handleOpenModal = () => {
         setModalOpen(true);
-        onModalOpenChange(true);
+        onModalOpenChange?.(true);
     };
 
     const handleCloseModal = () => {
         setModalOpen(false);
-        onModalOpenChange(false);
+        onModalOpenChange?.(false);
     };
 
     const handleLoginSubmit = async (account) => {
@@ -99,7 +99,7 @@ const LoginButton = ({ onModalOpenChange }) => {
             // Toast is handled by apiRequest if needed
         } finally {
             setModalOpen(false);
-            onModalOpenChange(false);
+            onModalOpenChange?.(false);
         }
     };
 
@@ -107,15 +107,10 @@ const LoginButton = ({ onModalOpenChange }) => {
         <>
             <button
                 onClick={handleOpenModal}
-                aria-label="Login with Eve SSO"
-                className="group relative inline-flex items-center py-4 px-8 rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 transition-all duration-300 transform hover:scale-105 hover:shadow-glow-lg"
+                aria-label="Log in with EVE SSO"
+                className="inline-flex items-center justify-center h-10 px-4 rounded-md bg-accent text-accent-ink text-meta font-medium hover:bg-accent-strong transition-colors duration-fast ease-out-quart"
             >
-                <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/20 to-blue-500/20 blur-xl group-hover:blur-2xl transition-all duration-300" />
-                <img
-                    src={eveSsoImage}
-                    alt="Login with Eve SSO"
-                    className="relative h-16 w-auto object-contain filter brightness-110"
-                />
+                Log in with EVE SSO
             </button>
             <AccountPromptModal
                 isOpen={modalOpen}
@@ -128,6 +123,10 @@ const LoginButton = ({ onModalOpenChange }) => {
             />
         </>
     );
+};
+
+LoginButton.propTypes = {
+    onModalOpenChange: PropTypes.func,
 };
 
 export default LoginButton;

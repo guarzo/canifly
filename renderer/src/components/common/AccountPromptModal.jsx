@@ -1,16 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { IconButton, Select, MenuItem, TextField, Typography, Checkbox, FormControlLabel } from '@mui/material';
-import { Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
-import GlassCard from '../ui/GlassCard';
-import FuturisticButton from '../ui/FuturisticButton';
+import {
+    Dialog,
+    Select,
+    MenuItem,
+    TextField,
+    IconButton,
+    Checkbox,
+    FormControlLabel,
+} from '@mui/material';
+import { Close as CloseIcon, Check as CheckIcon } from '@mui/icons-material';
 
-const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts, showRememberMe, rememberMe, onRememberMeChange }) => {
+const AccountPromptModal = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    title,
+    existingAccounts,
+    showRememberMe,
+    rememberMe,
+    onRememberMeChange,
+}) => {
     const [account, setAccount] = useState('');
     const [isAddingAccount, setIsAddingAccount] = useState(false);
     const [newAccount, setNewAccount] = useState('');
-
     const selectRef = useRef(null);
     const textFieldRef = useRef(null);
 
@@ -19,47 +32,33 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
             setAccount('');
             setIsAddingAccount(false);
             setNewAccount('');
+            return;
+        }
+        if (existingAccounts && existingAccounts.length > 0 && !isAddingAccount) {
+            selectRef.current?.focus();
         } else {
-            // Modal just opened
-            // Focus the appropriate element
-            if (existingAccounts && existingAccounts.length > 0 && !isAddingAccount) {
-                // Focus the select component
-                if (selectRef.current) {
-                    selectRef.current.focus();
-                }
-            } else {
-                // Focus the text field for adding a new account
-                if (textFieldRef.current) {
-                    textFieldRef.current.querySelector('input')?.focus();
-                }
-            }
+            textFieldRef.current?.querySelector('input')?.focus();
         }
     }, [isOpen, existingAccounts, isAddingAccount]);
 
-    const handleAccountChange = (event) => {
-        const selectedValue = event.target.value;
-        if (selectedValue === 'add_new_account') {
+    const handleAccountChange = (e) => {
+        const v = e.target.value;
+        if (v === 'add_new_account') {
             setIsAddingAccount(true);
             setAccount('');
-            // Focus the text field when switching to add new account
-            setTimeout(() => {
-                if (textFieldRef.current) {
-                    textFieldRef.current.querySelector('input')?.focus();
-                }
-            }, 0);
+            setTimeout(() => textFieldRef.current?.querySelector('input')?.focus(), 0);
         } else {
             setIsAddingAccount(false);
-            setAccount(selectedValue);
+            setAccount(v);
         }
     };
 
     const handleAddAccount = () => {
-        if (newAccount.trim() !== '') {
-            const trimmed = newAccount.trim();
-            setAccount(trimmed);
-            setIsAddingAccount(false);
-            setNewAccount('');
-        }
+        const trimmed = newAccount.trim();
+        if (!trimmed) return;
+        setAccount(trimmed);
+        setIsAddingAccount(false);
+        setNewAccount('');
     };
 
     const handleSubmit = () => {
@@ -74,134 +73,123 @@ const AccountPromptModal = ({ isOpen, onClose, onSubmit, title, existingAccounts
     const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div 
-                    className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+        <Dialog
+            open={!!isOpen}
+            onClose={onClose}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    bgcolor: 'var(--surface-1)',
+                    backgroundImage: 'none',
+                    color: 'var(--ink-1)',
+                    border: '1px solid var(--rule-1)',
+                    borderRadius: '10px',
+                    boxShadow: '0 12px 40px oklch(0 0 0 / 0.5)',
+                },
+            }}
+        >
+            <header className="flex items-center justify-between px-5 py-3 border-b border-rule-1">
+                <h2 className="text-h3 text-ink-1 truncate">{title || 'Add account'}</h2>
+                <IconButton
+                    aria-label="Close"
                     onClick={onClose}
+                    size="small"
+                    sx={{ color: 'var(--ink-3)', '&:hover': { color: 'var(--ink-1)', bgcolor: 'var(--surface-2)' } }}
                 >
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <GlassCard className="w-96 p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <Typography variant="h6" className="text-gradient font-display">
-                                    {title || 'Enter Account Name'}
-                                </Typography>
-                                <IconButton 
-                                    onClick={onClose}
-                                    className="hover:bg-red-500/20"
-                                    size="small"
-                                >
-                                    <CloseIcon className="text-gray-400" />
-                                </IconButton>
-                            </div>
+                    <CloseIcon fontSize="small" />
+                </IconButton>
+            </header>
 
-                {!isAddingAccount && hasExistingAccounts && (
-                    <div className="mb-4">
+            <div className="px-5 py-5 space-y-4">
+                {!isAddingAccount && hasExistingAccounts ? (
+                    <div>
+                        <label className="block text-meta text-ink-3 mb-1.5">Account</label>
                         <Select
                             value={account || ''}
                             onChange={handleAccountChange}
                             displayEmpty
                             fullWidth
+                            size="small"
                             inputRef={selectRef}
-                            sx={{
-                                backgroundColor: 'background.paper',
-                                borderRadius: 1,
-                                '& .MuiSelect-select': {
-                                    padding: '10px 14px',
-                                },
-                            }}
                         >
-                            <MenuItem value="" disabled>
-                                Select Account
-                            </MenuItem>
+                            <MenuItem value="" disabled>Select account</MenuItem>
                             {existingAccounts.map((acc) => (
-                                <MenuItem key={acc} value={acc}>
-                                    {acc}
-                                </MenuItem>
+                                <MenuItem key={acc} value={acc}>{acc}</MenuItem>
                             ))}
-                            <MenuItem value="add_new_account">Add New Account</MenuItem>
+                            <MenuItem value="add_new_account">+ Add new account…</MenuItem>
                         </Select>
                     </div>
-                )}
+                ) : null}
 
-                {(!hasExistingAccounts || isAddingAccount) && (
-                    <div className="mb-4 flex items-center space-x-2" ref={textFieldRef}>
-                        <TextField
-                            size="small"
-                            value={isAddingAccount ? newAccount : account}
-                            onChange={(e) =>
-                                isAddingAccount ? setNewAccount(e.target.value) : setAccount(e.target.value)
-                            }
-                            placeholder="Enter account name"
-                            fullWidth
-                            sx={{
-                                '& .MuiInputBase-root': {
-                                    padding: '2px',
-                                },
-                            }}
-                        />
-                        {isAddingAccount && (
-                            <IconButton onClick={handleAddAccount} size="small" color="primary">
-                                <CheckIcon fontSize="small" />
-                            </IconButton>
-                        )}
-                    </div>
-                )}
-
-                {showRememberMe && (
-                    <div className="mb-4">
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={rememberMe || false}
-                                    onChange={(e) => onRememberMeChange && onRememberMeChange(e.target.checked)}
-                                    sx={{
-                                        color: 'primary.main',
-                                        '&.Mui-checked': {
-                                            color: 'primary.main',
-                                        },
-                                    }}
-                                />
-                            }
-                            label={
-                                <Typography variant="body2" className="text-gray-300">
-                                    Keep me logged in for 30 days
-                                </Typography>
-                            }
-                        />
-                    </div>
-                )}
-
-                            <div className="flex justify-end space-x-3 mt-6">
-                                <FuturisticButton
-                                    onClick={onClose}
-                                    variant="ghost"
-                                    size="md"
+                {(!hasExistingAccounts || isAddingAccount) ? (
+                    <div ref={textFieldRef}>
+                        <label className="block text-meta text-ink-3 mb-1.5">New account name</label>
+                        <div className="flex items-center gap-2">
+                            <TextField
+                                size="small"
+                                fullWidth
+                                value={isAddingAccount ? newAccount : account}
+                                onChange={(e) =>
+                                    isAddingAccount ? setNewAccount(e.target.value) : setAccount(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (isAddingAccount) handleAddAccount();
+                                        else handleSubmit();
+                                    }
+                                }}
+                                placeholder="e.g. Main"
+                            />
+                            {isAddingAccount ? (
+                                <IconButton
+                                    onClick={handleAddAccount}
+                                    aria-label="Confirm account name"
+                                    size="small"
+                                    sx={{ color: 'var(--accent)', '&:hover': { bgcolor: 'var(--surface-2)' } }}
                                 >
-                                    Cancel
-                                </FuturisticButton>
-                                <FuturisticButton
-                                    onClick={handleSubmit}
-                                    variant="primary"
-                                    size="md"
-                                >
-                                    Submit
-                                </FuturisticButton>
-                            </div>
-                        </GlassCard>
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+                                    <CheckIcon fontSize="small" />
+                                </IconButton>
+                            ) : null}
+                        </div>
+                    </div>
+                ) : null}
+
+                {showRememberMe ? (
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={!!rememberMe}
+                                onChange={(e) => onRememberMeChange && onRememberMeChange(e.target.checked)}
+                                size="small"
+                                sx={{
+                                    color: 'var(--ink-3)',
+                                    '&.Mui-checked': { color: 'var(--accent)' },
+                                }}
+                            />
+                        }
+                        label={<span className="text-meta text-ink-2">Keep me logged in for 30 days</span>}
+                    />
+                ) : null}
+            </div>
+
+            <footer className="flex justify-end gap-2 px-5 py-3 border-t border-rule-1">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="h-8 px-3 rounded-md border border-rule-1 text-ink-2 text-meta hover:bg-surface-2 hover:text-ink-1 transition-colors duration-fast ease-out-quart"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="h-8 px-3 rounded-md bg-accent text-accent-ink text-meta hover:bg-accent-strong transition-colors duration-fast ease-out-quart"
+                >
+                    Submit
+                </button>
+            </footer>
+        </Dialog>
     );
 };
 
@@ -210,7 +198,7 @@ AccountPromptModal.propTypes = {
     onClose: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,
     title: PropTypes.string,
-    existingAccounts: PropTypes.arrayOf(PropTypes.string),
+    existingAccounts: PropTypes.array,
     showRememberMe: PropTypes.bool,
     rememberMe: PropTypes.bool,
     onRememberMeChange: PropTypes.func,

@@ -1,46 +1,39 @@
-// CharacterCard.jsx
-import React from 'react';
+// MapCharacterCard.jsx — redesigned per DESIGN.md.
+// One dense draggable row representing an unassociated character file.
+
 import PropTypes from 'prop-types';
-import { Card, Typography, CardContent, useTheme } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';
+import MtimeSwatch from './MtimeSwatch.jsx';
 
 const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
-    const theme = useTheme();
-
-    const borderColor = mtimeToColor[char.mtime] || theme.palette.secondary.main;
-
-    // Format the date without the year and use 24-hour time
-    const formattedDate = formatDate(char.mtime);
+    const swatch = mtimeToColor[char.mtime];
 
     return (
-        <Card
+        <div
             draggable
             onDragStart={(e) => handleDragStart(e, char.charId)}
-            sx={{
-                borderLeft: `4px solid ${borderColor}`,
-                backgroundColor: theme.palette.background.paper,
-                borderRadius: 2,
-                cursor: 'grab',
-                boxShadow: 3, // Added shadow
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
-                    transform: 'scale(1.02)',
-                },
-            }}
+            role="listitem"
+            aria-label={`Drag ${char.name} to associate`}
+            className={[
+                'grid grid-cols-[16px_minmax(0,1fr)_auto_auto] gap-3 items-center',
+                'h-10 px-4',
+                'cursor-grab active:cursor-grabbing select-none',
+                'border-b border-rule-1 last:border-b-0',
+                'bg-surface-1 hover:bg-surface-2',
+                'transition-colors duration-fast ease-out-quart',
+            ].join(' ')}
         >
-            <CardContent>
-                <Typography variant="h6" color="text.primary">
-                    {char.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    ID: {char.charId}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                    {formattedDate}
-                </Typography>
-            </CardContent>
-        </Card>
+            <MtimeSwatch color={swatch} title={`mtime ${char.mtime}`} />
+            <span className="text-body text-ink-1 truncate" title={char.name}>
+                {char.name}
+            </span>
+            <span className="text-meta text-ink-3 font-mono tabular">
+                {char.charId}
+            </span>
+            <span className="text-meta text-ink-3 font-mono tabular">
+                {formatDate(char.mtime)}
+            </span>
+        </div>
     );
 };
 

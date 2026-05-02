@@ -1,71 +1,73 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import PropTypes from 'prop-types';
 
-const SkeletonLoader = ({ variant = 'text', className = '' }) => {
-    const baseClasses = 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 rounded animate-shimmer';
-    
-    const variants = {
-        text: 'h-4 w-full',
-        title: 'h-8 w-3/4',
-        avatar: 'h-16 w-16 rounded-full',
-        card: 'h-32 w-full rounded-lg',
-        button: 'h-10 w-24 rounded',
-    };
-    
-    return (
-        <motion.div
-            className={`${baseClasses} ${variants[variant]} ${className}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-        />
-    );
+/**
+ * SkeletonLoader — calm placeholders. No gradient sweep, no shimmer.
+ * Pulses opacity gently; reduced-motion users see a static block.
+ */
+const VARIANTS = {
+    text: 'h-4 w-full',
+    title: 'h-7 w-3/4',
+    avatar: 'h-10 w-10 rounded-sm',
+    card: 'h-24 w-full',
+    button: 'h-8 w-20',
+    row: 'h-10 w-full',
 };
 
-// Account Card Skeleton
+const SkeletonLoader = ({ variant = 'text', className = '' }) => (
+    <div
+        role="presentation"
+        aria-hidden
+        className={`bg-surface-2 rounded-sm animate-skeleton-pulse ${VARIANTS[variant] || VARIANTS.text} ${className}`}
+    />
+);
+
+SkeletonLoader.propTypes = {
+    variant: PropTypes.oneOf(Object.keys(VARIANTS)),
+    className: PropTypes.string,
+};
+
+// Skeleton matched to the new CharacterOverview row geometry.
+// Same height (40px) and column template so paint-to-data swap doesn't reflow.
+export const CharacterRowSkeleton = () => (
+    <div className="grid grid-cols-[28px_minmax(180px,1.4fr)_1fr_84px_92px_minmax(140px,1fr)_minmax(120px,0.8fr)_28px] gap-3 px-4 items-center h-10 border-b border-rule-1">
+        <SkeletonLoader className="!w-2.5 !h-2.5 rounded-full" />
+        <div className="flex items-center gap-2.5">
+            <SkeletonLoader className="!h-6 !w-6 rounded-sm" />
+            <SkeletonLoader className="!h-3.5 !w-32" />
+        </div>
+        <SkeletonLoader className="!h-3.5 !w-24" />
+        <SkeletonLoader className="!h-3.5 !w-12 ml-auto" />
+        <SkeletonLoader className="!h-3.5 !w-16 ml-auto" />
+        <SkeletonLoader className="!h-3.5 !w-28" />
+        <SkeletonLoader className="!h-3.5 !w-20" />
+        <span />
+    </div>
+);
+
+// Group block of 3 rows, used while data loads.
 export const AccountCardSkeleton = () => (
-    <div className="glass rounded-lg p-6 space-y-4">
-        <div className="flex items-center space-x-4">
-            <SkeletonLoader variant="avatar" />
-            <div className="flex-1 space-y-2">
-                <SkeletonLoader variant="title" />
-                <SkeletonLoader variant="text" className="w-1/2" />
-            </div>
+    <div className="rounded-lg border border-rule-1 bg-surface-1 overflow-hidden">
+        <div className="px-4 py-2 border-b border-rule-1 bg-surface-2 flex justify-between">
+            <SkeletonLoader className="!h-4 !w-32" />
+            <SkeletonLoader className="!h-3 !w-24" />
         </div>
-        <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-                <SkeletonLoader key={i} variant="card" />
-            ))}
-        </div>
+        {[0, 1, 2].map((i) => <CharacterRowSkeleton key={i} />)}
     </div>
 );
 
-// Character Item Skeleton
-export const CharacterItemSkeleton = () => (
-    <div className="glass p-3 rounded-lg space-y-2">
-        <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-                <SkeletonLoader variant="text" className="w-32" />
-                <SkeletonLoader variant="text" className="w-16" />
-            </div>
-            <SkeletonLoader className="w-3 h-3 rounded-full" />
-        </div>
-        <div className="flex items-center space-x-2">
-            <SkeletonLoader variant="text" className="w-20" />
-            <SkeletonLoader variant="text" className="w-24" />
-        </div>
-    </div>
-);
+// Single dense row skeleton (used inside other lists).
+export const CharacterItemSkeleton = () => <CharacterRowSkeleton />;
 
-// Skill Plan Table Skeleton
+// Skill plan table skeleton — matches the row pattern of the new system.
 export const SkillPlanTableSkeleton = () => (
     <div className="space-y-2">
-        <SkeletonLoader variant="title" className="mb-4" />
-        {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="flex space-x-4">
-                <SkeletonLoader variant="text" className="w-1/3" />
-                <SkeletonLoader variant="text" className="w-1/4" />
-                <SkeletonLoader variant="text" className="w-1/4" />
+        <SkeletonLoader variant="title" className="mb-3 !w-48" />
+        {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="grid grid-cols-[1fr_120px_120px_80px] gap-3 items-center h-9">
+                <SkeletonLoader className="!h-3.5 !w-2/3" />
+                <SkeletonLoader className="!h-3.5 !w-20" />
+                <SkeletonLoader className="!h-3.5 !w-20" />
+                <SkeletonLoader className="!h-3.5 !w-12" />
             </div>
         ))}
     </div>
