@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/guarzo/canifly/internal/handlers"
 	"github.com/guarzo/canifly/internal/http"
@@ -59,7 +61,7 @@ type AppServices struct {
 //
 //	OPTIONAL — failure is logged and startup continues:
 //	  * EVE credentials (user can set via UI)
-//	  * Fuzzworks initial download (cached data is used until ready)
+//	  * Fuzzworks refresh (cached data is used until ready; first-run download is required)
 //	  * Persistent cache load (rebuilt on demand)
 //	  * Settings directory creation (best-effort; recreated on demand)
 func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
@@ -100,15 +102,41 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		cfg.SkillPlansRepoURL = configData.SkillPlansRepoURL
 	}
 
-	// OPTIONAL: Fuzzworks initial download — failure is logged; existing cached data is used.
-	// Async migration to a goroutine happens in Task 8.
+	// WebSocket hub created early so async startup tasks (e.g. Fuzzworks) can broadcast progress.
+	webSocketHub := handlers.NewWebSocketHub(logger)
+
+	// Fuzzworks initial download.
+	//
+	// First-run policy: if the canonical data file (invTypes.csv) is missing,
+	// block synchronously so the REQUIRED skill repo load below can succeed.
+	// Subsequent runs: run async — the existing cached data is used immediately
+	// and a refresh broadcasts progress as fuzzworks:status events
+	// {state: updating|ready|error, error?: string}.
 	if autoUpdate {
-		logger.Infof("Initializing Fuzzworks data service (auto-update enabled)...")
 		fuzzworksService := fuzzworks.New(logger, cfg.BasePath, false)
-		ctx := context.Background()
-		if err := fuzzworksService.Initialize(ctx); err != nil {
-			logger.Errorf("Failed to initialize Fuzzworks service: %v", err)
-			// Async Fuzzworks update will populate data when complete; existing cached data is used in the meantime.
+		invTypesPath := filepath.Join(cfg.BasePath, "config", "fuzzworks", "invTypes.csv")
+		if _, statErr := os.Stat(invTypesPath); os.IsNotExist(statErr) {
+			// First run — no cached data; block until download completes.
+			logger.Infof("Fuzzworks data missing — downloading synchronously on first run")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			if err := fuzzworksService.Initialize(ctx); err != nil {
+				cancel()
+				return nil, fmt.Errorf("fuzzworks initial download failed: %w", err)
+			}
+			cancel()
+		} else {
+			logger.Infof("Fuzzworks auto-update enabled — running refresh in background")
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				defer cancel()
+				webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "updating"})
+				if err := fuzzworksService.Initialize(ctx); err != nil {
+					logger.Errorf("Fuzzworks update failed: %v", err)
+					webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "error", "error": err.Error()})
+					return
+				}
+				webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "ready"})
+			}()
 		}
 	} else {
 		logger.Infof("Fuzzworks auto-update disabled in configuration")
@@ -200,9 +228,6 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		configurationService,
 		logger,
 	)
-
-	// Create WebSocket hub
-	webSocketHub := handlers.NewWebSocketHub(logger)
 
 	// No longer need AppCoordinator - services handle their own data
 
