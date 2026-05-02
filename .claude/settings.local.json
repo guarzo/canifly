@@ -11,10 +11,7 @@
       "Bash(awk '{print NR\": \"$0}')",
       "Bash(npm run *)",
       "Bash(go test *)",
-      "Bash(sed -i '806,925d' internal/services/eve/eve_data_service_impl.go)",
-      "Bash(sed -n '803,815p' internal/services/eve/eve_data_service_impl.go)",
-      "Bash(go build *)",
-      "Bash(awk '/^func \\\\\\(s \\\\*EVEDataServiceImpl\\\\\\) GetSkillPlans/,/^func \\\\\\(s \\\\*EVEDataServiceImpl\\\\\\) \\(Save|Load|Get key|Set key|Shutdown|Clear|SaveEsi|SetAccount|GetUserInfo|GetCharacter|GetCharacterSk|GetCharacterL|ResolveChar|GetCorp|GetAlliance|ProcessId|DoesChar|UpdateChar|RemoveChar|Refresh\\) /' internal/services/eve/eve_data_service_impl.go)"
+      "Bash(go build *)"
     ],
     "deny": [],
     "ask": []
