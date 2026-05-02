@@ -61,6 +61,7 @@ const CharacterOverviewToolbar = ({
                 <IconButton
                     ref={refreshRef}
                     aria-label="Refresh from ESI"
+                    aria-busy={isRefreshing}
                     onClick={onRefreshAll}
                     disabled={isRefreshing}
                     size="small"
@@ -68,10 +69,7 @@ const CharacterOverviewToolbar = ({
                 >
                     <RefreshIcon
                         fontSize="small"
-                        sx={isRefreshing ? {
-                            animation: 'co-spin 1s linear infinite',
-                            '@keyframes co-spin': { to: { transform: 'rotate(360deg)' } },
-                        } : undefined}
+                        className={isRefreshing ? 'animate-skeleton-pulse' : undefined}
                     />
                 </IconButton>
             </span>

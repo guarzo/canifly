@@ -30,7 +30,10 @@ const StyledDrawer = styled(Drawer)(() => ({
         borderRight: '1px solid var(--rule-1)',
         boxShadow: 'none',
         color: 'var(--ink-1)',
-        width: 260,
+        // 240px on narrow screens, 260px from sm-up. Fixed width is intentional —
+        // the drawer is overlay-mode, not push, so it never crowds content.
+        width: 240,
+        '@media (min-width: 640px)': { width: 260 },
     },
 }));
 

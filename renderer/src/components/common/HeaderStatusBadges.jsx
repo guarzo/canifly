@@ -10,7 +10,7 @@ const FUZZWORKS_VARIANTS = {
     idle:     { label: 'Fuzzworks',          tooltip: 'Awaiting status from server',     color: 'var(--ink-3)' },
     updating: { label: 'Fuzzworks · updating', tooltip: 'Fuzzworks data is updating',     color: 'var(--accent)' },
     ready:    { label: 'Fuzzworks · ready',    tooltip: 'Fuzzworks data is up to date',   color: 'var(--ink-2)' },
-    error:    { label: 'Fuzzworks · error',    tooltip: 'Fuzzworks update failed',        color: 'var(--status-error, #ef4444)' },
+    error:    { label: 'Fuzzworks · error',    tooltip: 'Fuzzworks update failed',        color: 'var(--status-error)' },
 };
 
 const HeaderStatusBadges = () => {

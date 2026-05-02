@@ -85,7 +85,7 @@ const AccountPromptModal = ({
                     color: 'var(--ink-1)',
                     border: '1px solid var(--rule-1)',
                     borderRadius: '10px',
-                    boxShadow: '0 12px 40px oklch(0 0 0 / 0.5)',
+                    boxShadow: '0 6px 20px oklch(0 0 0 / 0.4)',
                 },
             }}
         >
