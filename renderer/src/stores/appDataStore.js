@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import apiService from '../api/apiService';
 import {
   getAccounts,
   updateAccount,
   deleteAccount,
   getAssociations,
 } from '../api/accountsApi';
+import { getConfig, updateConfig } from '../api/configApi';
 
 const useAppDataStore = create(
   devtools(
@@ -49,7 +49,7 @@ const useAppDataStore = create(
           const [accountsRes, associationsRes, configRes] = await Promise.all([
             getAccounts(),
             getAssociations(),
-            apiService.getConfig()
+            getConfig()
           ]);
 
           // Handle both paginated and non-paginated responses
@@ -110,7 +110,7 @@ const useAppDataStore = create(
       fetchConfig: async () => {
         set({ loading: { ...get().loading, config: true } });
         try {
-          const response = await apiService.getConfig();
+          const response = await getConfig();
           const config = response?.data || {};
           set({ 
             config,
@@ -164,7 +164,7 @@ const useAppDataStore = create(
 
       updateConfig: async (updates) => {
         try {
-          const response = await apiService.updateConfig(updates);
+          const response = await updateConfig(updates);
           if (response?.success) {
             await get().fetchConfig();
           }

@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Dialog, DialogContent } from '@mui/material';
-import { saveEVECredentials } from '../../api/apiService';
+import { saveEVECredentials } from '../../api/configApi';
 
 const CALLBACK = 'http://localhost:42423/callback';
 
