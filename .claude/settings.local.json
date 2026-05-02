@@ -7,7 +7,9 @@
       "WebFetch(domain:developers.eveonline.com)",
       "WebFetch(domain:login.eveonline.com)",
       "Bash(go vet *)",
-      "Bash(/bin/rm -f /home/tng/workspace/canifly/.cursorrules)"
+      "Bash(/bin/rm -f /home/tng/workspace/canifly/.cursorrules)",
+      "Bash(awk '{print NR\": \"$0}')",
+      "Bash(gh repo *)"
     ],
     "deny": [],
     "ask": []
