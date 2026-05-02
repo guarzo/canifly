@@ -3,7 +3,7 @@
 // Owns the Header's data dependencies and the OAuth-flow "add character"
 // handler that polls /api/finalize-login until the EVE SSO redirect
 // completes (or times out).
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './useAuth';
 import { useAppData } from './useAppData';
@@ -26,6 +26,17 @@ export function useHeaderData() {
     const { execute: executeRefresh, isLoading: isRefreshing } = useAsyncOperation();
     const { execute: executeAddCharacter } = useAsyncOperation();
 
+    // Tracks the active finalize-login poll so we can clear it on unmount and
+    // avoid the "started a poll, navigated away, callbacks still fire" leak.
+    const pollIntervalRef = useRef(null);
+    const clearPoll = useCallback(() => {
+        if (pollIntervalRef.current != null) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+    }, []);
+    useEffect(() => clearPoll, [clearPoll]);
+
     const handleRefreshClick = useCallback(
         () => executeRefresh(() => refreshData(), { showToast: false }),
         [executeRefresh, refreshData],
@@ -39,11 +50,12 @@ export function useHeaderData() {
 
     // Poll /finalize-login until the OAuth handshake completes, errors, or times out.
     const pollFinalizeLogin = useCallback((state) => {
+        clearPoll();
         let attempts = 0;
-        const handle = setInterval(async () => {
+        pollIntervalRef.current = setInterval(async () => {
             attempts++;
             if (attempts > POLL_MAX_ATTEMPTS) {
-                clearInterval(handle);
+                clearPoll();
                 toast.warning('Character add timeout. Please try again.');
                 return;
             }
@@ -51,10 +63,14 @@ export function useHeaderData() {
                 const { finalizelogin } = await import('../api/authApi');
                 const result = await finalizelogin(state);
                 if (result?.success) {
-                    clearInterval(handle);
+                    clearPoll();
                     toast.success('Character added');
+                    // The backend also pushes a WebSocket update that triggers
+                    // a refresh, but we refresh explicitly here so the UI
+                    // updates even when the socket isn't connected.
+                    await refreshData();
                 } else if (result?.error === 'state_not_found') {
-                    clearInterval(handle);
+                    clearPoll();
                     toast.error('Session expired. Please try again.');
                 }
             } catch (error) {
@@ -62,7 +78,7 @@ export function useHeaderData() {
                 void error;
             }
         }, POLL_INTERVAL_MS);
-    }, []);
+    }, [clearPoll, refreshData]);
 
     const handleAddCharacterSubmit = useCallback(async (account) => {
         const result = await executeAddCharacter(async () => {

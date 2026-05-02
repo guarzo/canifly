@@ -98,7 +98,19 @@ export function useCharacterOverview({ roles }) {
         }
         let keys = [...map.keys()];
         if (view === 'role') keys = keys.filter((k) => (map.get(k) || []).length > 0);
-        keys.sort((a, b) => sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a));
+        // Sort by the human-facing label, not the storage key. In account
+        // view the key is `${accountId}::${accountName}`, so sorting on the
+        // raw key would order by id; sort on the display label instead.
+        const labelFor = (key) => {
+            if (view !== 'account') return key;
+            const chars = map.get(key) || [];
+            return chars[0]?.accountName || key;
+        };
+        keys.sort((a, b) => {
+            const la = labelFor(a);
+            const lb = labelFor(b);
+            return sortOrder === 'asc' ? la.localeCompare(lb) : lb.localeCompare(la);
+        });
         return keys.map((k) => ({
             key: k,
             characters: [...(map.get(k) || [])].sort((a, b) =>
@@ -172,14 +184,28 @@ export function useCharacterOverview({ roles }) {
 
     useEffect(() => {
         const onKey = (e) => {
-            const tag = (e.target?.tagName || '').toLowerCase();
-            const isTyping = tag === 'input' || tag === 'textarea' || e.target?.isContentEditable;
+            const target = e.target;
+            const tag = (target?.tagName || '').toLowerCase();
+            const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
+            // Slash always focuses filter, even from inputs.
             if (e.key === '/' && !isTyping) {
                 e.preventDefault();
                 filterRef.current?.focus();
                 return;
             }
             if (isTyping) return;
+            // Ignore shortcuts while focus is on a button, inside an open
+            // menu/dialog, or on a link — those controls handle their own
+            // keys. Rows (role="row", tabIndex=0) and the document body are
+            // still allowed so j/k navigation keeps working.
+            const isInNestedControl = typeof target?.closest === 'function' && (
+                target.closest('button') ||
+                target.closest('[role="menu"]') ||
+                target.closest('[role="menuitem"]') ||
+                target.closest('[role="dialog"]') ||
+                target.closest('a[href]')
+            );
+            if (isInNestedControl) return;
             if (e.key === 'j' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 setFocusedRowId((cur) => {
