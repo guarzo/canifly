@@ -3,6 +3,9 @@
   "version": "0.4.5",
   "description": "Can I Fly?",
   "main": "main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "concurrently \"DEV_MODE=true go run .\" \"cd renderer && npm run dev\" \"wait-on http://localhost:3113 && electron . --no-sandbox\"",
     "dev": "npm start",
