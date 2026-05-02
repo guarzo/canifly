@@ -46,7 +46,8 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
             <StyledAppBar position="fixed">
                 <Toolbar
                     variant="dense"
-                    sx={{ WebkitAppRegion: 'drag', minHeight: 44, gap: 0.5, px: 1.5 }}
+                    style={{ WebkitAppRegion: 'drag' }}
+                    sx={{ minHeight: 44, gap: 0.5, px: 1.5 }}
                 >
                     {isAuthenticated && (
                         <HeaderToolbarActions
