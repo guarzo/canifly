@@ -115,7 +115,9 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	if autoUpdate {
 		fuzzworksService := fuzzworks.New(logger, cfg.BasePath, false)
 		invTypesPath := filepath.Join(cfg.BasePath, "config", "fuzzworks", "invTypes.csv")
-		if _, statErr := os.Stat(invTypesPath); os.IsNotExist(statErr) {
+		_, statErr := os.Stat(invTypesPath)
+		switch {
+		case os.IsNotExist(statErr):
 			// First run — no cached data; block until download completes.
 			logger.Infof("Fuzzworks data missing — downloading synchronously on first run")
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -124,7 +126,13 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 				return nil, fmt.Errorf("fuzzworks initial download failed: %w", err)
 			}
 			cancel()
-		} else {
+		case statErr != nil:
+			// Stat failed for a reason other than "not found" (e.g. permission denied).
+			// Don't silently fall through to the async refresh path — the file may be
+			// unreadable and the skill repo load below would fail without a useful message.
+			return nil, fmt.Errorf("failed to stat fuzzworks data %s: %w", invTypesPath, statErr)
+		default:
+			// File exists — refresh in background.
 			logger.Infof("Fuzzworks auto-update enabled — running refresh in background")
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)

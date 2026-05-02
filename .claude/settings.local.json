@@ -6,17 +6,11 @@
       "WebFetch(domain:docs.esi.evetech.net)",
       "WebFetch(domain:developers.eveonline.com)",
       "WebFetch(domain:login.eveonline.com)",
-      "Bash(go vet *)",
-      "Bash(/bin/rm -f /home/tng/workspace/canifly/.cursorrules)",
-      "Bash(awk '{print NR\": \"$0}')",
-      "Bash(npm run *)",
-      "Bash(go test *)",
-      "Bash(sed -i '806,925d' internal/services/eve/eve_data_service_impl.go)",
-      "Bash(sed -n '803,815p' internal/services/eve/eve_data_service_impl.go)",
-      "Bash(go build *)",
-      "Bash(awk '/^func \\\\\\(s \\\\*EVEDataServiceImpl\\\\\\) GetSkillPlans/,/^func \\\\\\(s \\\\*EVEDataServiceImpl\\\\\\) \\(Save|Load|Get key|Set key|Shutdown|Clear|SaveEsi|SetAccount|GetUserInfo|GetCharacter|GetCharacterSk|GetCharacterL|ResolveChar|GetCorp|GetAlliance|ProcessId|DoesChar|UpdateChar|RemoveChar|Refresh\\) /' internal/services/eve/eve_data_service_impl.go)",
-      "Bash(awk '/^func \\\\\\(s \\\\*Service\\\\\\) \\(GetUserInfo|GetCharacter|GetCharacterSkills|GetCharacterSkillQueue|GetCharacterLocation|ResolveCharacterNames|GetCorporation|GetAlliance\\) /,/^}$/' internal/services/character/character_service.go)",
-      "Bash(/usr/bin/diff /tmp/old.txt /tmp/new.txt)"
+      "Bash(go vet ./...)",
+      "Bash(go test -race ./...)",
+      "Bash(go build ./...)",
+      "Bash(npm run test:go)",
+      "Bash(npm run test:react)"
     ],
     "deny": [],
     "ask": []

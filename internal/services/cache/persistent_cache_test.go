@@ -17,6 +17,7 @@ func newTestStorage(t *testing.T) interfaces.StorageService {
 
 func TestPersistentCache_GetSet_RoundTrip(t *testing.T) {
 	c := cacheSvc.NewPersistentCacheService(newTestStorage(t), &testutil.MockLogger{})
+	t.Cleanup(c.Shutdown)
 
 	c.Set("foo", []byte("bar"), time.Hour)
 	got, ok := c.Get("foo")
@@ -30,6 +31,7 @@ func TestPersistentCache_GetSet_RoundTrip(t *testing.T) {
 
 func TestPersistentCache_Get_Expired(t *testing.T) {
 	c := cacheSvc.NewPersistentCacheService(newTestStorage(t), &testutil.MockLogger{})
+	t.Cleanup(c.Shutdown)
 
 	c.Set("foo", []byte("bar"), 1*time.Millisecond)
 	time.Sleep(5 * time.Millisecond)
@@ -41,12 +43,14 @@ func TestPersistentCache_Get_Expired(t *testing.T) {
 func TestPersistentCache_SaveLoad(t *testing.T) {
 	store := newTestStorage(t)
 	c1 := cacheSvc.NewPersistentCacheService(store, &testutil.MockLogger{})
+	t.Cleanup(c1.Shutdown)
 	c1.Set("k1", []byte("v1"), time.Hour)
 	if err := c1.SaveCache(); err != nil {
 		t.Fatalf("SaveCache: %v", err)
 	}
 
 	c2 := cacheSvc.NewPersistentCacheService(store, &testutil.MockLogger{})
+	t.Cleanup(c2.Shutdown)
 	if err := c2.LoadCache(); err != nil {
 		t.Fatalf("LoadCache: %v", err)
 	}

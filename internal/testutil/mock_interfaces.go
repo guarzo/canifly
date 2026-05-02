@@ -173,7 +173,11 @@ func (m *MockAccountService) RemoveAccountByName(accountName string) error {
 
 func (m *MockAccountService) RefreshAccountData() (*model.AccountData, error) {
 	args := m.Called()
-	return args.Get(0).(*model.AccountData), args.Error(1)
+	v := args.Get(0)
+	if v == nil {
+		return nil, args.Error(1)
+	}
+	return v.(*model.AccountData), args.Error(1)
 }
 
 func (m *MockAccountService) DeleteAllAccounts() error {
@@ -228,7 +232,11 @@ func (m *MockAccountManagementService) RemoveAccountByName(accountName string) e
 
 func (m *MockAccountManagementService) RefreshAccountData() (*model.AccountData, error) {
 	args := m.Called()
-	return args.Get(0).(*model.AccountData), args.Error(1)
+	v := args.Get(0)
+	if v == nil {
+		return nil, args.Error(1)
+	}
+	return v.(*model.AccountData), args.Error(1)
 }
 
 func (m *MockAccountManagementService) DeleteAllAccounts() error {
