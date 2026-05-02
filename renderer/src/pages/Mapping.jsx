@@ -18,7 +18,7 @@ import Kbd from '../components/ui/Kbd.jsx';
 import AccountCard from '../components/mapping/MapAccountCard.jsx';
 import CharacterCard from '../components/mapping/MapCharacterCard.jsx';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
-import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
+import { associateCharacter, unassociateCharacter } from '../api/accountsApi';
 import { mappingInstructions } from '../utils/instructions';
 import { useAppData } from '../hooks/useAppData';
 import { log } from '../utils/logger';

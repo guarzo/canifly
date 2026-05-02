@@ -36,7 +36,7 @@ import Kbd from '../components/ui/Kbd.jsx';
 import { overviewInstructions } from '../utils/instructions.jsx';
 import { useAppData } from '../hooks/useAppData';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
-import * as apiService from '../api/apiService';
+import { updateCharacter, deleteCharacter, refreshCharacter } from '../api/accountsApi';
 import useAppDataStore from '../stores/appDataStore';
 import { logger } from '../utils/logger';
 
@@ -224,7 +224,7 @@ const CharacterOverview = ({ roles = [], skillConversions = {} }) => {
             for (const acc of accounts || []) {
                 for (const ch of acc.Characters || []) {
                     try {
-                        await apiService.refreshCharacter(ch.Character.CharacterID);
+                        await refreshCharacter(ch.Character.CharacterID);
                     } catch (err) {
                         logger.error(`Refresh failed for ${ch.Character.CharacterName}:`, err);
                     }

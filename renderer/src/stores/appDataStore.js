@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import apiService from '../api/apiService';
+import {
+  getAccounts,
+  updateAccount,
+  deleteAccount,
+  getAssociations,
+} from '../api/accountsApi';
 
 const useAppDataStore = create(
   devtools(
@@ -41,8 +47,8 @@ const useAppDataStore = create(
 
         try {
           const [accountsRes, associationsRes, configRes] = await Promise.all([
-            apiService.getAccounts(),
-            apiService.getAssociations(),
+            getAccounts(),
+            getAssociations(),
             apiService.getConfig()
           ]);
 
@@ -79,7 +85,7 @@ const useAppDataStore = create(
         console.log('fetchAccounts called - fetching updated account list', bypassCache ? '(bypassing cache)' : '');
         set({ loading: { ...get().loading, accounts: true } });
         try {
-          const response = await apiService.getAccounts(bypassCache);
+          const response = await getAccounts(bypassCache);
           console.log('Accounts API response:', response);
           // Handle both paginated and non-paginated responses
           // If response has a 'data' field, it's paginated; otherwise it's the raw array
@@ -125,7 +131,7 @@ const useAppDataStore = create(
       fetchAssociations: async () => {
         set({ loading: { ...get().loading, associations: true } });
         try {
-          const response = await apiService.getAssociations();
+          const response = await getAssociations();
           const associations = response?.data || [];
           set({ 
             associations,
@@ -145,7 +151,7 @@ const useAppDataStore = create(
 
       updateAccount: async (accountId, updates) => {
         try {
-          const response = await apiService.updateAccount(accountId, updates);
+          const response = await updateAccount(accountId, updates);
           if (response?.success) {
             await get().fetchAccounts();
           }
@@ -171,7 +177,7 @@ const useAppDataStore = create(
 
       deleteAccount: async (accountId) => {
         try {
-          const response = await apiService.deleteAccount(accountId);
+          const response = await deleteAccount(accountId);
           if (response?.success) {
             await get().fetchAccounts();
           }

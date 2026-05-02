@@ -1,65 +1,42 @@
 // src/api/apiService.jsx
+//
+// Transitional façade. The per-domain API modules are the new home for
+// these functions. This file re-exports them so existing callers keep
+// working until they are migrated; it will be deleted at the end of the
+// frontend-module-cleanup migration.
 
-/**
- * API Service - Frontend API interface for CanIFly
- * 
- * RESTful Endpoints:
- * - GET    /api/accounts         - List all accounts
- * - GET    /api/accounts/:id     - Get specific account
- * - PATCH  /api/accounts/:id     - Update account (name, status, visibility)
- * - DELETE /api/accounts/:id     - Delete account
- * - GET    /api/characters/:id   - Get character details
- * - PATCH  /api/characters/:id   - Update character
- * - DELETE /api/characters/:id   - Remove character
- * - GET    /api/config           - Get configuration
- * - PATCH  /api/config           - Update configuration
- */
-
+import {
+    getAccounts,
+    getAccount,
+    updateAccount,
+    deleteAccount,
+    getCharacter,
+    updateCharacter,
+    deleteCharacter,
+    refreshCharacter,
+    addCharacter,
+    getAssociations,
+    associateCharacter,
+    unassociateCharacter,
+} from './accountsApi';
 import { apiRequest } from './apiClient';
-import {isDev} from '../Config';
 
-// New RESTful API functions
-export async function getAccounts(bypassCache = false) {
-    // Use a high limit to get all accounts - pagination handling can be added later if needed
-    const cacheParam = bypassCache ? '&bypass_cache=true' : '';
-    const url = `/api/accounts?limit=1000${cacheParam}`;
-    console.log('getAccounts API call with URL:', url);
-    return apiRequest(url, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch accounts.'
-    });
-}
+export {
+    getAccounts,
+    getAccount,
+    updateAccount,
+    deleteAccount,
+    getCharacter,
+    updateCharacter,
+    deleteCharacter,
+    refreshCharacter,
+    addCharacter,
+    getAssociations,
+    associateCharacter,
+    unassociateCharacter,
+};
 
-export async function getAccount(accountID) {
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch account.'
-    });
-}
-
-export async function deleteAccount(accountID) {
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'DELETE',
-        credentials: 'include'
-    }, {
-        successMessage: 'Account removed successfully!',
-        errorMessage: 'Failed to remove account.'
-    });
-}
-
-export async function getCharacter(characterID) {
-    return apiRequest(`/api/characters/${characterID}`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch character.'
-    });
-}
-
+// ─── Config ─────────────────────────────────────────────────────────────
 export async function getConfig() {
     return apiRequest(`/api/config`, {
         method: 'GET',
@@ -69,7 +46,6 @@ export async function getConfig() {
     });
 }
 
-// Update configuration
 export async function updateConfig(updates) {
     return apiRequest(`/api/config`, {
         method: 'PATCH',
@@ -81,10 +57,6 @@ export async function updateConfig(updates) {
     });
 }
 
-// Note: Dashboards are not a separate entity in the backend
-// The dashboard page uses accounts and config data
-
-// Get session status
 export async function getSession() {
     return apiRequest(`/api/session`, {
         method: 'GET',
@@ -94,7 +66,6 @@ export async function getSession() {
     });
 }
 
-// Check EVE configuration status
 export async function checkEVEConfiguration() {
     return apiRequest(`/api/config/eve/status`, {
         method: 'GET',
@@ -104,7 +75,6 @@ export async function checkEVEConfiguration() {
     });
 }
 
-// Save EVE credentials
 export async function saveEVECredentials(clientId, clientSecret) {
     return apiRequest(`/api/config/eve/credentials`, {
         method: 'POST',
@@ -117,30 +87,7 @@ export async function saveEVECredentials(clientId, clientSecret) {
     });
 }
 
-// Update account (general purpose)
-export async function updateAccount(accountID, updates) {
-    return apiRequest(`/api/accounts/${accountID}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(updates)
-    }, {
-        errorMessage: 'Failed to update account.'
-    });
-}
-
-// Refresh character data from ESI
-export async function refreshCharacter(characterID) {
-    return apiRequest(`/api/characters/${characterID}/refresh`, {
-        method: 'POST',
-        credentials: 'include'
-    }, {
-        successMessage: 'Character data refreshed successfully!',
-        errorMessage: 'Failed to refresh character data.'
-    });
-}
-
-// Get all skill plans
+// ─── Skill plans ────────────────────────────────────────────────────────
 export async function getSkillPlans() {
     return apiRequest(`/api/skill-plans`, {
         method: 'GET',
@@ -150,7 +97,6 @@ export async function getSkillPlans() {
     });
 }
 
-// Get specific skill plan
 export async function getSkillPlan(planName) {
     return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
         method: 'GET',
@@ -160,7 +106,6 @@ export async function getSkillPlan(planName) {
     });
 }
 
-// Create skill plan
 export async function createSkillPlan(planName, planContents) {
     return apiRequest(`/api/skill-plans`, {
         method: 'POST',
@@ -172,7 +117,6 @@ export async function createSkillPlan(planName, planContents) {
     });
 }
 
-// Copy skill plan
 export async function copySkillPlan(sourcePlanName, targetPlanName) {
     return apiRequest(`/api/skill-plans/${encodeURIComponent(sourcePlanName)}/copy`, {
         method: 'POST',
@@ -184,7 +128,57 @@ export async function copySkillPlan(sourcePlanName, targetPlanName) {
     });
 }
 
-// EVE Data endpoints
+export async function deleteSkillPlan(planName) {
+    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    }, {
+        errorMessage: 'Failed to delete skill plan.'
+    });
+}
+
+export async function saveSkillPlan(planName, planContents) {
+    try {
+        const response = await fetch(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: planContents }),
+                credentials: 'include'
+            }, {
+                successMessage: 'Skill Plan Updated!',
+                errorMessage: 'Failed to update skill plan.'
+            });
+        } else {
+            return apiRequest('/api/skill-plans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: planName, content: planContents }),
+                credentials: 'include'
+            }, {
+                successMessage: 'Skill Plan Created!',
+                errorMessage: 'Failed to create skill plan.'
+            });
+        }
+    } catch (error) {
+        return apiRequest('/api/skill-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: planName, content: planContents }),
+            credentials: 'include'
+        }, {
+            successMessage: 'Skill Plan Created!',
+            errorMessage: 'Failed to create skill plan.'
+        });
+    }
+}
+
+// ─── EVE static data ────────────────────────────────────────────────────
 export async function getEveSkillPlans() {
     return apiRequest(`/api/eve/skill-plans`, {
         method: 'GET',
@@ -212,8 +206,7 @@ export async function getEveConversions() {
     });
 }
 
-// Additional API functions
-
+// ─── Auth ───────────────────────────────────────────────────────────────
 export async function logout() {
     return apiRequest('/api/logout', {
         method: 'POST',
@@ -223,93 +216,59 @@ export async function logout() {
     });
 }
 
-
-
-export async function updateCharacter(characterID, updates) {
-    // Use new RESTful endpoint
-    return apiRequest(`/api/characters/${characterID}`, {
-        method: 'PATCH',
+export async function initiateLogin(account, rememberMe = false) {
+    return apiRequest(`/api/login`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-        credentials: 'include'
+        body: JSON.stringify({ account, rememberMe }),
+        credentials: 'include',
     }, {
-        errorMessage: 'Failed to update character.'
+        errorMessage: 'Failed to initiate login.'
     });
 }
 
-// deleteCharacter is the primary function for removing characters
-export async function deleteCharacter(characterID) {
-    return apiRequest(`/api/characters/${characterID}`, {
-        method: 'DELETE',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to remove character.'
-    });
-}
-
-export async function addCharacter(account) {
-    return await apiRequest(
-        '/api/add-character',
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account }),
-            credentials: 'include'
-        },
-    );
-}
-
-
-
-export async function saveSkillPlan(planName, planContents) {
-    // Check if plan exists by trying to get it first
-    // If it exists, use PUT to update; if not, use POST to create
-    try {
-        const response = await fetch(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            // Plan exists, use PUT to update
-            return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: planContents }),
-                credentials: 'include'
-            }, {
-                successMessage: 'Skill Plan Updated!',
-                errorMessage: 'Failed to update skill plan.'
-            });
-        } else {
-            // Plan doesn't exist, use POST to create
-            return apiRequest('/api/skill-plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: planName, content: planContents }),
-                credentials: 'include'
-            }, {
-                successMessage: 'Skill Plan Created!',
-                errorMessage: 'Failed to create skill plan.'
-            });
-        }
-    } catch (error) {
-        // Default to create if there's an error checking
-        return apiRequest('/api/skill-plans', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: planName, content: planContents }),
-            credentials: 'include'
-        }, {
-            successMessage: 'Skill Plan Created!',
-            errorMessage: 'Failed to create skill plan.'
-        });
+export async function finalizelogin(state, rememberMe = false) {
+    const params = new URLSearchParams({ state });
+    if (rememberMe) {
+        params.append('remember', 'true');
     }
+    return apiRequest(`/api/finalize-login?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+    }, {
+        disableErrorToast: true,
+    });
 }
 
+export async function validateSession() {
+    return apiRequest(`/api/session/validate`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        disableErrorToast: true
+    });
+}
 
+export async function refreshSession() {
+    return apiRequest(`/api/session/refresh`, {
+        method: 'POST',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to refresh session.'
+    });
+}
+
+export async function getActiveSessions() {
+    return apiRequest(`/api/session/active`, {
+        method: 'GET',
+        credentials: 'include'
+    }, {
+        errorMessage: 'Failed to get active sessions.'
+    });
+}
+
+// ─── Sync / directory ───────────────────────────────────────────────────
 export async function saveUserSelections(newSelections) {
-    // Use new RESTful endpoint
     return apiRequest(`/api/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -343,7 +302,6 @@ export async function syncAllSubdirectories(profile, userId, charId) {
 }
 
 export async function chooseSettingsDir(directory) {
-    // Use new RESTful endpoint
     return apiRequest(`/api/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -353,7 +311,6 @@ export async function chooseSettingsDir(directory) {
         errorMessage: 'Failed to choose settings directory.'
     });
 }
-
 
 export async function chooseDefaultDirectory(directory) {
     return apiRequest(`/api/config`, {
@@ -378,7 +335,6 @@ export async function backupDirectory(targetDir, backupDir) {
 }
 
 export async function resetToDefaultDirectory() {
-    // Use new RESTful endpoint to set empty string (will use default)
     return apiRequest(`/api/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -389,37 +345,7 @@ export async function resetToDefaultDirectory() {
     });
 }
 
-// Get all associations
-export async function getAssociations() {
-    return apiRequest(`/api/associations`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch associations.'
-    });
-}
-
-export async function associateCharacter(userId, charId, userName, charName) {
-    return apiRequest(`/api/associations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId, characterId: charId })
-    }, {
-        errorMessage: 'Association operation failed.'
-    });
-}
-
-export async function unassociateCharacter(userId, charId, userName, charName) {
-    return apiRequest(`/api/associations/${encodeURIComponent(userId)}/${encodeURIComponent(charId)}`, {
-        method: 'DELETE',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Unassociation operation failed.'
-    });
-}
-
-// Fuzzworks functions
+// ─── Fuzzworks ──────────────────────────────────────────────────────────
 export async function getFuzzworksStatus() {
     return apiRequest(`/api/fuzzworks/status`, {
         method: 'GET',
@@ -438,74 +364,9 @@ export async function updateFuzzworks() {
     });
 }
 
-export async function deleteSkillPlan(planName) {
-    return apiRequest(`/api/skill-plans/${encodeURIComponent(planName)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    }, {
-        errorMessage: 'Failed to delete skill plan.'
-    });
-}
-
-export async function initiateLogin(account, rememberMe = false) {
-    // Removed isDev parameter; we can handle isDev in the component if needed
-    return apiRequest(`/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account, rememberMe }),
-        credentials: 'include',
-    }, {
-        errorMessage: 'Failed to initiate login.'
-    });
-}
-
-
-export async function finalizelogin(state, rememberMe = false) {
-    const params = new URLSearchParams({ state });
-    if (rememberMe) {
-        params.append('remember', 'true');
-    }
-    return apiRequest(`/api/finalize-login?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-    }, {
-        disableErrorToast: true,
-    });
-}
-
-// Validate session with detailed info
-export async function validateSession() {
-    return apiRequest(`/api/session/validate`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        disableErrorToast: true // Don't show error toast for validation checks
-    });
-}
-
-// Refresh session token
-export async function refreshSession() {
-    return apiRequest(`/api/session/refresh`, {
-        method: 'POST',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to refresh session.'
-    });
-}
-
-// Get all active sessions for the current account
-export async function getActiveSessions() {
-    return apiRequest(`/api/session/active`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to get active sessions.'
-    });
-}
-
-// Default export for backward compatibility
+// Default export for legacy callers (stores etc.). Will be removed
+// once the migration is complete.
 export default {
-    // New RESTful functions
     getAccounts,
     getAccount,
     updateAccount,
@@ -513,45 +374,38 @@ export default {
     getCharacter,
     updateCharacter,
     deleteCharacter,
+    refreshCharacter,
+    addCharacter,
+    getAssociations,
+    associateCharacter,
+    unassociateCharacter,
     getConfig,
     updateConfig,
-    
-    // EVE Data functions
+    getSession,
+    validateSession,
+    refreshSession,
+    getActiveSessions,
+    checkEVEConfiguration,
+    saveEVECredentials,
     getEveSkillPlans,
     getEveProfiles,
     getEveConversions,
-    
-    // Authentication
-    getSession,
     logout,
     initiateLogin,
     finalizelogin,
-    
-    // Skill Plan functions
     getSkillPlans,
     getSkillPlan,
     createSkillPlan,
     copySkillPlan,
     deleteSkillPlan,
     saveSkillPlan,
-    
-    // Association functions
-    getAssociations,
-    associateCharacter,
-    unassociateCharacter,
-    
-    // Fuzzworks functions
-    getFuzzworksStatus,
-    updateFuzzworks,
-    
-    // Other functions
-    addCharacter,
     chooseDefaultDirectory,
     chooseSettingsDir,
     backupDirectory,
     resetToDefaultDirectory,
     syncSubdirectory,
     syncAllSubdirectories,
-    saveUserSelections
+    saveUserSelections,
+    getFuzzworksStatus,
+    updateFuzzworks,
 };
-

@@ -34,8 +34,12 @@ vi.mock('../api/apiService.jsx', () => ({
     associateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character associated successfully!' }),
     unassociateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character unassociated successfully!' })
 }));
+vi.mock('../api/accountsApi', () => ({
+    associateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character associated successfully!' }),
+    unassociateCharacter: vi.fn().mockResolvedValue({ success: true, message: 'Character unassociated successfully!' })
+}));
 
-import { associateCharacter, unassociateCharacter } from '../api/apiService.jsx';
+import { associateCharacter, unassociateCharacter } from '../api/accountsApi';
 
 describe('Mapping', () => {
     const mockOnRefreshData = vi.fn();

@@ -88,7 +88,7 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
 
     const handleAddCharacterSubmit = async (account) => {
         const result = await executeAddCharacter(async () => {
-            const { addCharacter } = await import('../../api/apiService');
+            const { addCharacter } = await import('../../api/accountsApi');
             return addCharacter(account);
         }, { showToast: false });
 
