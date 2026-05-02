@@ -148,7 +148,15 @@ export function useCharacterOverview({ roles }) {
                     }
                 }
             }
-            await fetchAccounts();
+            try {
+                await fetchAccounts();
+            } catch (err) {
+                // Per-character refreshes already succeeded; if the final
+                // accounts re-fetch fails (network blip, etc.) just log it
+                // and let the refresh button settle. The UI keeps the
+                // pre-refresh data, which is the safer fallback.
+                logger.error('fetchAccounts failed in handleRefreshAll:', err);
+            }
         } finally {
             setIsRefreshing(false);
         }
