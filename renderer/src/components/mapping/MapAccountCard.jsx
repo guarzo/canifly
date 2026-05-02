@@ -1,75 +1,81 @@
-// MapAccountCard.jsx
-import React from 'react';
+// MapAccountCard.jsx — redesigned per DESIGN.md.
+// A user-file row: dense header (swatch + name + mtime + count) with the
+// associated characters listed beneath as inline rows. Drop target.
+
 import PropTypes from 'prop-types';
-import { Card, Typography, List, ListItem, ListItemText, IconButton, useTheme, Box } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { DeleteOutline } from '@mui/icons-material';
+import { IconButton, Tooltip } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';
+import MtimeSwatch from './MtimeSwatch.jsx';
 
 const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mtimeToColor }) => {
-    const theme = useTheme();
     const userId = mapping.userId;
     const userName = mapping.name || `Account ${userId}`;
-    const associatedChars = associations.filter(assoc => assoc.userId === userId);
-
-    const accountMtime = mapping.mtime || new Date().toISOString();
-    const borderColor = mtimeToColor[accountMtime] || theme.palette.primary.main;
+    const associatedChars = associations.filter((a) => a.userId === userId);
+    const mtime = mapping.mtime;
+    const swatch = mtimeToColor[mtime];
 
     return (
-        <Card
+        <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => handleDrop(e, userId, userName)}
-            sx={{
-                marginBottom: 2,
-                borderLeft: `4px solid ${borderColor}`,
-                backgroundColor: theme.palette.background.paper,
-                borderRadius: 2,
-                paddingLeft: 2,
-                cursor: 'pointer',
-                boxShadow: 3, // Added shadow to the account card
-                transition: 'background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
-                    boxShadow: 4, // Increased shadow on hover
-                },
-            }}
+            className="rounded-lg border border-rule-1 bg-surface-1 overflow-hidden"
         >
-            <Typography variant="h6" color="text.primary" gutterBottom>
-                {userName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-                {formatDate(accountMtime)}
-            </Typography>
-            <List>
-                {associatedChars.map(assoc => (
-                    <ListItem
-                        key={`assoc-${assoc.charId}`}
-                        secondaryAction={
-                            <IconButton
-                                edge="end"
-                                aria-label={`Unassociate ${assoc.charName}`}
-                                onClick={() => handleUnassociate(userId, assoc.charId, assoc.charName, userName)}
-                                sx={{
-                                    color: theme.palette.error.main, // Use error color for delete actions
-                                }}
-                            >
-                                <DeleteIcon />
-                            </IconButton>
-                        }
-                        sx={{
-                            borderRadius: 1,
-                            marginBottom: 1,
-                            backgroundColor: theme.palette.background.default,
-                            boxShadow: 1, // Subtle shadow around each associated character
-                        }}
-                    >
-                        <ListItemText
-                            primary={`${assoc.charName}`}
-                            primaryTypographyProps={{ color: 'text.primary' }}
-                        />
-                    </ListItem>
-                ))}
-            </List>
-        </Card>
+            <div className="grid grid-cols-[16px_minmax(0,1fr)_auto_60px] gap-3 items-center h-10 px-4 bg-surface-2 border-b border-rule-1">
+                <MtimeSwatch color={swatch} title={`mtime ${mtime}`} />
+                <span className="text-body text-ink-1 truncate" title={userName}>
+                    {userName}
+                </span>
+                <span className="text-meta text-ink-3 font-mono tabular">
+                    {mtime ? formatDate(mtime) : '—'}
+                </span>
+                <span className="text-meta text-ink-3 font-mono tabular text-right">
+                    {associatedChars.length}/—
+                </span>
+            </div>
+
+            {associatedChars.length === 0 ? (
+                <div className="h-10 px-4 flex items-center text-meta text-ink-3 italic">
+                    Drop a character here to associate.
+                </div>
+            ) : (
+                <ul role="list">
+                    {associatedChars.map((assoc, idx) => (
+                        <li
+                            key={`assoc-${assoc.charId}`}
+                            className={[
+                                'grid grid-cols-[16px_minmax(0,1fr)_auto_28px] gap-3 items-center',
+                                'h-10 px-4',
+                                idx !== associatedChars.length - 1 ? 'border-b border-rule-1' : '',
+                            ].join(' ')}
+                        >
+                            <MtimeSwatch
+                                color={mtimeToColor[assoc.mtime]}
+                                title={assoc.mtime ? `mtime ${assoc.mtime}` : 'mtime unknown'}
+                            />
+                            <span className="text-body text-ink-1 truncate">{assoc.charName}</span>
+                            <span className="text-meta text-ink-3 font-mono tabular">
+                                {assoc.charId}
+                            </span>
+                            <div className="flex items-center justify-center">
+                                <Tooltip title={`Unassociate ${assoc.charName}`}>
+                                    <IconButton
+                                        size="small"
+                                        aria-label={`Unassociate ${assoc.charName}`}
+                                        onClick={() =>
+                                            handleUnassociate(userId, assoc.charId, assoc.charName, userName)
+                                        }
+                                        className="!h-6 !w-6 !rounded-md !text-ink-3 hover:!bg-surface-3 hover:!text-status-error"
+                                    >
+                                        <DeleteOutline sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     );
 };
 
@@ -85,7 +91,7 @@ AccountCard.propTypes = {
             charId: PropTypes.string.isRequired,
             charName: PropTypes.string.isRequired,
             mtime: PropTypes.string,
-        })
+        }),
     ).isRequired,
     handleUnassociate: PropTypes.func.isRequired,
     handleDrop: PropTypes.func.isRequired,

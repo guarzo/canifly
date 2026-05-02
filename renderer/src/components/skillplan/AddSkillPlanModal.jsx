@@ -1,13 +1,9 @@
+// AddSkillPlanModal — design-system rewrite. Plain dialog: surface tiers,
+// rule hairlines, accent button. No glass, gradient, or motion.
+
 import { useState } from 'react';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Button,
-    Typography
-} from '@mui/material';
+import PropTypes from 'prop-types';
+import { Dialog } from '@mui/material';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import apiService from '../../api/apiService';
 
@@ -20,87 +16,76 @@ const AddSkillPlanModal = ({ onClose }) => {
         e.preventDefault();
         await execute(
             () => apiService.createSkillPlan(planName.trim(), planContents.trim()),
-            {
-                successMessage: 'Skill plan created successfully',
-                onSuccess: onClose
-            }
+            { successMessage: 'Skill plan created', onSuccess: onClose },
         );
     };
 
     return (
-        <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog
+            open
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+                className: 'bg-surface-1 border border-rule-1 rounded-lg',
+                sx: { backgroundImage: 'none' },
+            }}
+        >
             <form onSubmit={handleSubmit}>
-                <DialogTitle
-                    className="bg-gradient-to-r from-gray-900 to-gray-800 text-teal-200 border-b border-gray-700"
-                    sx={{ paddingY: '0.75rem' }}
-                >
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                        Add Skill Plan
-                    </Typography>
-                </DialogTitle>
-                <DialogContent className="bg-gray-800">
-                    <div className="space-y-4">
-                        <TextField
-                            label="Skill Plan Name"
-                            placeholder="e.g. Battleship Mastery"
+                <header className="px-5 py-4 border-b border-rule-1">
+                    <h2 className="text-h3 text-ink-1">Add skill plan</h2>
+                    <p className="mt-1 text-meta text-ink-3">
+                        Paste skills as <span className="font-mono">SkillName Level</span>, one per line.
+                    </p>
+                </header>
+
+                <div className="px-5 py-4 space-y-4 bg-surface-1">
+                    <label className="block">
+                        <span className="text-meta text-ink-3">Plan name</span>
+                        <input
                             value={planName}
                             onChange={(e) => setPlanName(e.target.value)}
-                            fullWidth
+                            placeholder="e.g. Battleship Mastery"
                             required
-                            variant="filled"
-                            InputProps={{
-                                className: 'text-teal-200 bg-gray-700 rounded-md px-3 py-2',
-                            }}
-                            InputLabelProps={{
-                                className: 'text-gray-300',
-                            }}
+                            autoFocus
+                            className="mt-1 w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-accent"
                         />
-                        <TextField
-                            label="Skill Plan Contents"
-                            placeholder="Enter skills and levels, e.g. 'Gunnery 5\nLarge Hybrid Turret 4'"
+                    </label>
+                    <label className="block">
+                        <span className="text-meta text-ink-3">Skill plan contents</span>
+                        <textarea
                             value={planContents}
                             onChange={(e) => setPlanContents(e.target.value)}
-                            fullWidth
+                            placeholder={'Gunnery 5\nLarge Hybrid Turret 4'}
                             required
-                            multiline
-                            rows={5}
-                            variant="filled"
-                            InputProps={{
-                                className: 'text-teal-200 bg-gray-700 rounded-md px-3 py-2',
-                            }}
-                            InputLabelProps={{
-                                className: 'text-gray-300',
-                            }}
+                            rows={8}
+                            className="mt-1 w-full px-2.5 py-2 rounded-md border border-rule-1 bg-surface-0 font-mono text-body text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-accent"
                         />
-                    </div>
-                </DialogContent>
-                <DialogActions className="bg-gray-800 border-t border-gray-700 flex items-center justify-end space-x-2 py-2 px-3">
-                    <Button
+                    </label>
+                </div>
+
+                <footer className="px-5 py-3 border-t border-rule-1 flex items-center justify-end gap-2">
+                    <button
+                        type="button"
                         onClick={onClose}
-                        className="text-gray-200 hover:text-white normal-case"
-                        sx={{ textTransform: 'none' }}
+                        className="h-8 px-3 rounded-md border border-rule-1 text-meta text-ink-2 hover:bg-surface-2 hover:text-ink-1"
                     >
                         Cancel
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                         type="submit"
-                        variant="contained"
-                        sx={{
-                            textTransform: 'none',
-                            backgroundColor: '#14b8a6',
-                            '&:hover': {
-                                backgroundColor: '#0d9488',
-                            },
-                            color: '#ffffff',
-                            fontWeight: 'bold'
-                        }}
+                        className="h-8 px-3 rounded-md bg-accent text-accent-ink text-meta font-medium hover:bg-accent-strong"
                     >
                         Save
-                    </Button>
-                </DialogActions>
+                    </button>
+                </footer>
             </form>
         </Dialog>
     );
+};
+
+AddSkillPlanModal.propTypes = {
+    onClose: PropTypes.func.isRequired,
 };
 
 export default AddSkillPlanModal;

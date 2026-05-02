@@ -117,10 +117,14 @@ SECRET_KEY=<your_generated_secret_key>
 ## Common Development Tasks
 
 ### Adding New API Endpoint
+See `.claude/skills/add-api-endpoint/SKILL.md` for the full prescriptive workflow. Quick reference:
 1. Define handler in `internal/handlers/`
-2. Add route in `internal/server/server.go`
+2. Register route in `internal/server/router.go`
 3. Implement service logic in `internal/services/`
 4. Add frontend API client in `renderer/src/api/`
+
+### Cutting a Release
+See `.claude/skills/release/SKILL.md`. Versions live in both `version` and `package.json`; `npm run release` (which runs `scripts/release.sh`) tags only after they match.
 
 ### Working with EVE Data
 - Fuzzworks integration for EVE static data downloads
