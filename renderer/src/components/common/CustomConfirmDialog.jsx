@@ -1,78 +1,57 @@
-// CustomConfirmDialog.jsx
-import React from 'react';
+// CustomConfirmDialog — design-system rewrite. Matches AddSkillPlanModal:
+// surface-1 paper, rule-1 hairlines, radius-lg, accent confirm button.
 import PropTypes from 'prop-types';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Typography,
-    useTheme,
-    Divider
-} from '@mui/material';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
+import { useId } from 'react';
+import { Dialog } from '@mui/material';
 
 const CustomConfirmDialog = ({
-                                 open,
-                                 title,
-                                 message,
-                                 onConfirm,
-                                 onCancel
-                             }) => {
-    const theme = useTheme();
-
+    open,
+    title,
+    message,
+    onConfirm,
+    onCancel,
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+}) => {
+    const titleId = useId();
+    const descId = useId();
     return (
         <Dialog
             open={open}
             onClose={onCancel}
+            maxWidth="xs"
+            fullWidth
+            aria-labelledby={titleId}
+            aria-describedby={descId}
             PaperProps={{
-                sx: {
-                    borderRadius: 2,
-                    boxShadow: theme.shadows[5],
-                    backgroundColor: theme.palette.background.paper
-                }
+                className: 'bg-surface-1 border border-rule-1 rounded-lg',
+                sx: { backgroundImage: 'none' },
             }}
         >
-            <DialogTitle
-                sx={{
-                    backgroundColor: theme.palette.primary.main,
-                    color: theme.palette.primary.contrastText,
-                    padding: theme.spacing(2),
-                    fontWeight: 600,
-                }}
-            >
-                {title}
-            </DialogTitle>
+            <header className="px-5 py-4 border-b border-rule-1">
+                <h2 id={titleId} className="text-h3 text-ink-1">{title}</h2>
+            </header>
 
-            <Divider />
+            <div className="px-5 py-4 bg-surface-1">
+                <p id={descId} className="text-body text-ink-2">{message}</p>
+            </div>
 
-            <DialogContent sx={{ padding: theme.spacing(3) }}>
-                <Typography variant="body1">{message}</Typography>
-            </DialogContent>
-
-            <Divider />
-
-            <DialogActions sx={{ padding: theme.spacing(2) }}>
-                <Button
+            <footer className="px-5 py-3 border-t border-rule-1 flex items-center justify-end gap-2">
+                <button
+                    type="button"
                     onClick={onCancel}
-                    color="inherit"
-                    startIcon={<CloseIcon />}
-                    variant="outlined"
-                    sx={{ mr: 1 }}
+                    className="h-8 px-3 rounded-md border border-rule-1 text-meta text-ink-2 hover:bg-surface-2 hover:text-ink-1"
                 >
-                    Cancel
-                </Button>
-                <Button
+                    {cancelLabel}
+                </button>
+                <button
+                    type="button"
                     onClick={onConfirm}
-                    color="primary"
-                    startIcon={<CheckIcon />}
-                    variant="contained"
+                    className="h-8 px-3 rounded-md bg-accent text-accent-ink text-meta font-medium hover:bg-accent-strong"
                 >
-                    Confirm
-                </Button>
-            </DialogActions>
+                    {confirmLabel}
+                </button>
+            </footer>
         </Dialog>
     );
 };
@@ -83,6 +62,8 @@ CustomConfirmDialog.propTypes = {
     message: PropTypes.string.isRequired,
     onConfirm: PropTypes.func.isRequired,
     onCancel: PropTypes.func.isRequired,
+    confirmLabel: PropTypes.string,
+    cancelLabel: PropTypes.string,
 };
 
 export default CustomConfirmDialog;

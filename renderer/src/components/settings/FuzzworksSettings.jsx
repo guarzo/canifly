@@ -143,14 +143,12 @@ const FuzzworksSettings = () => {
                         type="button"
                         onClick={handleManualUpdate}
                         disabled={loading}
+                        aria-busy={loading}
                         className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-rule-1 bg-surface-1 text-meta text-ink-1 hover:bg-surface-2 disabled:opacity-50"
                     >
                         <RefreshIcon
-                            sx={{
-                                fontSize: 16,
-                                animation: loading ? 'fz-spin 1s linear infinite' : undefined,
-                                '@keyframes fz-spin': { to: { transform: 'rotate(360deg)' } },
-                            }}
+                            sx={{ fontSize: 16 }}
+                            className={loading ? 'animate-skeleton-pulse' : undefined}
                         />
                         {loading ? 'Updating…' : 'Update now'}
                     </button>

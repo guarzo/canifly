@@ -30,7 +30,7 @@ SkeletonLoader.propTypes = {
 // Same height (40px) and column template so paint-to-data swap doesn't reflow.
 export const CharacterRowSkeleton = () => (
     <div className="grid grid-cols-[28px_minmax(180px,1.4fr)_1fr_84px_92px_minmax(140px,1fr)_minmax(120px,0.8fr)_28px] gap-3 px-4 items-center h-10 border-b border-rule-1">
-        <SkeletonLoader className="!w-2.5 !h-2.5 rounded-full" />
+        <SkeletonLoader className="!w-2.5 !h-2.5 rounded-sm" />
         <div className="flex items-center gap-2.5">
             <SkeletonLoader className="!h-6 !w-6 rounded-sm" />
             <SkeletonLoader className="!h-3.5 !w-32" />
