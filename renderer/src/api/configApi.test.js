@@ -1,6 +1,6 @@
 // src/api/configApi.test.js
 import { vi } from 'vitest';
-import { getConfig, updateConfig, saveEVECredentials } from './configApi';
+import { getConfig, updateConfig, saveEVECredentials, checkEVEConfiguration } from './configApi';
 import { apiRequest } from './apiClient';
 
 vi.mock('./apiClient', () => ({
@@ -51,5 +51,25 @@ describe('configApi', () => {
             errorMessage: 'Failed to save EVE credentials.'
         });
         expect(result).toBe('saved');
+    });
+
+    describe('checkEVEConfiguration', () => {
+        test('calls /api/config/eve/status and returns the apiRequest result', async () => {
+            apiRequest.mockResolvedValue({ needsConfiguration: false });
+            const result = await checkEVEConfiguration();
+            expect(apiRequest).toHaveBeenCalledWith(`/api/config/eve/status`, {
+                method: 'GET',
+                credentials: 'include'
+            }, {
+                errorMessage: 'Failed to check EVE configuration.'
+            });
+            expect(result).toEqual({ needsConfiguration: false });
+        });
+
+        test('returns null on apiRequest failure (apiClient returns null on error)', async () => {
+            apiRequest.mockResolvedValue(null);
+            const result = await checkEVEConfiguration();
+            expect(result).toBeNull();
+        });
     });
 });

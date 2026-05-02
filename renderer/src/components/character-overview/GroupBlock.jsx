@@ -34,7 +34,7 @@ function AccountMenu({ account, onUpdate, onRemove }) {
                     Toggle Alpha / Omega ({account.Status === 'Alpha' ? 'α' : 'Ω'})
                 </MenuItem>
                 <MenuItem
-                    onClick={() => { onRemove(account.Name); close(); }}
+                    onClick={() => { onRemove(account.ID); close(); }}
                     sx={{ color: 'var(--status-error)' }}
                 >
                     Remove account
@@ -68,9 +68,12 @@ const GroupBlock = ({
     const groupSp = characters.reduce(
         (sum, ch) => sum + (ch.Character?.CharacterSkillsResponse?.total_sp || 0), 0,
     );
-    const account = view === 'account'
-        ? allAccounts.find((a) => (a.Name || 'Unknown Account') === groupKey)
+    // The hook tags each character with accountId, so look up by id rather
+    // than by name (two accounts can share a display name).
+    const account = view === 'account' && characters.length > 0
+        ? allAccounts.find((a) => a.ID === characters[0].accountId)
         : null;
+    const groupLabel = account?.Name || characters[0]?.accountName || groupKey;
 
     return (
         <section role="rowgroup">
@@ -79,7 +82,7 @@ const GroupBlock = ({
                 className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-2 border-b border-rule-1 bg-surface-2"
             >
                 <div className="flex items-center gap-2 min-w-0">
-                    <h2 className="text-h3 text-ink-1 truncate uppercase tracking-wide">{groupKey}</h2>
+                    <h2 className="text-h3 text-ink-1 truncate uppercase tracking-wide">{view === 'account' ? groupLabel : groupKey}</h2>
                     {view === 'account' && account && account.Visible === false ? (
                         <span className="px-1.5 py-0.5 rounded-sm border border-rule-1 text-micro text-ink-3 uppercase tracking-wide">
                             Hidden

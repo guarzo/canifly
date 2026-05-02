@@ -50,10 +50,13 @@ const CharacterRow = ({
                 onClick={onToggleExpand}
                 onFocus={onFocus}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onToggleExpand();
-                    }
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    // Don't toggle when the key originated from a nested
+                    // interactive control (zKill button, kebab, etc.) — let
+                    // that control handle the key itself.
+                    if (e.target !== e.currentTarget) return;
+                    e.preventDefault();
+                    onToggleExpand();
                 }}
                 className={[
                     'grid grid-cols-[28px_minmax(180px,1.4fr)_1fr_84px_92px_minmax(140px,1fr)_minmax(120px,0.8fr)_28px]',

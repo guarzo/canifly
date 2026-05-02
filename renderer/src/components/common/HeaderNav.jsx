@@ -64,14 +64,21 @@ const navItemSx = (selected) => ({
     ...(selected ? {} : {}),
 });
 
-const HeaderNav = ({ open, onClose, currentPath }) => (
-    <StyledDrawer anchor="left" open={open} onClose={onClose} disableScrollLock>
-        <div
-            role="presentation"
-            onClick={onClose}
-            onKeyDown={onClose}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        >
+const HeaderNav = ({ open, onClose, currentPath }) => {
+    // Drawer's MUI onClose handles backdrop/Escape. The presentation div
+    // mirrors clicks for closing on link selection — but we must NOT close on
+    // Tab/Shift+Tab so keyboard users can move focus between nav items.
+    const handleKeyDown = (event) => {
+        if (event.key === 'Escape') onClose(event);
+    };
+    return (
+        <StyledDrawer anchor="left" open={open} onClose={onClose} disableScrollLock>
+            <div
+                role="presentation"
+                onClick={onClose}
+                onKeyDown={handleKeyDown}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
             <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
                 <span
                     style={{
@@ -115,7 +122,8 @@ const HeaderNav = ({ open, onClose, currentPath }) => (
             </List>
         </div>
     </StyledDrawer>
-);
+    );
+};
 
 HeaderNav.propTypes = {
     open: PropTypes.bool.isRequired,

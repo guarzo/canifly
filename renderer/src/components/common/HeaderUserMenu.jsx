@@ -15,7 +15,13 @@ const HeaderUserMenu = ({ isAuthenticated, isRefreshing, onRefresh, onLogout, on
         {isAuthenticated && (
             <>
                 <Tooltip title="Refresh data">
-                    <IconButton onClick={onRefresh} aria-label="Refresh data" sx={headerIconSx}>
+                    <IconButton
+                        onClick={onRefresh}
+                        aria-label="Refresh data"
+                        disabled={isRefreshing}
+                        aria-busy={isRefreshing}
+                        sx={headerIconSx}
+                    >
                         {isRefreshing ? (
                             <CircularProgress size={16} sx={{ color: 'var(--ink-2)' }} />
                         ) : (

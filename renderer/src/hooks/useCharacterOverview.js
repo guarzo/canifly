@@ -68,9 +68,16 @@ export function useCharacterOverview({ roles }) {
 
     const groups = useMemo(() => {
         const map = new Map();
+        // Group-by-account uses a stable key so two accounts that happen to
+        // share a display name don't collapse into one bucket. The display
+        // name (`accountName`) is derived from the key when needed.
+        const accountKey = (ch) => (
+            ch.accountId != null ? `${ch.accountId}::${ch.accountName || 'Unknown Account'}`
+                                  : (ch.accountName || 'Unknown Account')
+        );
         if (view === 'account') {
             for (const ch of filteredCharacters) {
-                const key = ch.accountName;
+                const key = accountKey(ch);
                 if (!map.has(key)) map.set(key, []);
                 map.get(key).push(ch);
             }

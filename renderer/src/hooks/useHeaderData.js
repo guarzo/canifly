@@ -70,7 +70,14 @@ export function useHeaderData() {
             return addCharacter(account);
         }, { showToast: false });
 
-        if (result?.redirectURL) {
+        if (!result) {
+            // executeAddCharacter returns null when the API call failed; the
+            // underlying apiClient already surfaced its own error toast, so
+            // here we just bail out without claiming success.
+            return;
+        }
+
+        if (result.redirectURL) {
             openExternal(result.redirectURL);
             toast.info('Complete authorization in your browser');
             if (result.state) pollFinalizeLogin(result.state);
