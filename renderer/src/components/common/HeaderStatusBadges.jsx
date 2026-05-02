@@ -23,13 +23,13 @@ const HeaderStatusBadges = () => {
                 size="small"
                 label={variant.label}
                 variant="outlined"
+                style={{ WebkitAppRegion: 'no-drag' }}
                 sx={{
                     height: 22,
                     fontSize: 11,
                     color: variant.color,
                     borderColor: 'var(--rule-1)',
                     backgroundColor: 'transparent',
-                    WebkitAppRegion: 'no-drag',
                     '.MuiChip-label': { px: 1 },
                 }}
             />

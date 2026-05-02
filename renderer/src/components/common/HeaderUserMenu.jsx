@@ -11,7 +11,10 @@ import {
 import { headerIconSx } from './HeaderToolbarActions.jsx';
 
 const HeaderUserMenu = ({ isAuthenticated, isRefreshing, onRefresh, onLogout, onClose }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, WebkitAppRegion: 'no-drag' }}>
+    <Box
+        style={{ WebkitAppRegion: 'no-drag' }}
+        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+    >
         {isAuthenticated && (
             <>
                 <Tooltip title="Refresh data">
@@ -20,6 +23,7 @@ const HeaderUserMenu = ({ isAuthenticated, isRefreshing, onRefresh, onLogout, on
                         aria-label="Refresh data"
                         disabled={isRefreshing}
                         aria-busy={isRefreshing}
+                        style={{ WebkitAppRegion: 'no-drag' }}
                         sx={headerIconSx}
                     >
                         {isRefreshing ? (
@@ -30,14 +34,24 @@ const HeaderUserMenu = ({ isAuthenticated, isRefreshing, onRefresh, onLogout, on
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="Log out">
-                    <IconButton onClick={onLogout} aria-label="Log out" sx={headerIconSx}>
+                    <IconButton
+                        onClick={onLogout}
+                        aria-label="Log out"
+                        style={{ WebkitAppRegion: 'no-drag' }}
+                        sx={headerIconSx}
+                    >
                         <LogoutOutlined fontSize="small" />
                     </IconButton>
                 </Tooltip>
             </>
         )}
         <Tooltip title="Close">
-            <IconButton onClick={onClose} aria-label="Close window" sx={headerIconSx}>
+            <IconButton
+                onClick={onClose}
+                aria-label="Close window"
+                style={{ WebkitAppRegion: 'no-drag' }}
+                sx={headerIconSx}
+            >
                 <Close fontSize="small" />
             </IconButton>
         </Tooltip>

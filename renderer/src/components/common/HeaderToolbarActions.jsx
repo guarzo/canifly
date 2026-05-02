@@ -31,7 +31,8 @@ const HeaderToolbarActions = ({ onOpenDrawer, onAddCharacter, onAddSkillPlan }) 
                 edge="start"
                 aria-label="Menu"
                 onClick={onOpenDrawer}
-                sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
+                style={{ WebkitAppRegion: 'no-drag' }}
+                sx={headerIconSx}
             >
                 <MenuIcon fontSize="small" />
             </IconButton>
@@ -40,7 +41,8 @@ const HeaderToolbarActions = ({ onOpenDrawer, onAddCharacter, onAddSkillPlan }) 
             <IconButton
                 onClick={onAddCharacter}
                 aria-label="Add character"
-                sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
+                style={{ WebkitAppRegion: 'no-drag' }}
+                sx={headerIconSx}
             >
                 <PersonAddAlt1Outlined fontSize="small" />
             </IconButton>
@@ -49,12 +51,13 @@ const HeaderToolbarActions = ({ onOpenDrawer, onAddCharacter, onAddSkillPlan }) 
             <IconButton
                 onClick={onAddSkillPlan}
                 aria-label="Add skill plan"
-                sx={{ ...headerIconSx, WebkitAppRegion: 'no-drag' }}
+                style={{ WebkitAppRegion: 'no-drag' }}
+                sx={headerIconSx}
             >
                 <AddchartOutlined fontSize="small" />
             </IconButton>
         </Tooltip>
-        <Box sx={{ ml: 0.75, WebkitAppRegion: 'no-drag' }}>
+        <Box style={{ WebkitAppRegion: 'no-drag' }} sx={{ ml: 0.75 }}>
             <HeaderStatusBadges />
         </Box>
     </>
