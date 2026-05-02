@@ -2,6 +2,7 @@
   "name": "canifly",
   "version": "0.4.5",
   "description": "Can I Fly?",
+  "homepage": "https://github.com/guarzo/canifly",
   "main": "main.js",
   "engines": {
     "node": ">=22"
@@ -101,8 +102,8 @@
   "devDependencies": {
     "@eslint/js": "^9.14.0",
     "concurrently": "^9.1.0",
-    "electron": "^32.2.0",
-    "electron-builder": "^25.1.8",
+    "electron": "^41.5.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.14.0",
     "globals": "^15.12.0",
     "prettier": "^3.3.3",
