@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:forums.eveonline.com)",
+      "WebFetch(domain:docs.esi.evetech.net)",
+      "WebFetch(domain:developers.eveonline.com)",
+      "WebFetch(domain:login.eveonline.com)",
+      "Bash(go vet *)",
+      "Bash(/bin/rm -f /home/tng/workspace/canifly/.cursorrules)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

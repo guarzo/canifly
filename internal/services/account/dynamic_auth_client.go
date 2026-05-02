@@ -28,7 +28,16 @@ func (d *DynamicAuthClient) getAuthClient() (interfaces.AuthClient, error) {
 		return nil, err
 	}
 
-	d.logger.Debugf("Dynamic auth client loaded credentials - ClientID: %s, CallbackURL: %s", clientID, callbackURL)
+	// Log credentials for debugging (mask secret)
+	secretMask := ""
+	if len(clientSecret) > 4 {
+		secretMask = clientSecret[:4] + "..." + clientSecret[len(clientSecret)-4:]
+	} else if clientSecret != "" {
+		secretMask = "****"
+	} else {
+		secretMask = "(empty)"
+	}
+	d.logger.Infof("Dynamic auth client loaded credentials - ClientID: %s, Secret: %s, CallbackURL: %s", clientID, secretMask, callbackURL)
 
 	// Use stored callback URL if available, otherwise use base
 	if callbackURL == "" {
