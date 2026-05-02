@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Menu, MenuItem } from '@mui/material';
-import { DeleteOutline, MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { DeleteOutlined as DeleteOutline, MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 const RowMenu = ({ character, onRemove }) => {
     const [anchor, setAnchor] = useState(null);
