@@ -6,7 +6,6 @@ type EVEDataComposite interface {
 	ESIAPIService
 	CharacterService
 	SkillPlanService
-	ProfileService
 	CacheableService
 
 	// Service setters for dependency injection

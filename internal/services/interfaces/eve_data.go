@@ -39,11 +39,7 @@ type EVEDataService interface {
 	ListSkillPlans() ([]string, error)
 	RefreshRemotePlans() error
 
-	// Eve Profile Management (from EveProfilesService)
-	LoadCharacterSettings() ([]model.EveProfile, error)
-	BackupDir(targetDir, backupDir string) error
-	SyncDir(subDir, charId, userId string) (int, int, error)
-	SyncAllDir(baseSubDir, charId, userId string) (int, int, error)
+	// Eve Profile Management — moved to interfaces.ProfileService
 
 	// Cache Management
 	SaveCache() error

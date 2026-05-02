@@ -17,6 +17,7 @@ import (
 	eveSvc "github.com/guarzo/canifly/internal/services/eve"
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	profileSvc "github.com/guarzo/canifly/internal/services/profile"
 	"github.com/guarzo/canifly/internal/services/skillplans"
 	"github.com/guarzo/canifly/internal/services/storage"
 	syncSvc "github.com/guarzo/canifly/internal/services/sync"
@@ -152,7 +153,6 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		storageService,
 		skillRepo,
 		systemRepo,
-		eveProfileRepo,
 		persistentCache,
 	)
 
@@ -162,9 +162,18 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Set the account management service in EVE data service
 	eveDataService.SetAccountManagementService(accountManagementService)
 
+	// Create profile service with narrow deps (uses eveDataService as ESIAPIService until Task 5)
+	profileService := profileSvc.NewService(
+		eveProfileRepo,
+		configurationService,
+		accountManagementService,
+		eveDataService,
+		logger,
+	)
+
 	// Create sync service
 	syncService := syncSvc.NewSyncService(
-		eveDataService,
+		profileService,
 		eveProfileRepo,
 		configurationService,
 		logger,
@@ -184,7 +193,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		ESIAPIService:    eveDataService,
 		CharacterService: eveDataService,
 		SkillPlanService: eveDataService,
-		ProfileService:   eveDataService,
+		ProfileService:   profileService,
 		CacheableService: persistentCache,
 
 		// Keep composite for backward compatibility
