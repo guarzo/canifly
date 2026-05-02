@@ -47,6 +47,7 @@ import {
     getEveProfiles,
     getEveConversions,
 } from './esiApi';
+import { getFuzzworksStatus, updateFuzzworks } from './fuzzworksApi';
 import { apiRequest } from './apiClient';
 
 export {
@@ -82,6 +83,8 @@ export {
     getEveSkillPlans,
     getEveProfiles,
     getEveConversions,
+    getFuzzworksStatus,
+    updateFuzzworks,
 };
 
 // ─── Config (re-exported above from configApi) ─────────────────────────
@@ -162,24 +165,7 @@ export async function getActiveSessions() {
 
 // ─── Sync / directory (re-exported above from syncApi) ─────────────────
 
-// ─── Fuzzworks ──────────────────────────────────────────────────────────
-export async function getFuzzworksStatus() {
-    return apiRequest(`/api/fuzzworks/status`, {
-        method: 'GET',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to fetch Fuzzworks status.'
-    });
-}
-
-export async function updateFuzzworks() {
-    return apiRequest(`/api/fuzzworks/update`, {
-        method: 'POST',
-        credentials: 'include'
-    }, {
-        errorMessage: 'Failed to update Fuzzworks data.'
-    });
-}
+// ─── Fuzzworks (re-exported above from fuzzworksApi) ──────────────────
 
 // Default export for legacy callers (stores etc.). Will be removed
 // once the migration is complete.
