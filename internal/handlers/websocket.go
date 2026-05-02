@@ -13,9 +13,11 @@ func isAllowedOrigin(origin string) bool {
 	// Allow localhost connections on common development ports
 	allowedOrigins := []string{
 		"http://localhost:3000",  // React dev server
-		"http://localhost:5173",  // Vite dev server
+		"http://localhost:3113",  // Vite dev server (configured in renderer/vite.config.js)
+		"http://localhost:5173",  // Vite default dev server
 		"http://localhost:42423", // Backend server
 		"http://127.0.0.1:3000",
+		"http://127.0.0.1:3113",
 		"http://127.0.0.1:5173",
 		"http://127.0.0.1:42423",
 		"app://.", // Electron app
