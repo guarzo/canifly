@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
     ContentCopyOutlined,
-    DeleteOutline,
+    DeleteOutlined as DeleteOutline,
     ExpandMoreOutlined,
     ChevronRightOutlined,
 } from '@mui/icons-material';

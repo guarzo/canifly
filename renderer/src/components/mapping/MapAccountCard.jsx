@@ -3,7 +3,7 @@
 // associated characters listed beneath as inline rows. Drop target.
 
 import PropTypes from 'prop-types';
-import { DeleteOutline } from '@mui/icons-material';
+import { DeleteOutlined as DeleteOutline } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';
 import MtimeSwatch from './MtimeSwatch.jsx';
