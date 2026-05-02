@@ -15,6 +15,12 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
+// Compile-time interface checks.
+var (
+	_ interfaces.CharacterService = (*Service)(nil)
+	_ interfaces.UserInfoFetcher  = (*Service)(nil)
+)
+
 // Service implements interfaces.CharacterService and interfaces.UserInfoFetcher.
 type Service struct {
 	logger      interfaces.Logger
