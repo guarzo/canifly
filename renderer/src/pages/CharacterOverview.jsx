@@ -238,14 +238,14 @@ const CharacterOverview = ({ roles = [], skillConversions = {} }) => {
 
     const handleUpdateCharacter = useCallback(async (characterId, updates) => {
         await execute(
-            () => apiService.updateCharacter(characterId, updates),
+            () => updateCharacter(characterId, updates),
             { successMessage: 'Character updated' },
         );
     }, [execute]);
 
     const handleRemoveCharacter = useCallback(async (characterId) => {
         await execute(
-            () => apiService.deleteCharacter(characterId),
+            () => deleteCharacter(characterId),
             { successMessage: 'Character removed' },
         );
     }, [execute]);

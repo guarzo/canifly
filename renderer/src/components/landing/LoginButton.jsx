@@ -55,7 +55,7 @@ const LoginButton = ({ onModalOpenChange }) => {
                     }
                     
                     try {
-                        // Import finalizelogin from apiService
+                        // Import finalizelogin from authApi
                         const { finalizelogin } = await import('../../api/authApi');
                         logger.debug(`Polling attempt ${attempts} - calling finalize-login with state:`, data.state);
                         const result = await finalizelogin(data.state, rememberMe);
