@@ -87,9 +87,8 @@ func (e *EveProfilesStore) BackupDirectory(targetDir, backupDir string) error {
 	}
 
 	if len(subDirs) == 0 {
-		errMsg := fmt.Sprintf("No settings_ subdirectories found in %s", targetDir)
-		e.logger.Warnf(errMsg)
-		return fmt.Errorf(errMsg)
+		e.logger.Warnf("No settings_ subdirectories found in %s", targetDir)
+		return fmt.Errorf("no settings_ subdirectories found in %s", targetDir)
 	}
 
 	now := time.Now()
