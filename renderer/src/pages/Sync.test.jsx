@@ -21,8 +21,7 @@ vi.mock('react-toastify', () => ({
     },
 }));
 
-// Mock apiService calls
-vi.mock('../api/apiService.jsx', () => ({
+vi.mock('../api/syncApi', () => ({
     saveUserSelections: vi.fn().mockResolvedValue({ success: true }),
     syncSubdirectory: vi.fn().mockResolvedValue({ success: true, message: 'Synced successfully!' }),
     syncAllSubdirectories: vi.fn().mockResolvedValue({ success: true, message: 'Sync-All successful!' }),
@@ -39,7 +38,7 @@ import {
     chooseSettingsDir,
     backupDirectory,
     resetToDefaultDirectory
-} from '../api/apiService.jsx';
+} from '../api/syncApi';
 
 // Mock electronAPI
 window.electronAPI = {

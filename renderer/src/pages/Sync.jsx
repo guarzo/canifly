@@ -30,7 +30,7 @@ import {
     chooseSettingsDir,
     backupDirectory,
     resetToDefaultDirectory,
-} from '../api/apiService.jsx';
+} from '../api/syncApi';
 import { logger } from '../utils/logger';
 
 // ── Persistence ───────────────────────────────────────────────────────────
