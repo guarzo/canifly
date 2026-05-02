@@ -2,6 +2,7 @@
   "name": "canifly",
   "version": "0.4.5",
   "description": "Can I Fly?",
+  "homepage": "https://github.com/guarzo/canifly",
   "main": "main.js",
   "engines": {
     "node": ">=22"
