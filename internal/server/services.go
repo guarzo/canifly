@@ -38,9 +38,6 @@ type AppServices struct {
 	ProfileService   interfaces.ProfileService
 	CacheableService interfaces.CacheableService
 
-	// Composite service for backward compatibility (temporary)
-	EVEDataService interfaces.EVEDataService
-
 	// Other Services
 	SyncService      interfaces.SyncService
 	LoginService     interfaces.LoginService
@@ -170,20 +167,6 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Create skill plan service (narrow deps: just skillRepo + logger)
 	skillPlanService := skillplanSvc.NewService(logger, skillRepo)
 
-	// Create consolidated EVE data service. ESI shims now delegate to esiClient.
-	eveDataService := eveSvc.NewEVEDataServiceImpl(
-		logger,
-		httpClient,
-		authClient,
-		configurationService,
-		storageService,
-		systemRepo,
-		persistentCache,
-		characterService,
-		skillPlanService,
-		esiClient,
-	)
-
 	// Profile service consumes the ESI client directly.
 	profileService := profileSvc.NewService(
 		eveProfileRepo,
@@ -217,9 +200,6 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		SkillPlanService: skillPlanService,
 		ProfileService:   profileService,
 		CacheableService: persistentCache,
-
-		// Keep composite for backward compatibility
-		EVEDataService: eveDataService,
 
 		SyncService:      syncService,
 		LoginService:     loginService,
