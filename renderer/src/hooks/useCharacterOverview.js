@@ -222,13 +222,24 @@ export function useCharacterOverview({ roles }) {
                 e.preventDefault();
                 toggleExpanded(focusedRowId);
             } else if (e.key === 'Escape') {
-                setExpanded(new Set());
+                // Escape clears the filter first (matching the empty-state
+                // "Clear filter (Esc)" button), then collapses rows on a
+                // subsequent press (matching the "Esc collapse" legend).
+                if (filter) setFilter('');
+                else setExpanded(new Set());
             } else if (e.key === 'r') {
                 e.preventDefault();
                 refreshRef.current?.click();
             } else if (e.key === 'g') {
                 // chord: g a / g r / g l
                 const handler = (e2) => {
+                    // Suppress the second key so it doesn't bubble to the
+                    // page-level shortcut handler (e.g., "g r" must not
+                    // also trigger the "r = refresh" shortcut).
+                    if (['a', 'r', 'l'].includes(e2.key)) {
+                        e2.preventDefault();
+                        e2.stopImmediatePropagation();
+                    }
                     if (e2.key === 'a') setView('account');
                     else if (e2.key === 'r') setView('role');
                     else if (e2.key === 'l') setView('location');
@@ -240,7 +251,7 @@ export function useCharacterOverview({ roles }) {
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [flatRowIds, focusedRowId, toggleExpanded]);
+    }, [flatRowIds, focusedRowId, toggleExpanded, filter]);
 
     return {
         // refs
