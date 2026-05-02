@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/guarzo/canifly/internal/handlers"
 	"github.com/guarzo/canifly/internal/http"
@@ -13,10 +15,13 @@ import (
 	"github.com/guarzo/canifly/internal/persist/eve"
 	accountSvc "github.com/guarzo/canifly/internal/services/account"
 	cacheSvc "github.com/guarzo/canifly/internal/services/cache"
+	characterSvc "github.com/guarzo/canifly/internal/services/character"
 	configSvc "github.com/guarzo/canifly/internal/services/config"
 	eveSvc "github.com/guarzo/canifly/internal/services/eve"
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	profileSvc "github.com/guarzo/canifly/internal/services/profile"
+	skillplanSvc "github.com/guarzo/canifly/internal/services/skillplan"
 	"github.com/guarzo/canifly/internal/services/skillplans"
 	"github.com/guarzo/canifly/internal/services/storage"
 	syncSvc "github.com/guarzo/canifly/internal/services/sync"
@@ -35,9 +40,6 @@ type AppServices struct {
 	ProfileService   interfaces.ProfileService
 	CacheableService interfaces.CacheableService
 
-	// Composite service for backward compatibility (temporary)
-	EVEDataService interfaces.EVEDataService
-
 	// Other Services
 	SyncService      interfaces.SyncService
 	LoginService     interfaces.LoginService
@@ -46,17 +48,33 @@ type AppServices struct {
 	WebSocketHub     *handlers.WebSocketHub
 }
 
+// GetServices constructs the dependency graph used by the HTTP server.
+//
+// Initialization steps fall into two categories:
+//
+//	REQUIRED — failure aborts startup (returns error):
+//	  * storage directories
+//	  * configuration service load
+//	  * skill repo (skill plans + skill types)
+//	  * system repo
+//	  * auth client
+//
+//	OPTIONAL — failure is logged and startup continues:
+//	  * EVE credentials (user can set via UI)
+//	  * Fuzzworks refresh (cached data is used until ready; first-run download is required)
+//	  * Persistent cache load (rebuilt on demand)
+//	  * Settings directory creation (best-effort; recreated on demand)
 func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
-	// Create unified storage service first
+	// REQUIRED: storage directories
 	storageService := storage.NewStorageService(cfg.BasePath, logger)
 	if err := storageService.EnsureDirectories(); err != nil {
 		return nil, fmt.Errorf("failed to ensure directories: %w", err)
 	}
 
-	// Create configuration service first (no dependencies)
+	// REQUIRED: configuration service (no IO at construction; subsequent loads are best-effort)
 	configurationService := configSvc.NewConfigurationService(storageService, logger, cfg.BasePath, cfg.SecretKey)
 
-	// Load EVE credentials from storage if not set in environment
+	// OPTIONAL: EVE credentials — user can set them later via the UI
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
 		storedClientID, storedClientSecret, storedCallbackURL, err := configurationService.GetEVECredentials()
 		if err == nil && storedClientID != "" && storedClientSecret != "" {
@@ -69,7 +87,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		}
 	}
 
-	// Check if Fuzzworks auto-update is enabled
+	// OPTIONAL: stored config — fall back to defaults on failure
 	configData, err := configurationService.FetchConfigData()
 	if err != nil {
 		logger.Warnf("Failed to fetch config data: %v", err)
@@ -84,14 +102,49 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		cfg.SkillPlansRepoURL = configData.SkillPlansRepoURL
 	}
 
-	// Initialize Fuzzworks service to download latest EVE data
+	// WebSocket hub created early so async startup tasks (e.g. Fuzzworks) can broadcast progress.
+	webSocketHub := handlers.NewWebSocketHub(logger)
+
+	// Fuzzworks initial download.
+	//
+	// First-run policy: if the canonical data file (invTypes.csv) is missing,
+	// block synchronously so the REQUIRED skill repo load below can succeed.
+	// Subsequent runs: run async — the existing cached data is used immediately
+	// and a refresh broadcasts progress as fuzzworks:status events
+	// {state: updating|ready|error, error?: string}.
 	if autoUpdate {
-		logger.Infof("Initializing Fuzzworks data service (auto-update enabled)...")
 		fuzzworksService := fuzzworks.New(logger, cfg.BasePath, false)
-		ctx := context.Background()
-		if err := fuzzworksService.Initialize(ctx); err != nil {
-			logger.Errorf("Failed to initialize Fuzzworks service: %v", err)
-			// Continue with embedded data as fallback
+		invTypesPath := filepath.Join(cfg.BasePath, "config", "fuzzworks", "invTypes.csv")
+		_, statErr := os.Stat(invTypesPath)
+		switch {
+		case os.IsNotExist(statErr):
+			// First run — no cached data; block until download completes.
+			logger.Infof("Fuzzworks data missing — downloading synchronously on first run")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			if err := fuzzworksService.Initialize(ctx); err != nil {
+				cancel()
+				return nil, fmt.Errorf("fuzzworks initial download failed: %w", err)
+			}
+			cancel()
+		case statErr != nil:
+			// Stat failed for a reason other than "not found" (e.g. permission denied).
+			// Don't silently fall through to the async refresh path — the file may be
+			// unreadable and the skill repo load below would fail without a useful message.
+			return nil, fmt.Errorf("failed to stat fuzzworks data %s: %w", invTypesPath, statErr)
+		default:
+			// File exists — refresh in background.
+			logger.Infof("Fuzzworks auto-update enabled — running refresh in background")
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				defer cancel()
+				webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "updating"})
+				if err := fuzzworksService.Initialize(ctx); err != nil {
+					logger.Errorf("Fuzzworks update failed: %v", err)
+					webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "error", "error": err.Error()})
+					return
+				}
+				webSocketHub.BroadcastUpdate("fuzzworks:status", map[string]string{"state": "ready"})
+			}()
 		}
 	} else {
 		logger.Infof("Fuzzworks auto-update disabled in configuration")
@@ -99,13 +152,12 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 	loginService := initLoginService(logger, cfg.BasePath)
 
-	// Create dynamic auth client that loads credentials on each use
+	// REQUIRED: auth client (configured even if no credentials are present yet —
+	// they may be entered via the UI before the first OAuth flow).
 	logger.Info("Creating dynamic auth client that loads credentials from storage")
 	authClient := initAuthClient(logger, cfg, configurationService)
 
-	// Note: repository adapters are no longer needed for account and config services
-
-	// Create remaining repositories for EVE data
+	// REQUIRED: skill repo — skill plans + types must load for the app to function.
 	var skillStoreOpts []func(*eve.SkillStore)
 	if cfg.SkillPlansRepoURL != "" {
 		githubDownloader := skillplans.NewGitHubDownloader(cfg.SkillPlansRepoURL, logger)
@@ -118,56 +170,72 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	if err := skillRepo.LoadSkillTypes(); err != nil {
 		return nil, fmt.Errorf("failed to load skill types: %v", err)
 	}
+	// REQUIRED: system repo
 	systemRepo := eve.NewSystemStore(logger, cfg.BasePath)
 	if err := systemRepo.LoadSystems(); err != nil {
 		return nil, fmt.Errorf("failed to load systems: %v", err)
 	}
 	eveProfileRepo := eve.NewEveProfilesStore(logger)
 
+	// OPTIONAL: persistent cache load — empty cache is rebuilt on demand.
+	persistentCache := cacheSvc.NewPersistentCacheService(storageService, logger)
+	if err := persistentCache.LoadCache(); err != nil {
+		logger.Warnf("failed to load persistent cache: %v", err)
+	}
+
 	// Create HTTP cache service
 	httpCacheService := cacheSvc.NewHTTPCacheService(logger)
 
-	// Ensure settings directory
+	// OPTIONAL: settings directory — best-effort; recreated on demand by handlers
+	// that write into it. Don't clear the directory — it may be temporarily unavailable.
 	if err := configurationService.EnsureSettingsDir(); err != nil {
 		logger.Warnf("unable to ensure settings dir: %v", err)
-		// Don't clear the settings directory - it might be temporarily unavailable
 	}
 
-	// Create consolidated EVE data service (initially without dependencies that create circular refs)
-	eveDataService := eveSvc.NewEVEDataServiceImpl(
+	// Create HTTP client; depends on the persistent cache directly (no EVE↔HTTP cycle)
+	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, persistentCache)
+
+	// Create the focused ESI client. It depends only on httpClient, storage,
+	// cache, and logger — no accountMgmt, no authClient — which keeps the
+	// construction graph linear: esiClient → accountMgmt → characterService.
+	esiClient := eveSvc.NewESIClient(logger, httpClient, storageService, persistentCache)
+
+	// Account management consumes the ESI client as its UserInfoFetcher.
+	accountManagementService := accountSvc.NewAccountManagementService(storageService, esiClient, logger, authClient)
+
+	// Character service receives the real accountMgmt and esiClient at construction; no setters.
+	characterService := characterSvc.NewService(
 		logger,
-		nil, // httpClient will be set later
+		httpClient,
 		authClient,
-		nil, // accountManagementService will be set later
+		accountManagementService,
 		configurationService,
 		storageService,
 		skillRepo,
 		systemRepo,
-		eveProfileRepo,
+		persistentCache,
+		esiClient,
 	)
 
-	// Create HTTP client using EVE data service as cache service
-	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, eveDataService)
+	// Create skill plan service (narrow deps: just skillRepo + logger)
+	skillPlanService := skillplanSvc.NewService(logger, skillRepo)
 
-	// Set the HTTP client in EVE data service
-	eveDataService.SetHTTPClient(httpClient)
-
-	// Now create account management service with EVE data service as user info fetcher
-	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger, authClient)
-
-	// Set the account management service in EVE data service
-	eveDataService.SetAccountManagementService(accountManagementService)
+	// Profile service consumes the ESI client directly.
+	profileService := profileSvc.NewService(
+		eveProfileRepo,
+		configurationService,
+		accountManagementService,
+		esiClient,
+		logger,
+	)
 
 	// Create sync service
 	syncService := syncSvc.NewSyncService(
-		eveDataService,
+		profileService,
 		eveProfileRepo,
 		configurationService,
 		logger,
 	)
-
-	// Create WebSocket hub
-	webSocketHub := handlers.NewWebSocketHub(logger)
 
 	// No longer need AppCoordinator - services handle their own data
 
@@ -176,15 +244,12 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		AccountManagementService: accountManagementService,
 		ConfigurationService:     configurationService,
 
-		// Split EVE Services (all implemented by eveDataService)
-		ESIAPIService:    eveDataService,
-		CharacterService: eveDataService,
-		SkillPlanService: eveDataService,
-		ProfileService:   eveDataService,
-		CacheableService: eveDataService,
-
-		// Keep composite for backward compatibility
-		EVEDataService: eveDataService,
+		// Split EVE Services
+		ESIAPIService:    esiClient,
+		CharacterService: characterService,
+		SkillPlanService: skillPlanService,
+		ProfileService:   profileService,
+		CacheableService: persistentCache,
 
 		SyncService:      syncService,
 		LoginService:     loginService,

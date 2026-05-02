@@ -34,169 +34,6 @@ func (m *MockAssociationService) UnassociateCharacter(userId, charId string) err
 	return args.Error(0)
 }
 
-// MockEVEDataService mocks interfaces.EVEDataService
-type MockEVEDataService struct {
-	mock.Mock
-}
-
-// ESI API Operations
-func (m *MockEVEDataService) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error) {
-	args := m.Called(token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.UserInfoResponse), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetCharacter(id string) (*model.CharacterResponse, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.CharacterResponse), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
-	args := m.Called(characterID, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.CharacterSkillsResponse), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
-	args := m.Called(characterID, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*[]model.SkillQueue), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error) {
-	args := m.Called(characterID, token)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockEVEDataService) ResolveCharacterNames(charIds []string) (map[string]string, error) {
-	args := m.Called(charIds)
-	return args.Get(0).(map[string]string), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error) {
-	args := m.Called(id, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.Corporation), args.Error(1)
-}
-
-func (m *MockEVEDataService) GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error) {
-	args := m.Called(id, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.Alliance), args.Error(1)
-}
-
-// Character Management
-func (m *MockEVEDataService) ProcessIdentity(charIdentity *model.CharacterIdentity) (*model.CharacterIdentity, error) {
-	args := m.Called(charIdentity)
-	return args.Get(0).(*model.CharacterIdentity), args.Error(1)
-}
-
-func (m *MockEVEDataService) DoesCharacterExist(characterID int64) (bool, *model.CharacterIdentity, error) {
-	args := m.Called(characterID)
-	return args.Bool(0), args.Get(1).(*model.CharacterIdentity), args.Error(2)
-}
-
-func (m *MockEVEDataService) UpdateCharacterFields(characterID int64, updates map[string]interface{}) error {
-	args := m.Called(characterID, updates)
-	return args.Error(0)
-}
-
-func (m *MockEVEDataService) RemoveCharacter(characterID int64) error {
-	args := m.Called(characterID)
-	return args.Error(0)
-}
-
-// Skill Plan Management
-func (m *MockEVEDataService) GetSkillPlans() map[string]model.SkillPlan {
-	args := m.Called()
-	return args.Get(0).(map[string]model.SkillPlan)
-}
-
-func (m *MockEVEDataService) GetSkillName(id int32) string {
-	args := m.Called(id)
-	return args.String(0)
-}
-
-func (m *MockEVEDataService) GetSkillTypes() map[string]model.SkillType {
-	args := m.Called()
-	return args.Get(0).(map[string]model.SkillType)
-}
-
-func (m *MockEVEDataService) CheckIfDuplicatePlan(name string) bool {
-	args := m.Called(name)
-	return args.Bool(0)
-}
-
-func (m *MockEVEDataService) ParseAndSaveSkillPlan(contents, name string) error {
-	args := m.Called(contents, name)
-	return args.Error(0)
-}
-
-func (m *MockEVEDataService) GetSkillPlanFile(name string) ([]byte, error) {
-	args := m.Called(name)
-	return args.Get(0).([]byte), args.Error(1)
-}
-
-func (m *MockEVEDataService) DeleteSkillPlan(name string) error {
-	args := m.Called(name)
-	return args.Error(0)
-}
-
-func (m *MockEVEDataService) GetSkillTypeByID(id string) (model.SkillType, bool) {
-	args := m.Called(id)
-	return args.Get(0).(model.SkillType), args.Bool(1)
-}
-
-func (m *MockEVEDataService) GetPlanAndConversionData(accounts []model.Account, skillPlans map[string]model.SkillPlan, skillTypes map[string]model.SkillType) (map[string]model.SkillPlanWithStatus, map[string]string) {
-	args := m.Called(accounts, skillPlans, skillTypes)
-	return args.Get(0).(map[string]model.SkillPlanWithStatus), args.Get(1).(map[string]string)
-}
-
-// Eve Profile Management
-func (m *MockEVEDataService) LoadCharacterSettings() ([]model.EveProfile, error) {
-	args := m.Called()
-	return args.Get(0).([]model.EveProfile), args.Error(1)
-}
-
-func (m *MockEVEDataService) BackupDir(targetDir, backupDir string) error {
-	args := m.Called(targetDir, backupDir)
-	return args.Error(0)
-}
-
-func (m *MockEVEDataService) SyncDir(subDir, charId, userId string) (int, int, error) {
-	args := m.Called(subDir, charId, userId)
-	return args.Int(0), args.Int(1), args.Error(2)
-}
-
-func (m *MockEVEDataService) SyncAllDir(baseSubDir, charId, userId string) (int, int, error) {
-	args := m.Called(baseSubDir, charId, userId)
-	return args.Int(0), args.Int(1), args.Error(2)
-}
-
-// Cache Management
-func (m *MockEVEDataService) SaveCache() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-func (m *MockEVEDataService) LoadCache() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
 // MockESIService mocks interfaces.ESIService
 type MockESIService struct {
 	mock.Mock
@@ -247,7 +84,7 @@ func (m *MockESIService) GetAlliance(id int64, token *oauth2.Token) (*model.Alli
 	return args.Get(0).(*model.Alliance), args.Error(1)
 }
 
-// MockCharacterService removed - functionality now in EVEDataService
+// MockCharacterService removed - use focused service mocks instead
 
 // MockSkillService mocks interfaces.SkillService
 type MockSkillService struct {
@@ -334,9 +171,13 @@ func (m *MockAccountService) RemoveAccountByName(accountName string) error {
 	return args.Error(0)
 }
 
-func (m *MockAccountService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
-	args := m.Called(eveDataService)
-	return args.Get(0).(*model.AccountData), args.Error(1)
+func (m *MockAccountService) RefreshAccountData() (*model.AccountData, error) {
+	args := m.Called()
+	v := args.Get(0)
+	if v == nil {
+		return nil, args.Error(1)
+	}
+	return v.(*model.AccountData), args.Error(1)
 }
 
 func (m *MockAccountService) DeleteAllAccounts() error {
@@ -389,9 +230,13 @@ func (m *MockAccountManagementService) RemoveAccountByName(accountName string) e
 	return args.Error(0)
 }
 
-func (m *MockAccountManagementService) RefreshAccountData(eveDataService interfaces.EVEDataService) (*model.AccountData, error) {
-	args := m.Called(eveDataService)
-	return args.Get(0).(*model.AccountData), args.Error(1)
+func (m *MockAccountManagementService) RefreshAccountData() (*model.AccountData, error) {
+	args := m.Called()
+	v := args.Get(0)
+	if v == nil {
+		return nil, args.Error(1)
+	}
+	return v.(*model.AccountData), args.Error(1)
 }
 
 func (m *MockAccountManagementService) DeleteAllAccounts() error {
