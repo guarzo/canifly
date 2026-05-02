@@ -109,8 +109,8 @@ func (m *MockEVEDataService) DoesCharacterExist(characterID int64) (bool, *model
 	return args.Bool(0), args.Get(1).(*model.CharacterIdentity), args.Error(2)
 }
 
-func (m *MockEVEDataService) UpdateCharacterFields(characterID int64, updates map[string]interface{}) error {
-	args := m.Called(characterID, updates)
+func (m *MockEVEDataService) UpdateCharacter(characterID int64, update model.CharacterUpdate) error {
+	args := m.Called(characterID, update)
 	return args.Error(0)
 }
 

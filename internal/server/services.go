@@ -13,6 +13,7 @@ import (
 	"github.com/guarzo/canifly/internal/persist/eve"
 	accountSvc "github.com/guarzo/canifly/internal/services/account"
 	cacheSvc "github.com/guarzo/canifly/internal/services/cache"
+	characterSvc "github.com/guarzo/canifly/internal/services/character"
 	configSvc "github.com/guarzo/canifly/internal/services/config"
 	eveSvc "github.com/guarzo/canifly/internal/services/eve"
 	"github.com/guarzo/canifly/internal/services/fuzzworks"
@@ -143,6 +144,20 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Create HTTP client; depends on the persistent cache directly (no EVE↔HTTP cycle)
 	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, persistentCache)
 
+	// Create the character service first; accountMgmt is set later via SetAccountMgmt
+	// to break the construction cycle (accountMgmt's UserInfoFetcher is *character.Service).
+	characterService := characterSvc.NewService(
+		logger,
+		httpClient,
+		authClient,
+		nil, // accountMgmt — set below via SetAccountMgmt
+		configurationService,
+		storageService,
+		skillRepo,
+		systemRepo,
+		persistentCache,
+	)
+
 	// Create consolidated EVE data service (initially without dependencies that create circular refs)
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
@@ -154,12 +169,14 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		skillRepo,
 		systemRepo,
 		persistentCache,
+		characterService,
 	)
 
-	// Now create account management service with EVE data service as user info fetcher
-	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger, authClient)
+	// Now create account management service with the character service as user info fetcher
+	accountManagementService := accountSvc.NewAccountManagementService(storageService, characterService, logger, authClient)
 
-	// Set the account management service in EVE data service
+	// Inject accountMgmt into both the character service and the EVE data service
+	characterService.SetAccountMgmt(accountManagementService)
 	eveDataService.SetAccountManagementService(accountManagementService)
 
 	// Create profile service with narrow deps (uses eveDataService as ESIAPIService until Task 5)
@@ -191,7 +208,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 
 		// Split EVE Services (all implemented by eveDataService)
 		ESIAPIService:    eveDataService,
-		CharacterService: eveDataService,
+		CharacterService: characterService,
 		SkillPlanService: eveDataService,
 		ProfileService:   profileService,
 		CacheableService: persistentCache,

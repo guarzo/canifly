@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/guarzo/canifly/internal/model"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -56,18 +57,18 @@ func (h *CharacterHandler) UpdateCharacterRESTful() http.HandlerFunc {
 			return
 		}
 
-		var updates map[string]interface{}
-		if err := decodeJSONBody(r, &updates); err != nil {
+		var update model.CharacterUpdate
+		if err := decodeJSONBody(r, &update); err != nil {
 			respondError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		if len(updates) == 0 {
+		if update.Role == nil && update.MCT == nil {
 			respondError(w, "No updates provided", http.StatusBadRequest)
 			return
 		}
 
-		if err := h.characterService.UpdateCharacterFields(characterID, updates); err != nil {
+		if err := h.characterService.UpdateCharacter(characterID, update); err != nil {
 			respondError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
