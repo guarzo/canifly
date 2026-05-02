@@ -4,16 +4,21 @@ import { vi } from 'vitest';
 import Sync from './Sync';
 import '@testing-library/jest-dom';
 
-// Mock useConfirmDialog
+// Mock useConfirmDialog — always confirm.
 vi.mock('../hooks/useConfirmDialog.jsx', () => ({
     useConfirmDialog: () => {
-        const showConfirmDialog = () => {
-            // Always resolve with isConfirmed: true
-            return Promise.resolve({ isConfirmed: true });
-        };
-        const confirmDialog = null;
-        return [showConfirmDialog, confirmDialog];
+        const showConfirmDialog = () => Promise.resolve({ isConfirmed: true });
+        return [showConfirmDialog, null];
     }
+}));
+
+// Mock react-toastify so we can assert on toast calls (messages aren't in the DOM).
+vi.mock('react-toastify', () => ({
+    toast: {
+        success: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+    },
 }));
 
 // Mock apiService calls
@@ -26,6 +31,7 @@ vi.mock('../api/apiService.jsx', () => ({
     resetToDefaultDirectory: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+import { toast } from 'react-toastify';
 import {
     saveUserSelections,
     syncSubdirectory,
@@ -54,14 +60,15 @@ describe('Sync component', () => {
         vi.clearAllMocks();
     });
 
-    it('renders with no settingsData and shows no subdirectories', () => {
+    it('renders with no settingsData and shows empty state', () => {
         render(<Sync {...defaultProps} />);
-        expect(screen.getByText('Sync Profile Settings')).toBeInTheDocument();
-        // No subDir => no SubDirectoryCard
-        expect(screen.queryByText('-- Select Character --')).not.toBeInTheDocument();
+        // Subheader title is "Sync"
+        expect(screen.getByText('Sync')).toBeInTheDocument();
+        // Empty-state message
+        expect(screen.getByText(/No EVE profiles found/i)).toBeInTheDocument();
     });
 
-    it('renders SubDirectoryCards when settingsData is provided', () => {
+    it('renders SyncProfileRow when settingsData is provided', () => {
         const props = {
             ...defaultProps,
             settingsData: [{
@@ -79,11 +86,11 @@ describe('Sync component', () => {
         };
         render(<Sync {...props} />);
 
-        // The subdir name displayed without 'settings_'
+        // Profile name (without 'settings_')
         expect(screen.getByText('profileA')).toBeInTheDocument();
-        // Character and user selects
-        expect(screen.getByLabelText('Select Character')).toBeInTheDocument();
-        expect(screen.getByLabelText('Select User')).toBeInTheDocument();
+        // Per-row select inputs are labeled with the profile name.
+        expect(screen.getByLabelText('Character file for profileA')).toBeInTheDocument();
+        expect(screen.getByLabelText('User file for profileA')).toBeInTheDocument();
     });
 
     it('handles character selection and auto-user selection if associated', () => {
@@ -100,15 +107,16 @@ describe('Sync component', () => {
                     { userId: 'userA', name: 'User A' }
                 ]
             }],
-            userSelections: {}
+            userSelections: {
+                'settings_profileA': { charId: '', userId: '' }
+            }
         };
         render(<Sync {...props} />);
 
-        const charSelect = screen.getByLabelText('Select Character');
+        const charSelect = screen.getByLabelText('Character file for profileA');
         fireEvent.mouseDown(charSelect);
-        fireEvent.click(screen.getByText('Char One (char1)'));
+        fireEvent.click(screen.getByText('Char One'));
 
-        // After selection, user should be auto-selected if assoc found
         expect(saveUserSelections).toHaveBeenCalled();
     });
 
@@ -130,13 +138,13 @@ describe('Sync component', () => {
         };
         render(<Sync {...props} />);
 
-        const syncButton = screen.getByRole('button', { name: /sync this specific profile/i });
+        const syncButton = screen.getByRole('button', { name: /^sync profileA$/i });
         await act(async () => {
             fireEvent.click(syncButton);
         });
 
         expect(syncSubdirectory).toHaveBeenCalledWith('settings_profileA', 'userA', 'char1');
-        expect(screen.getByText('Synced successfully!')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('Synced successfully!');
     });
 
     it('syncs all profiles', async () => {
@@ -157,13 +165,13 @@ describe('Sync component', () => {
         };
         render(<Sync {...props} />);
 
-        const syncAllButton = screen.getByRole('button', { name: /sync all profiles based on this selection/i });
+        const syncAllButton = screen.getByRole('button', { name: /sync all profiles using profileB/i });
         await act(async () => {
             fireEvent.click(syncAllButton);
         });
 
         expect(syncAllSubdirectories).toHaveBeenCalledWith('settings_profileB', 'userB', 'char2');
-        expect(screen.getByText('Sync-All complete: Sync-All successful!')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('Sync-All complete: Sync-All successful!');
     });
 
     it('chooses settings directory', async () => {
@@ -188,7 +196,7 @@ describe('Sync component', () => {
 
         expect(window.electronAPI.chooseDirectory).toHaveBeenCalledWith('');
         expect(backupDirectory).toHaveBeenCalledWith('/current/dir', '/chosen/dir');
-        expect(screen.getByText('Backup complete!')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('Backup complete!');
     });
 
     it('reset to default directory', async () => {
@@ -200,6 +208,6 @@ describe('Sync component', () => {
         });
 
         expect(resetToDefaultDirectory).toHaveBeenCalledWith();
-        expect(screen.getByText('Directory reset to default: Tranquility')).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith('Reset to default: Tranquility');
     });
 });
