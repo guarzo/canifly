@@ -7,7 +7,4 @@ type EVEDataComposite interface {
 	CharacterService
 	SkillPlanService
 	CacheableService
-
-	// Service setters for dependency injection
-	SetAccountManagementService(accountMgmt AccountManagementService)
 }

@@ -145,50 +145,51 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	// Create HTTP client; depends on the persistent cache directly (no EVE↔HTTP cycle)
 	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, persistentCache)
 
-	// Create the character service first; accountMgmt is set later via SetAccountMgmt
-	// to break the construction cycle (accountMgmt's UserInfoFetcher is *character.Service).
+	// Create the focused ESI client. It depends only on httpClient, storage,
+	// cache, and logger — no accountMgmt, no authClient — which keeps the
+	// construction graph linear: esiClient → accountMgmt → characterService.
+	esiClient := eveSvc.NewESIClient(logger, httpClient, storageService, persistentCache)
+
+	// Account management consumes the ESI client as its UserInfoFetcher.
+	accountManagementService := accountSvc.NewAccountManagementService(storageService, esiClient, logger, authClient)
+
+	// Character service receives the real accountMgmt and esiClient at construction; no setters.
 	characterService := characterSvc.NewService(
 		logger,
 		httpClient,
 		authClient,
-		nil, // accountMgmt — set below via SetAccountMgmt
+		accountManagementService,
 		configurationService,
 		storageService,
 		skillRepo,
 		systemRepo,
 		persistentCache,
+		esiClient,
 	)
 
 	// Create skill plan service (narrow deps: just skillRepo + logger)
 	skillPlanService := skillplanSvc.NewService(logger, skillRepo)
 
-	// Create consolidated EVE data service (initially without dependencies that create circular refs)
+	// Create consolidated EVE data service. ESI shims now delegate to esiClient.
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
 		httpClient,
 		authClient,
-		nil, // accountManagementService will be set later
 		configurationService,
 		storageService,
 		systemRepo,
 		persistentCache,
 		characterService,
 		skillPlanService,
+		esiClient,
 	)
 
-	// Now create account management service with the character service as user info fetcher
-	accountManagementService := accountSvc.NewAccountManagementService(storageService, characterService, logger, authClient)
-
-	// Inject accountMgmt into both the character service and the EVE data service
-	characterService.SetAccountMgmt(accountManagementService)
-	eveDataService.SetAccountManagementService(accountManagementService)
-
-	// Create profile service with narrow deps (uses eveDataService as ESIAPIService until Task 5)
+	// Profile service consumes the ESI client directly.
 	profileService := profileSvc.NewService(
 		eveProfileRepo,
 		configurationService,
 		accountManagementService,
-		eveDataService,
+		esiClient,
 		logger,
 	)
 
@@ -211,7 +212,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		ConfigurationService:     configurationService,
 
 		// Split EVE Services (all implemented by eveDataService)
-		ESIAPIService:    eveDataService,
+		ESIAPIService:    esiClient,
 		CharacterService: characterService,
 		SkillPlanService: skillPlanService,
 		ProfileService:   profileService,

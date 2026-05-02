@@ -25,12 +25,11 @@ var _ interfaces.EVEDataService = (*EVEDataServiceImpl)(nil)
 // SkillPlanService, ProfileService, CacheableService, and EVEDataComposite
 type EVEDataServiceImpl struct {
 	// Core dependencies
-	logger      interfaces.Logger
-	httpClient  interfaces.EsiHttpClient
-	authClient  interfaces.AuthClient
-	accountMgmt interfaces.AccountManagementService
-	configSvc   interfaces.ConfigurationService
-	storage     interfaces.StorageService
+	logger     interfaces.Logger
+	httpClient interfaces.EsiHttpClient
+	authClient interfaces.AuthClient
+	configSvc  interfaces.ConfigurationService
+	storage    interfaces.StorageService
 
 	// Repositories still needed
 	systemRepo interfaces.SystemRepository
@@ -43,6 +42,9 @@ type EVEDataServiceImpl struct {
 
 	// Skill plan methods are delegated to *skillplan.Service
 	skillPlan *skillplanSvc.Service
+
+	// ESI API methods are delegated to *ESIClient
+	esiClient *ESIClient
 }
 
 // NewEVEDataServiceImpl creates a new consolidated EVE data service implementation
@@ -50,61 +52,61 @@ func NewEVEDataServiceImpl(
 	logger interfaces.Logger,
 	httpClient interfaces.EsiHttpClient,
 	authClient interfaces.AuthClient,
-	accountMgmt interfaces.AccountManagementService,
 	configSvc interfaces.ConfigurationService,
 	storage interfaces.StorageService,
 	systemRepo interfaces.SystemRepository,
 	persistentCache *cacheSvc.PersistentCacheService,
 	character *characterSvc.Service,
 	skillPlan *skillplanSvc.Service,
+	esiClient *ESIClient,
 ) interfaces.EVEDataService {
 	svc := &EVEDataServiceImpl{
 		logger:          logger,
 		httpClient:      httpClient,
 		authClient:      authClient,
-		accountMgmt:     accountMgmt,
 		configSvc:       configSvc,
 		storage:         storage,
 		systemRepo:      systemRepo,
 		persistentCache: persistentCache,
 		character:       character,
 		skillPlan:       skillPlan,
+		esiClient:       esiClient,
 	}
 
 	return svc
 }
 
-// ESI API Operations — delegated to *character.Service
+// ESI API Operations — delegated to *ESIClient
 func (s *EVEDataServiceImpl) GetUserInfo(token *oauth2.Token) (*model.UserInfoResponse, error) {
-	return s.character.GetUserInfo(token)
+	return s.esiClient.GetUserInfo(token)
 }
 
 func (s *EVEDataServiceImpl) GetCharacter(id string) (*model.CharacterResponse, error) {
-	return s.character.GetCharacter(id)
+	return s.esiClient.GetCharacter(id)
 }
 
 func (s *EVEDataServiceImpl) GetCharacterSkills(characterID int64, token *oauth2.Token) (*model.CharacterSkillsResponse, error) {
-	return s.character.GetCharacterSkills(characterID, token)
+	return s.esiClient.GetCharacterSkills(characterID, token)
 }
 
 func (s *EVEDataServiceImpl) GetCharacterSkillQueue(characterID int64, token *oauth2.Token) (*[]model.SkillQueue, error) {
-	return s.character.GetCharacterSkillQueue(characterID, token)
+	return s.esiClient.GetCharacterSkillQueue(characterID, token)
 }
 
 func (s *EVEDataServiceImpl) GetCharacterLocation(characterID int64, token *oauth2.Token) (int64, error) {
-	return s.character.GetCharacterLocation(characterID, token)
+	return s.esiClient.GetCharacterLocation(characterID, token)
 }
 
 func (s *EVEDataServiceImpl) ResolveCharacterNames(charIds []string) (map[string]string, error) {
-	return s.character.ResolveCharacterNames(charIds)
+	return s.esiClient.ResolveCharacterNames(charIds)
 }
 
 func (s *EVEDataServiceImpl) GetCorporation(id int64, token *oauth2.Token) (*model.Corporation, error) {
-	return s.character.GetCorporation(id, token)
+	return s.esiClient.GetCorporation(id, token)
 }
 
 func (s *EVEDataServiceImpl) GetAlliance(id int64, token *oauth2.Token) (*model.Alliance, error) {
-	return s.character.GetAlliance(id, token)
+	return s.esiClient.GetAlliance(id, token)
 }
 
 // Character Management — delegated to *character.Service
@@ -184,8 +186,3 @@ func (s *EVEDataServiceImpl) Shutdown() { s.persistentCache.Shutdown() }
 
 // Clear removes all cache entries
 func (s *EVEDataServiceImpl) Clear() { s.persistentCache.Clear() }
-
-// SetAccountManagementService sets the account management service after initialization
-func (s *EVEDataServiceImpl) SetAccountManagementService(accountMgmt interfaces.AccountManagementService) {
-	s.accountMgmt = accountMgmt
-}

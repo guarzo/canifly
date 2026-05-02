@@ -49,7 +49,4 @@ type EVEDataService interface {
 	// CacheService methods (so EVEDataService can act as its own cache)
 	Get(key string) ([]byte, bool)
 	Set(key string, value []byte, expiration time.Duration)
-
-	// Account Management setter (for circular dependency resolution)
-	SetAccountManagementService(accountMgmt AccountManagementService)
 }
