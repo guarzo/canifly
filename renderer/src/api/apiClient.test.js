@@ -1,6 +1,6 @@
-// src/api/apiRequest.test.jsx
+// src/api/apiClient.test.js
 import { vi } from 'vitest';
-import { apiRequest } from './apiRequest';
+import { apiRequest } from './apiClient';
 import { toast } from 'react-toastify';
 
 vi.mock('react-toastify', () => ({

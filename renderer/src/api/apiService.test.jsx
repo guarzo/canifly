@@ -19,9 +19,9 @@ import {
     deleteSkillPlan,
     initiateLogin
 } from './apiService';
-import { apiRequest } from './apiRequest';
+import { apiRequest } from './apiClient';
 
-vi.mock('./apiRequest', () => ({
+vi.mock('./apiClient', () => ({
     apiRequest: vi.fn()
 }));
 

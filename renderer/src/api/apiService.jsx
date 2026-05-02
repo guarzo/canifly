@@ -15,7 +15,7 @@
  * - PATCH  /api/config           - Update configuration
  */
 
-import { apiRequest } from './apiRequest';
+import { apiRequest } from './apiClient';
 import {isDev} from '../Config';
 
 // New RESTful API functions
