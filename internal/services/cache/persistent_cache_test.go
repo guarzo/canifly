@@ -5,11 +5,18 @@ import (
 	"time"
 
 	cacheSvc "github.com/guarzo/canifly/internal/services/cache"
+	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/guarzo/canifly/internal/services/storage"
 	"github.com/guarzo/canifly/internal/testutil"
 )
 
+func newTestStorage(t *testing.T) interfaces.StorageService {
+	t.Helper()
+	return storage.NewStorageService(t.TempDir(), &testutil.MockLogger{})
+}
+
 func TestPersistentCache_GetSet_RoundTrip(t *testing.T) {
-	c := cacheSvc.NewPersistentCacheService(t.TempDir(), &testutil.MockLogger{})
+	c := cacheSvc.NewPersistentCacheService(newTestStorage(t), &testutil.MockLogger{})
 
 	c.Set("foo", []byte("bar"), time.Hour)
 	got, ok := c.Get("foo")
@@ -22,7 +29,7 @@ func TestPersistentCache_GetSet_RoundTrip(t *testing.T) {
 }
 
 func TestPersistentCache_Get_Expired(t *testing.T) {
-	c := cacheSvc.NewPersistentCacheService(t.TempDir(), &testutil.MockLogger{})
+	c := cacheSvc.NewPersistentCacheService(newTestStorage(t), &testutil.MockLogger{})
 
 	c.Set("foo", []byte("bar"), 1*time.Millisecond)
 	time.Sleep(5 * time.Millisecond)
@@ -32,14 +39,14 @@ func TestPersistentCache_Get_Expired(t *testing.T) {
 }
 
 func TestPersistentCache_SaveLoad(t *testing.T) {
-	dir := t.TempDir()
-	c1 := cacheSvc.NewPersistentCacheService(dir, &testutil.MockLogger{})
+	store := newTestStorage(t)
+	c1 := cacheSvc.NewPersistentCacheService(store, &testutil.MockLogger{})
 	c1.Set("k1", []byte("v1"), time.Hour)
 	if err := c1.SaveCache(); err != nil {
 		t.Fatalf("SaveCache: %v", err)
 	}
 
-	c2 := cacheSvc.NewPersistentCacheService(dir, &testutil.MockLogger{})
+	c2 := cacheSvc.NewPersistentCacheService(store, &testutil.MockLogger{})
 	if err := c2.LoadCache(); err != nil {
 		t.Fatalf("LoadCache: %v", err)
 	}
@@ -47,4 +54,10 @@ func TestPersistentCache_SaveLoad(t *testing.T) {
 	if !ok || string(got) != "v1" {
 		t.Fatalf("expected v1, got %q ok=%v", got, ok)
 	}
+}
+
+func TestPersistentCache_Shutdown_Idempotent(t *testing.T) {
+	c := cacheSvc.NewPersistentCacheService(newTestStorage(t), &testutil.MockLogger{})
+	c.Shutdown()
+	c.Shutdown() // must not panic
 }

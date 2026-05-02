@@ -1,9 +1,6 @@
 package cache
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -18,22 +15,26 @@ type persistentCacheEntry struct {
 
 // PersistentCacheService is a disk-backed in-memory cache with TTL support.
 type PersistentCacheService struct {
-	logger   interfaces.Logger
-	basePath string
-	mu       sync.RWMutex
-	entries  map[string]*persistentCacheEntry
-	stopCh   chan struct{}
+	logger     interfaces.Logger
+	storage    interfaces.StorageService
+	mu         sync.RWMutex
+	entries    map[string]*persistentCacheEntry
+	stopCh     chan struct{}
+	stopOnce   sync.Once
+	wg         sync.WaitGroup
 }
 
-// NewPersistentCacheService creates a new persistent cache rooted at basePath
-// and starts a background goroutine that periodically evicts expired entries.
-func NewPersistentCacheService(basePath string, logger interfaces.Logger) *PersistentCacheService {
+// NewPersistentCacheService creates a new persistent cache that delegates disk
+// IO to the supplied storage service and starts a background goroutine that
+// periodically evicts expired entries.
+func NewPersistentCacheService(storage interfaces.StorageService, logger interfaces.Logger) *PersistentCacheService {
 	c := &PersistentCacheService{
-		logger:   logger,
-		basePath: basePath,
-		entries:  make(map[string]*persistentCacheEntry),
-		stopCh:   make(chan struct{}),
+		logger:  logger,
+		storage: storage,
+		entries: make(map[string]*persistentCacheEntry),
+		stopCh:  make(chan struct{}),
 	}
+	c.wg.Add(1)
 	go c.cleanupExpired()
 	return c
 }
@@ -71,7 +72,7 @@ func (c *PersistentCacheService) Set(key string, value []byte, expiration time.D
 	}
 }
 
-// SaveCache flushes the cache contents to disk as api_cache.json.
+// SaveCache flushes the cache contents to disk via the storage service.
 func (c *PersistentCacheService) SaveCache() error {
 	c.mu.RLock()
 	cacheCopy := make(map[string][]byte, len(c.entries))
@@ -80,34 +81,20 @@ func (c *PersistentCacheService) SaveCache() error {
 	}
 	c.mu.RUnlock()
 
-	if err := os.MkdirAll(c.basePath, 0o755); err != nil {
-		return err
-	}
-	path := filepath.Join(c.basePath, "api_cache.json")
-	data, err := json.Marshal(cacheCopy)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0o644)
+	return c.storage.SaveAPICache(cacheCopy)
 }
 
-// LoadCache loads cache contents from disk if api_cache.json exists.
+// LoadCache loads cache contents from disk via the storage service.
 func (c *PersistentCacheService) LoadCache() error {
-	path := filepath.Join(c.basePath, "api_cache.json")
-	data, err := os.ReadFile(path)
+	cache, err := c.storage.LoadAPICache()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	cache := make(map[string][]byte)
-	if err := json.Unmarshal(data, &cache); err != nil {
 		return err
 	}
 	c.mu.Lock()
 	c.entries = make(map[string]*persistentCacheEntry, len(cache))
 	for k, v := range cache {
+		// On-disk format stores only []byte values, not original expirations.
+		// Reloaded entries are given a fresh TTL; this matches prior behavior.
 		c.entries[k] = &persistentCacheEntry{
 			data:       v,
 			expiration: time.Now().Add(24 * time.Hour),
@@ -117,7 +104,8 @@ func (c *PersistentCacheService) LoadCache() error {
 	return nil
 }
 
-// SaveEsiCache is an alias for SaveCache used by the ESI service interface.
+// SaveEsiCache exists to satisfy the legacy ESIService interface contract.
+// TODO: drop once that interface no longer requires it.
 func (c *PersistentCacheService) SaveEsiCache() error {
 	return c.SaveCache()
 }
@@ -127,24 +115,29 @@ func (c *PersistentCacheService) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.entries = make(map[string]*persistentCacheEntry)
-	c.logger.Info("EVE data cache cleared")
+	c.logger.Info("persistent cache cleared")
 }
 
-// Shutdown stops the background cleanup goroutine.
+// Shutdown stops the background cleanup goroutine and blocks until it exits.
+// Safe to call multiple times.
 func (c *PersistentCacheService) Shutdown() {
-	close(c.stopCh)
-	c.logger.Info("Persistent cache service shutdown initiated")
+	c.stopOnce.Do(func() {
+		close(c.stopCh)
+		c.logger.Info("persistent cache shutdown initiated")
+	})
+	c.wg.Wait()
 }
 
 // cleanupExpired periodically removes expired entries.
 func (c *PersistentCacheService) cleanupExpired() {
+	defer c.wg.Done()
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-c.stopCh:
-			c.logger.Info("EVE data cache cleanup goroutine shutting down")
+			c.logger.Info("persistent cache cleanup goroutine shutting down")
 			return
 		case <-ticker.C:
 			c.mu.Lock()
@@ -162,7 +155,7 @@ func (c *PersistentCacheService) cleanupExpired() {
 			}
 
 			if len(keysToDelete) > 0 {
-				c.logger.Debugf("Cleaned up %d expired EVE data cache entries", len(keysToDelete))
+				c.logger.Debugf("persistent cache cleaned up %d expired entries", len(keysToDelete))
 			}
 			c.mu.Unlock()
 		}

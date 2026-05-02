@@ -125,7 +125,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	eveProfileRepo := eve.NewEveProfilesStore(logger)
 
 	// Create persistent cache before httpClient (httpClient now depends on it directly)
-	persistentCache := cacheSvc.NewPersistentCacheService(cfg.BasePath, logger)
+	persistentCache := cacheSvc.NewPersistentCacheService(storageService, logger)
 	if err := persistentCache.LoadCache(); err != nil {
 		logger.Warnf("failed to load persistent cache: %v", err)
 	}
