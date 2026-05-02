@@ -7,13 +7,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
 
 	flyErrors "github.com/guarzo/canifly/internal/errors"
 	"github.com/guarzo/canifly/internal/model"
+	cacheSvc "github.com/guarzo/canifly/internal/services/cache"
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
@@ -43,10 +43,8 @@ type EVEDataServiceImpl struct {
 	systemRepo     interfaces.SystemRepository
 	eveProfileRepo interfaces.EveProfilesRepository
 
-	// Cache management
-	cache   map[string]*cacheEntry
-	cacheMu sync.RWMutex
-	done    chan struct{}
+	// Cache management is delegated to a standalone cache service
+	persistentCache *cacheSvc.PersistentCacheService
 }
 
 // NewEVEDataServiceImpl creates a new consolidated EVE data service implementation
@@ -60,27 +58,20 @@ func NewEVEDataServiceImpl(
 	skillRepo interfaces.SkillRepository,
 	systemRepo interfaces.SystemRepository,
 	eveProfileRepo interfaces.EveProfilesRepository,
+	persistentCache *cacheSvc.PersistentCacheService,
 ) interfaces.EVEDataService {
 	svc := &EVEDataServiceImpl{
-		logger:         logger,
-		httpClient:     httpClient,
-		authClient:     authClient,
-		accountMgmt:    accountMgmt,
-		configSvc:      configSvc,
-		storage:        storage,
-		skillRepo:      skillRepo,
-		systemRepo:     systemRepo,
-		eveProfileRepo: eveProfileRepo,
-		cache:          make(map[string]*cacheEntry),
-		done:           make(chan struct{}),
+		logger:          logger,
+		httpClient:      httpClient,
+		authClient:      authClient,
+		accountMgmt:     accountMgmt,
+		configSvc:       configSvc,
+		storage:         storage,
+		skillRepo:       skillRepo,
+		systemRepo:      systemRepo,
+		eveProfileRepo:  eveProfileRepo,
+		persistentCache: persistentCache,
 	}
-	// Load initial cache
-	if err := svc.LoadCache(); err != nil {
-		logger.Warnf("Failed to load API cache: %v", err)
-	}
-
-	// Start cleanup goroutine
-	go svc.cleanupExpired()
 
 	return svc
 }
@@ -933,131 +924,21 @@ func (s *EVEDataServiceImpl) SyncAllDir(baseSubDir, charId, userId string) (int,
 	return s.eveProfileRepo.SyncAllSubdirectories(baseSubDir, userId, charId, settingsDir)
 }
 
-// Cache Management
-func (s *EVEDataServiceImpl) SaveCache() error {
-	s.cacheMu.RLock()
-	cacheCopy := make(map[string][]byte)
-	for k, v := range s.cache {
-		cacheCopy[k] = v.data
-	}
-	s.cacheMu.RUnlock()
-	return s.storage.SaveAPICache(cacheCopy)
-}
+// Cache Management — delegated to persistentCache
+func (s *EVEDataServiceImpl) SaveCache() error    { return s.persistentCache.SaveCache() }
+func (s *EVEDataServiceImpl) LoadCache() error    { return s.persistentCache.LoadCache() }
+func (s *EVEDataServiceImpl) SaveEsiCache() error { return s.persistentCache.SaveEsiCache() }
 
-func (s *EVEDataServiceImpl) LoadCache() error {
-	cache, err := s.storage.LoadAPICache()
-	if err != nil {
-		return err
-	}
-	s.cacheMu.Lock()
-	// Convert old cache format to new format with 24 hour expiration
-	s.cache = make(map[string]*cacheEntry)
-	for k, v := range cache {
-		s.cache[k] = &cacheEntry{
-			data:       v,
-			expiration: time.Now().Add(24 * time.Hour),
-		}
-	}
-	s.cacheMu.Unlock()
-	return nil
-}
-
-// SaveEsiCache saves the ESI cache (alias for SaveCache to implement ESIService interface)
-func (s *EVEDataServiceImpl) SaveEsiCache() error {
-	return s.SaveCache()
-}
-
-// cacheEntry represents a cached item with expiration
-type cacheEntry struct {
-	data       []byte
-	expiration time.Time
-}
-
-// Cache getter and setter for CacheService
-func (s *EVEDataServiceImpl) Get(key string) ([]byte, bool) {
-	s.cacheMu.RLock()
-	defer s.cacheMu.RUnlock()
-
-	entry, exists := s.cache[key]
-	if !exists {
-		return nil, false
-	}
-
-	// Check if entry has expired
-	if time.Now().After(entry.expiration) {
-		// Entry has expired, remove it
-		s.cacheMu.RUnlock()
-		s.cacheMu.Lock()
-		delete(s.cache, key)
-		s.cacheMu.Unlock()
-		s.cacheMu.RLock()
-		return nil, false
-	}
-
-	return entry.data, true
-}
-
+func (s *EVEDataServiceImpl) Get(key string) ([]byte, bool) { return s.persistentCache.Get(key) }
 func (s *EVEDataServiceImpl) Set(key string, value []byte, expiration time.Duration) {
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-
-	s.cache[key] = &cacheEntry{
-		data:       value,
-		expiration: time.Now().Add(expiration),
-	}
-}
-
-// cleanupExpired periodically removes expired entries
-func (s *EVEDataServiceImpl) cleanupExpired() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.done:
-			s.logger.Info("EVE data cache cleanup goroutine shutting down")
-			return
-		case <-ticker.C:
-			s.cacheMu.Lock()
-			now := time.Now()
-			keysToDelete := []string{}
-
-			for key, entry := range s.cache {
-				if now.After(entry.expiration) {
-					keysToDelete = append(keysToDelete, key)
-				}
-			}
-
-			for _, key := range keysToDelete {
-				delete(s.cache, key)
-			}
-
-			if len(keysToDelete) > 0 {
-				s.logger.Debugf("Cleaned up %d expired EVE data cache entries", len(keysToDelete))
-			}
-			s.cacheMu.Unlock()
-		}
-	}
+	s.persistentCache.Set(key, value, expiration)
 }
 
 // Shutdown gracefully shuts down the EVE data service
-func (s *EVEDataServiceImpl) Shutdown() {
-	close(s.done)
-	s.logger.Info("EVE data service shutdown initiated")
-}
+func (s *EVEDataServiceImpl) Shutdown() { s.persistentCache.Shutdown() }
 
 // Clear removes all cache entries
-func (s *EVEDataServiceImpl) Clear() {
-	s.cacheMu.Lock()
-	defer s.cacheMu.Unlock()
-	s.cache = make(map[string]*cacheEntry)
-	s.logger.Info("EVE data cache cleared")
-}
-
-// SetHTTPClient sets the HTTP client after initialization
-func (s *EVEDataServiceImpl) SetHTTPClient(httpClient interfaces.EsiHttpClient) {
-	s.httpClient = httpClient
-}
+func (s *EVEDataServiceImpl) Clear() { s.persistentCache.Clear() }
 
 // SetAccountManagementService sets the account management service after initialization
 func (s *EVEDataServiceImpl) SetAccountManagementService(accountMgmt interfaces.AccountManagementService) {

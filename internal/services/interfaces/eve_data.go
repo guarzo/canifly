@@ -54,9 +54,6 @@ type EVEDataService interface {
 	Get(key string) ([]byte, bool)
 	Set(key string, value []byte, expiration time.Duration)
 
-	// HTTP Client setter (for circular dependency resolution)
-	SetHTTPClient(httpClient EsiHttpClient)
-
 	// Account Management setter (for circular dependency resolution)
 	SetAccountManagementService(accountMgmt AccountManagementService)
 }

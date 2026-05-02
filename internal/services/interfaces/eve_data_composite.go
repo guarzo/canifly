@@ -10,6 +10,5 @@ type EVEDataComposite interface {
 	CacheableService
 
 	// Service setters for dependency injection
-	SetHTTPClient(httpClient EsiHttpClient)
 	SetAccountManagementService(accountMgmt AccountManagementService)
 }

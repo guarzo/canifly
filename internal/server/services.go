@@ -124,6 +124,12 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 	}
 	eveProfileRepo := eve.NewEveProfilesStore(logger)
 
+	// Create persistent cache before httpClient (httpClient now depends on it directly)
+	persistentCache := cacheSvc.NewPersistentCacheService(cfg.BasePath, logger)
+	if err := persistentCache.LoadCache(); err != nil {
+		logger.Warnf("failed to load persistent cache: %v", err)
+	}
+
 	// Create HTTP cache service
 	httpCacheService := cacheSvc.NewHTTPCacheService(logger)
 
@@ -133,10 +139,13 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		// Don't clear the settings directory - it might be temporarily unavailable
 	}
 
+	// Create HTTP client; depends on the persistent cache directly (no EVE↔HTTP cycle)
+	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, persistentCache)
+
 	// Create consolidated EVE data service (initially without dependencies that create circular refs)
 	eveDataService := eveSvc.NewEVEDataServiceImpl(
 		logger,
-		nil, // httpClient will be set later
+		httpClient,
 		authClient,
 		nil, // accountManagementService will be set later
 		configurationService,
@@ -144,13 +153,8 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		skillRepo,
 		systemRepo,
 		eveProfileRepo,
+		persistentCache,
 	)
-
-	// Create HTTP client using EVE data service as cache service
-	httpClient := http.NewEsiHttpClient("https://esi.evetech.net", logger, authClient, eveDataService)
-
-	// Set the HTTP client in EVE data service
-	eveDataService.SetHTTPClient(httpClient)
 
 	// Now create account management service with EVE data service as user info fetcher
 	accountManagementService := accountSvc.NewAccountManagementService(storageService, eveDataService, logger, authClient)
@@ -181,7 +185,7 @@ func GetServices(logger interfaces.Logger, cfg Config) (*AppServices, error) {
 		CharacterService: eveDataService,
 		SkillPlanService: eveDataService,
 		ProfileService:   eveDataService,
-		CacheableService: eveDataService,
+		CacheableService: persistentCache,
 
 		// Keep composite for backward compatibility
 		EVEDataService: eveDataService,
