@@ -142,7 +142,7 @@ const Field = ({ label, value, onChange, type = 'text', disabled, autoFocus }) =
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
             autoFocus={autoFocus}
-            className="w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:border-accent focus:outline-none disabled:opacity-50"
+            className="w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:border-accent focus:outline-hidden disabled:opacity-50"
         />
     </label>
 );

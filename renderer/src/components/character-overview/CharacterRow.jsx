@@ -88,7 +88,7 @@ const CharacterRow = ({
                             size="small"
                             onClick={openZkill}
                             aria-label={`Open zKillboard for ${c.CharacterName}`}
-                            className="!h-6 !w-6 !text-ink-3 hover:!bg-surface-3 hover:!text-ink-1"
+                            className="h-6! w-6! text-ink-3! hover:bg-surface-3! hover:text-ink-1!"
                         >
                             <OpenInNewOutlined sx={{ fontSize: 14 }} />
                         </IconButton>

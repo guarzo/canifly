@@ -21,7 +21,7 @@ function AccountMenu({ account, onUpdate, onRemove }) {
                     aria-label="Account actions"
                     size="small"
                     onClick={(e) => setAnchor(e.currentTarget)}
-                    className="!h-7 !w-7 !rounded-md !text-ink-3 hover:!bg-surface-3 hover:!text-ink-1"
+                    className="h-7! w-7! rounded-md! text-ink-3! hover:bg-surface-3! hover:text-ink-1!"
                 >
                     <MoreVertIcon fontSize="small" />
                 </IconButton>

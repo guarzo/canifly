@@ -48,7 +48,7 @@ const AddSkillPlanModal = ({ onClose }) => {
                             placeholder="e.g. Battleship Mastery"
                             required
                             autoFocus
-                            className="mt-1 w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-accent"
+                            className="mt-1 w-full h-9 px-2.5 rounded-md border border-rule-1 bg-surface-0 text-body text-ink-1 placeholder:text-ink-3 focus:outline-hidden focus:border-accent"
                         />
                     </label>
                     <label className="block">
@@ -59,7 +59,7 @@ const AddSkillPlanModal = ({ onClose }) => {
                             placeholder={'Gunnery 5\nLarge Hybrid Turret 4'}
                             required
                             rows={8}
-                            className="mt-1 w-full px-2.5 py-2 rounded-md border border-rule-1 bg-surface-0 font-mono text-body text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-accent"
+                            className="mt-1 w-full px-2.5 py-2 rounded-md border border-rule-1 bg-surface-0 font-mono text-body text-ink-1 placeholder:text-ink-3 focus:outline-hidden focus:border-accent"
                         />
                     </label>
                 </div>

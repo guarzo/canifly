@@ -65,7 +65,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
                                         onClick={() =>
                                             handleUnassociate(userId, assoc.charId, assoc.charName, userName)
                                         }
-                                        className="!h-6 !w-6 !rounded-md !text-ink-3 hover:!bg-surface-3 hover:!text-status-error"
+                                        className="h-6! w-6! rounded-md! text-ink-3! hover:bg-surface-3! hover:text-status-error!"
                                     >
                                         <DeleteOutline sx={{ fontSize: 16 }} />
                                     </IconButton>

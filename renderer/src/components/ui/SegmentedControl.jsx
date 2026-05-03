@@ -41,7 +41,7 @@ const SegmentedControl = ({ value, onChange, options, ariaLabel, className = '' 
                         onKeyDown={(e) => handleKey(e, idx)}
                         className={[
                             'inline-flex items-center justify-center gap-1.5',
-                            'h-7 px-2.5 rounded-[4px] text-meta',
+                            'h-7 px-2.5 rounded-sm text-meta',
                             'transition-colors duration-fast ease-out-quart',
                             selected
                                 ? 'bg-accent text-accent-ink'
