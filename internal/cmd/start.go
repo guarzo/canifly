@@ -14,6 +14,7 @@ import (
 	"github.com/guarzo/canifly/internal/persist"
 	"github.com/guarzo/canifly/internal/server"
 	"github.com/guarzo/canifly/internal/services/interfaces"
+	"github.com/joho/godotenv"
 )
 
 // Version is set by main package from embedded version file
@@ -23,6 +24,12 @@ var Version string
 func Start() error {
 	logger := server.SetupLogger()
 	logger.Infof("Starting application, version %s", Version)
+
+	// Best-effort load of a local .env file for development. Production builds
+	// rely on environment variables or stored config, so a missing file is fine.
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		logger.WithError(err).Warn("Failed to load .env file")
+	}
 
 	cfg, err := server.LoadConfig(logger)
 	if err != nil {

@@ -6,16 +6,16 @@ import { error as cerr } from '../../utils/logger.jsx';
 
 function ErrorFallback({ error, resetErrorBoundary }) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-surface-0 p-4">
+            <h2 className="text-h2 text-status-error mb-4">
                 Something went wrong
             </h2>
-            <pre className="bg-gray-100 p-4 rounded text-sm mb-4">
+            <pre className="bg-surface-1 border border-rule-1 rounded-md p-4 font-mono text-meta text-ink-2 mb-4 max-w-[65ch] whitespace-pre-wrap">
                 {error.message}
             </pre>
             <button
                 onClick={resetErrorBoundary}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="h-8 px-3 rounded-md bg-accent text-accent-ink text-meta font-medium hover:bg-accent-strong"
             >
                 Try again
             </button>
