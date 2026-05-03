@@ -1,6 +1,6 @@
 {
   "name": "canifly",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Can I Fly?",
   "homepage": "https://github.com/guarzo/canifly",
   "main": "main.js",
