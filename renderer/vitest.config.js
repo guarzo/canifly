@@ -5,9 +5,6 @@ import path from 'path'
 
 export default defineConfig({
     plugins: [react({ jsxRuntime: 'automatic' })],
-    esbuild: {
-        jsx: 'automatic',
-    },
     test: {
         globals: true,
         environment: 'jsdom',
