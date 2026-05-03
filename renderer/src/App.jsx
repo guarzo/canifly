@@ -151,7 +151,7 @@ const App = () => {
                             openSkillPlanModal={openSkillPlanModal}
                             existingAccounts={existingAccounts}
                         />
-                        <main className="flex-grow w-full px-4 py-8 pb-16">
+                        <main className="grow w-full px-4 py-8 pb-16">
                             <AppRoutes
                                 characters={characters}
                             />

@@ -334,7 +334,7 @@ const Mapping = ({ associations: initialAssociations, subDirs }) => {
                         onChange={(e) => setFilter(e.target.value)}
                         placeholder="Filter by character or user name / id"
                         aria-label="Filter mapping"
-                        className="bg-transparent flex-1 outline-none text-body text-ink-1 placeholder:text-ink-3"
+                        className="bg-transparent flex-1 outline-hidden text-body text-ink-1 placeholder:text-ink-3"
                     />
                     {filter ? (
                         <button

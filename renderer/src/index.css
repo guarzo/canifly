@@ -1,63 +1,271 @@
 /* src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap')
+layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-overlay: var(--surface-overlay);
+
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+
+  --color-rule-1: var(--rule-1);
+  --color-rule-2: var(--rule-2);
+  --color-rule-strong: var(--rule-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-status-ready: var(--status-ready);
+  --color-status-training: var(--status-training);
+  --color-status-queued: var(--status-queued);
+  --color-status-idle: var(--status-idle);
+  --color-status-error: var(--status-error);
+
+  --color-eve-blue-50: #e6f3ff;
+  --color-eve-blue-100: #b3daff;
+  --color-eve-blue-200: #80c1ff;
+  --color-eve-blue-300: #4da8ff;
+  --color-eve-blue-400: #1a8fff;
+  --color-eve-blue-500: #0076e6;
+  --color-eve-blue-600: #005db3;
+  --color-eve-blue-700: #004480;
+  --color-eve-blue-800: #002b4d;
+  --color-eve-blue-900: #00121a;
+
+  --color-eve-teal-50: #e6fffb;
+  --color-eve-teal-100: #b3fff0;
+  --color-eve-teal-200: #80ffe5;
+  --color-eve-teal-300: #4dffda;
+  --color-eve-teal-400: #1affcf;
+  --color-eve-teal-500: #00e6b5;
+  --color-eve-teal-600: #00b38c;
+  --color-eve-teal-700: #008063;
+  --color-eve-teal-800: #004d3a;
+  --color-eve-teal-900: #001a11;
+
+  --color-eve-orange-50: #fff5e6;
+  --color-eve-orange-100: #ffe0b3;
+  --color-eve-orange-200: #ffcc80;
+  --color-eve-orange-300: #ffb74d;
+  --color-eve-orange-400: #ffa21a;
+  --color-eve-orange-500: #e68900;
+  --color-eve-orange-600: #b36b00;
+  --color-eve-orange-700: #804d00;
+  --color-eve-orange-800: #4d2f00;
+  --color-eve-orange-900: #1a1000;
+
+  --font-body: Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: Inter, system-ui, sans-serif;
+
+  --text-display: 28px;
+  --text-display--line-height: 36px;
+  --text-display--letter-spacing: -0.01em;
+  --text-display--font-weight: 600;
+  --text-h2: 22px;
+  --text-h2--line-height: 30px;
+  --text-h2--font-weight: 600;
+  --text-h3: 17px;
+  --text-h3--line-height: 24px;
+  --text-h3--font-weight: 600;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+  --text-meta--font-weight: 500;
+  --text-micro: 11px;
+  --text-micro--line-height: 14px;
+  --text-micro--font-weight: 500;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-popover: 0 6px 20px oklch(0 0 0 / 0.4);
+  --shadow-modal: 0 12px 40px oklch(0 0 0 / 0.5);
+  --shadow-rail-accent: inset 2px 0 0 var(--accent);
+
+  --ease-out-quart: cubic-bezier(0.2, 0, 0, 1);
+
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 180ms;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Compatibility shims for unmigrated components.
+   These keep the old class names compiling but with the new restraint.
+   Each one is a deliberate downgrade, not a feature.
+   ─────────────────────────────────────────────────────────────────────── */
+@utility glass {
+  /* Old `.glass` panels become flat surface-1 panels with a hairline. */
+  background-color: var(--surface-1);
+  border: 1px solid var(--rule-1);
+  backdrop-filter: none;
+}
+@utility neumorphic {
+  /* Old `.neumorphic` and `.neumorphic-inset` collapse to a flat panel. */
+  background-color: var(--surface-1);
+  box-shadow: none;
+}
+@utility neumorphic-inset {
+  background-color: var(--surface-1);
+  box-shadow: none;
+}
+@utility glow {
+  /* Old `.glow` becomes a no-op transition. */
+  transition: none;
+  &:hover {
+    box-shadow: none;
+  }
+}
+@utility text-gradient {
+  /* Old `.text-gradient` becomes a single accent color. */
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: initial;
+  color: var(--ink-1);
+}
+@utility text-gradient-warm {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: initial;
+  color: var(--ink-1);
+}
+
+@utility animate-float {
+  animation: none;
+}
+
+@utility animate-glow {
+  animation: none;
+}
+
+@utility animate-pulse-slow {
+  animation: none;
+}
+
+@utility animate-shimmer {
+  animation: none;
+}
+
+@utility animate-skeleton-pulse {
+  /* Calm pulse for skeletons. Honors prefers-reduced-motion via the global rule above. */
+  animation: skeleton-pulse 1.6s var(--motion-ease, ease) infinite;
+}
+
+@utility skeleton {
+  background: var(--surface-2);
+  background-image: none;
+  animation: none;
+  border-radius: 4px;
+}
+
+@utility hover-lift {
+  transform: none;
+  transition: none;
+
+  &:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+@utility gradient-border {
+  background: var(--surface-1);
+  &::before {
+    content: none;
+  }
+}
+
+@layer utilities {
+  /* ─────────────────────────────────────────────────────────────────────────
    Design tokens. See DESIGN.md for the full system.
    ─────────────────────────────────────────────────────────────────────── */
 
-:root {
-  /* Surface (warm slate) */
-  --surface-0: oklch(0.16 0.005 65);
-  --surface-1: oklch(0.20 0.005 65);
-  --surface-2: oklch(0.24 0.006 65);
-  --surface-3: oklch(0.28 0.007 65);
-  --surface-overlay: oklch(0.10 0.004 65 / 0.6);
-
-  /* Ink */
-  --ink-1: oklch(0.96 0.005 80);
-  --ink-2: oklch(0.78 0.006 80);
-  --ink-3: oklch(0.58 0.007 80);
-  --ink-4: oklch(0.42 0.007 80);
-
-  /* Borders */
-  --rule-1: oklch(0.32 0.005 65);
-  --rule-2: oklch(0.40 0.006 65);
-  --rule-strong: oklch(0.55 0.008 65);
-
-  /* Accent */
-  --accent: oklch(0.72 0.12 200);
-  --accent-strong: oklch(0.80 0.13 200);
-  --accent-soft: oklch(0.72 0.12 200 / 0.18);
-  --accent-ink: oklch(0.18 0.01 200);
-
-  /* Status */
-  --status-ready: oklch(0.78 0.13 145);
-  --status-training: oklch(0.85 0.13 95);
-  --status-queued: oklch(0.74 0.10 240);
-  --status-idle: oklch(0.58 0.005 65);
-  --status-error: oklch(0.70 0.18 25);
-
-  /* Motion */
-  --motion-duration-fast: 120ms;
-  --motion-duration-base: 180ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
-
-  color-scheme: dark;
-}
-
-@media (prefers-reduced-motion: reduce) {
   :root {
-    --motion-duration-fast: 0ms;
-    --motion-duration-base: 0ms;
+    /* Surface (warm slate) */
+    --surface-0: oklch(0.16 0.005 65);
+    --surface-1: oklch(0.2 0.005 65);
+    --surface-2: oklch(0.24 0.006 65);
+    --surface-3: oklch(0.28 0.007 65);
+    --surface-overlay: oklch(0.1 0.004 65 / 0.6);
+
+    /* Ink */
+    --ink-1: oklch(0.96 0.005 80);
+    --ink-2: oklch(0.78 0.006 80);
+    --ink-3: oklch(0.58 0.007 80);
+    --ink-4: oklch(0.42 0.007 80);
+
+    /* Borders */
+    --rule-1: oklch(0.32 0.005 65);
+    --rule-2: oklch(0.4 0.006 65);
+    --rule-strong: oklch(0.55 0.008 65);
+
+    /* Accent */
+    --accent: oklch(0.72 0.12 200);
+    --accent-strong: oklch(0.8 0.13 200);
+    --accent-soft: oklch(0.72 0.12 200 / 0.18);
+    --accent-ink: oklch(0.18 0.01 200);
+
+    /* Status */
+    --status-ready: oklch(0.78 0.13 145);
+    --status-training: oklch(0.85 0.13 95);
+    --status-queued: oklch(0.74 0.1 240);
+    --status-idle: oklch(0.58 0.005 65);
+    --status-error: oklch(0.7 0.18 25);
+
+    /* Motion */
+    --motion-duration-fast: 120ms;
+    --motion-duration-base: 180ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+    color-scheme: dark;
   }
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --motion-duration-fast: 0ms;
+      --motion-duration-base: 0ms;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
   }
 }
 
@@ -105,71 +313,9 @@
   }
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Compatibility shims for unmigrated components.
-   These keep the old class names compiling but with the new restraint.
-   Each one is a deliberate downgrade, not a feature.
-   ─────────────────────────────────────────────────────────────────────── */
-@layer components {
-  /* Old `.glass` panels become flat surface-1 panels with a hairline. */
-  .glass {
-    background-color: var(--surface-1);
-    border: 1px solid var(--rule-1);
-    backdrop-filter: none;
-  }
-
-  /* Old `.neumorphic` and `.neumorphic-inset` collapse to a flat panel. */
-  .neumorphic,
-  .neumorphic-inset {
-    background-color: var(--surface-1);
-    box-shadow: none;
-  }
-
-  /* Old `.glow` becomes a no-op transition. */
-  .glow { transition: none; }
-  .glow:hover { box-shadow: none; }
-
-  /* Old `.text-gradient` becomes a single accent color. */
-  .text-gradient,
-  .text-gradient-warm {
-    background: none;
-    -webkit-background-clip: initial;
-            background-clip: initial;
-    -webkit-text-fill-color: initial;
-    color: var(--ink-1);
-  }
-}
-
 @layer utilities {
-  .animate-float,
-  .animate-glow,
-  .animate-pulse-slow,
-  .animate-shimmer {
-    animation: none;
-  }
-
-  /* Calm pulse for skeletons. Honors prefers-reduced-motion via the global rule above. */
   @keyframes skeleton-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.55; }
   }
-  .animate-skeleton-pulse {
-    animation: skeleton-pulse 1.6s var(--motion-ease, ease) infinite;
-  }
-
-  .skeleton {
-    background: var(--surface-2);
-    background-image: none;
-    animation: none;
-    border-radius: 4px;
-  }
-
-  .hover-lift,
-  .hover-lift:hover {
-    transform: none;
-    transition: none;
-  }
-
-  .gradient-border { background: var(--surface-1); }
-  .gradient-border::before { content: none; }
 }

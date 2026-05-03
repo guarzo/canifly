@@ -251,7 +251,7 @@ const Sync = ({
                         onClick={handleBackup}
                         disabled={isLoading}
                         size="small"
-                        className="!h-8 !w-8 !rounded-md !text-ink-2 hover:!bg-surface-2 hover:!text-ink-1"
+                        className="h-8! w-8! rounded-md! text-ink-2! hover:bg-surface-2! hover:text-ink-1!"
                     >
                         <BackupOutlined fontSize="small" />
                     </IconButton>
@@ -264,7 +264,7 @@ const Sync = ({
                         onClick={handleChooseSettingsDir}
                         disabled={isLoading}
                         size="small"
-                        className="!h-8 !w-8 !rounded-md !text-ink-2 hover:!bg-surface-2 hover:!text-ink-1"
+                        className="h-8! w-8! rounded-md! text-ink-2! hover:bg-surface-2! hover:text-ink-1!"
                     >
                         <FolderOpenOutlined fontSize="small" />
                     </IconButton>
@@ -278,7 +278,7 @@ const Sync = ({
                             onClick={handleResetToDefault}
                             disabled={isLoading}
                             size="small"
-                            className="!h-8 !w-8 !rounded-md !text-ink-2 hover:!bg-surface-2 hover:!text-ink-1"
+                            className="h-8! w-8! rounded-md! text-ink-2! hover:bg-surface-2! hover:text-ink-1!"
                         >
                             <RestartAltOutlined fontSize="small" />
                         </IconButton>
@@ -309,7 +309,7 @@ const Sync = ({
                         onChange={(e) => setFilter(e.target.value)}
                         placeholder="Filter profiles, character ids, user ids"
                         aria-label="Filter profiles"
-                        className="bg-transparent flex-1 outline-none text-body text-ink-1 placeholder:text-ink-3"
+                        className="bg-transparent flex-1 outline-hidden text-body text-ink-1 placeholder:text-ink-3"
                     />
                     {filter ? (
                         <button

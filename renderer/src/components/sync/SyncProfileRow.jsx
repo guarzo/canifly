@@ -66,7 +66,7 @@ const SyncProfileRow = ({
                 'grid items-center gap-3 px-4 h-12',
                 'grid-cols-[20px_minmax(140px,1fr)_minmax(180px,1.4fr)_20px_minmax(180px,1.4fr)_72px_36px]',
                 'border-b border-rule-1 last:border-b-0',
-                'transition-colors duration-fast ease-out-quart outline-none',
+                'transition-colors duration-fast ease-out-quart outline-hidden',
                 isFocused ? 'bg-surface-2 shadow-rail-accent' : 'hover:bg-surface-2',
             ].join(' ')}
             data-profile={subDir.profile}
@@ -164,7 +164,7 @@ const SyncProfileRow = ({
                             aria-label={`Sync all profiles using ${profileName} selection`}
                             onClick={() => onSyncAll(subDir.profile)}
                             disabled={!ready || isLoading}
-                            className="!h-8 !w-8 !rounded-md"
+                            className="h-8! w-8! rounded-md!"
                             sx={{
                                 color: ready ? 'var(--ink-2)' : 'var(--ink-4)',
                                 '&:hover': { backgroundColor: 'var(--surface-3)', color: 'var(--ink-1)' },

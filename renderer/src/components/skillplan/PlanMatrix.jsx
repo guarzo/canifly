@@ -185,7 +185,7 @@ const PlanMatrix = ({ characters, skillPlans, conversions, filter }) => {
                                 <button
                                     type="button"
                                     onClick={() => setDetailFor(row.character)}
-                                    className="flex items-center gap-2.5 min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+                                    className="flex items-center gap-2.5 min-w-0 flex-1 text-left focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
                                     style={{ width: nameW }}
                                 >
                                     <img

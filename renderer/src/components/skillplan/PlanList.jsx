@@ -97,7 +97,7 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                                 'grid grid-cols-[28px_minmax(220px,1.6fr)_72px_72px_72px_88px]',
                                 'gap-3 px-4 items-center h-10 cursor-pointer select-none',
                                 !isLast || isOpen ? 'border-b border-rule-1' : '',
-                                'hover:bg-surface-2 focus:outline-none focus-visible:bg-surface-2',
+                                'hover:bg-surface-2 focus:outline-hidden focus-visible:bg-surface-2',
                             ].join(' ')}
                         >
                             <div className="flex items-center justify-center">
@@ -122,7 +122,7 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                                         size="small"
                                         aria-label={`Copy ${p.name}`}
                                         onClick={() => onCopy(p.name, p.skills)}
-                                        className="!h-7 !w-7 !rounded-md !text-ink-3 hover:!bg-surface-3 hover:!text-ink-1"
+                                        className="h-7! w-7! rounded-md! text-ink-3! hover:bg-surface-3! hover:text-ink-1!"
                                     >
                                         <ContentCopyOutlined sx={{ fontSize: 16 }} />
                                     </IconButton>
@@ -132,7 +132,7 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                                         size="small"
                                         aria-label={`Delete ${p.name}`}
                                         onClick={() => onDelete(p.name)}
-                                        className="!h-7 !w-7 !rounded-md !text-ink-3 hover:!bg-surface-3"
+                                        className="h-7! w-7! rounded-md! text-ink-3! hover:bg-surface-3!"
                                         sx={{ '&:hover': { color: 'var(--status-error)' } }}
                                     >
                                         <DeleteOutline sx={{ fontSize: 16 }} />

@@ -40,7 +40,7 @@ const CharacterOverviewToolbar = ({
                 aria-label="Sort"
                 onClick={onToggleSortOrder}
                 size="small"
-                className="!h-8 !w-8 !rounded-md !text-ink-2 hover:!bg-surface-2 hover:!text-ink-1"
+                className="h-8! w-8! rounded-md! text-ink-2! hover:bg-surface-2! hover:text-ink-1!"
             >
                 <span className="font-mono text-meta tabular">{sortOrder === 'asc' ? 'A→Z' : 'Z→A'}</span>
             </IconButton>
@@ -50,7 +50,7 @@ const CharacterOverviewToolbar = ({
                 aria-label={showHidden ? 'Hide hidden accounts' : 'Show hidden accounts'}
                 onClick={onToggleShowHidden}
                 size="small"
-                className="!h-8 !w-8 !rounded-md hover:!bg-surface-2"
+                className="h-8! w-8! rounded-md! hover:bg-surface-2!"
                 sx={{ color: showHidden ? 'var(--accent)' : 'var(--ink-3)' }}
             >
                 {showHidden ? <VisibilityOutlined fontSize="small" /> : <VisibilityOffOutlined fontSize="small" />}
@@ -65,7 +65,7 @@ const CharacterOverviewToolbar = ({
                     onClick={onRefreshAll}
                     disabled={isRefreshing}
                     size="small"
-                    className="!h-8 !w-8 !rounded-md !text-ink-2 hover:!bg-surface-2 hover:!text-ink-1"
+                    className="h-8! w-8! rounded-md! text-ink-2! hover:bg-surface-2! hover:text-ink-1!"
                 >
                     <RefreshIcon
                         fontSize="small"
