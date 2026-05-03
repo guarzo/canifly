@@ -244,6 +244,11 @@ func (s *ConfigurationService) SaveRoles(roles []string) error {
 // EVE Credentials methods
 
 func (s *ConfigurationService) NeedsEVEConfiguration() (bool, error) {
+	// Environment variables take precedence over stored config (matches LoadConfig).
+	if os.Getenv("EVE_CLIENT_ID") != "" && os.Getenv("EVE_CLIENT_SECRET") != "" {
+		return false, nil
+	}
+
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return true, err
@@ -292,6 +297,17 @@ func (s *ConfigurationService) SaveEVECredentials(clientID, clientSecret, callba
 }
 
 func (s *ConfigurationService) GetEVECredentials() (clientID, clientSecret, callbackURL string, err error) {
+	// Environment variables take precedence over stored config (matches LoadConfig).
+	envID := os.Getenv("EVE_CLIENT_ID")
+	envSecret := os.Getenv("EVE_CLIENT_SECRET")
+	if envID != "" && envSecret != "" {
+		envCallback := os.Getenv("EVE_CALLBACK_URL")
+		if envCallback == "" {
+			envCallback = "http://localhost:42423/callback"
+		}
+		return envID, envSecret, envCallback, nil
+	}
+
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {
 		return "", "", "", err

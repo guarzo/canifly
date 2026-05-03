@@ -10,7 +10,8 @@
       "Bash(go test -race ./...)",
       "Bash(go build ./...)",
       "Bash(npm run test:go)",
-      "Bash(npm run test:react)"
+      "Bash(npm run test:react)",
+      "Bash(npm uninstall *)"
     ],
     "deny": [],
     "ask": []

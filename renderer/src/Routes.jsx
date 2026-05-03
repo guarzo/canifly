@@ -15,6 +15,7 @@ import Sync from './pages/Sync.jsx';
 import Mapping from './pages/Mapping.jsx';
 import Settings from './pages/Settings.jsx';
 import PageTransition from './components/transitions/PageTransition.jsx';
+import LoadingScreen from './components/ui/LoadingScreen.jsx';
 
 function AppRoutes({ characters }) {
     const location = useLocation();
@@ -34,11 +35,7 @@ function AppRoutes({ characters }) {
     }
     
     if (isLoading || eveLoading.skillPlans || eveLoading.eveProfiles || eveLoading.eveConversions) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-900 text-teal-200">
-                <p>Loading...</p>
-            </div>
-        );
+        return <LoadingScreen message="Loading…" />;
     }
     
     // Extract data from stores
