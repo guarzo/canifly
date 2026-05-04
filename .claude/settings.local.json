@@ -11,7 +11,11 @@
       "Bash(go build ./...)",
       "Bash(npm run test:go)",
       "Bash(npm run test:react)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(npm test *)",
+      "Bash(ps *)",
+      "Bash(kill 382438)",
+      "Bash(go test *)"
     ],
     "deny": [],
     "ask": []
