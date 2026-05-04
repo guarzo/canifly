@@ -63,10 +63,31 @@ func (m *MockLoginService) ClearState(state string) {
 	delete(m.states, state)
 }
 
+// stubPersistentValidator is a minimal PersistentSessionValidator for tests.
+// validFn lets each test decide which tokens are considered valid; called is
+// flipped on every invocation so tests can assert whether the persistent path
+// was consulted.
+type stubPersistentValidator struct {
+	validFn func(string) bool
+	called  bool
+}
+
+func (s *stubPersistentValidator) ValidateSession(sessionID string) bool {
+	s.called = true
+	if s.validFn == nil {
+		return false
+	}
+	return s.validFn(sessionID)
+}
+
 // createTestRouter creates a router with the AuthMiddleware applied and test handlers.
 func createTestRouter(sessionService interfaces.SessionService, loginService interfaces.LoginService, logger interfaces.Logger) *mux.Router {
+	return createTestRouterWithValidator(sessionService, loginService, nil, logger)
+}
+
+func createTestRouterWithValidator(sessionService interfaces.SessionService, loginService interfaces.LoginService, validator flyHttp.PersistentSessionValidator, logger interfaces.Logger) *mux.Router {
 	r := mux.NewRouter()
-	r.Use(flyHttp.AuthMiddleware(sessionService, loginService, logger))
+	r.Use(flyHttp.AuthMiddleware(sessionService, loginService, validator, logger))
 
 	// Public routes
 	r.HandleFunc("/static", func(w http.ResponseWriter, r *http.Request) {
@@ -175,4 +196,64 @@ func TestAuthMiddleware_PrivateRoute_LoggedIn(t *testing.T) {
 	var resp map[string]string
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 	assert.Equal(t, "private ok", resp["status"])
+}
+
+func TestAuthMiddleware_BearerToken_PersistentSessionValid(t *testing.T) {
+	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
+	logger := &testutil.MockLogger{}
+	loginService := NewMockLoginService()
+
+	const token = "persistent-session-token"
+	validator := &stubPersistentValidator{
+		validFn: func(id string) bool { return id == token },
+	}
+
+	router := createTestRouterWithValidator(sessionService, loginService, validator, logger)
+
+	req, _ := http.NewRequest("GET", "/private", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.True(t, validator.called, "persistent validator should be consulted first")
+	assert.Equal(t, http.StatusOK, rr.Code, "valid persistent token should authenticate")
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "private ok", resp["status"])
+}
+
+func TestAuthMiddleware_BearerToken_FallsBackToOAuthState(t *testing.T) {
+	sessionService := &testutil.MockSessionService{Store: sessions.NewCookieStore([]byte("secret"))}
+	logger := &testutil.MockLogger{}
+	loginService := NewMockLoginService()
+
+	// Seed a completed OAuth state to act as the legacy bearer token.
+	const token = "legacy-oauth-state"
+	loginService.states[token] = struct {
+		accountName      string
+		callbackComplete bool
+	}{accountName: "acct-1", callbackComplete: true}
+
+	validator := &stubPersistentValidator{
+		validFn: func(string) bool { return false },
+	}
+
+	router := createTestRouterWithValidator(sessionService, loginService, validator, logger)
+
+	req, _ := http.NewRequest("GET", "/private", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.True(t, validator.called, "persistent validator should be consulted before fallback")
+	assert.Equal(t, http.StatusOK, rr.Code, "should authenticate via OAuth state fallback")
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "private ok", resp["status"])
+
+	// Sanity check: the fallback path is what resolved the token.
+	acct, complete, ok := loginService.ResolveAccountAndStatusByState(token)
+	assert.True(t, ok)
+	assert.True(t, complete)
+	assert.Equal(t, "acct-1", acct)
 }

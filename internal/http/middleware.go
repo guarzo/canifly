@@ -11,7 +11,14 @@ import (
 	"github.com/guarzo/canifly/internal/services/interfaces"
 )
 
-func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginService, logger interfaces.Logger) mux.MiddlewareFunc {
+// PersistentSessionValidator is the minimal surface AuthMiddleware needs from
+// persist.SessionStore. Defining it here avoids an import cycle and lets the
+// middleware fall back gracefully when no persistent store is configured.
+type PersistentSessionValidator interface {
+	ValidateSession(sessionID string) bool
+}
+
+func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginService, persistentSessions PersistentSessionValidator, logger interfaces.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger.Info(r.URL.Path)
@@ -48,7 +55,20 @@ func AuthMiddleware(s interfaces.SessionService, loginSvc interfaces.LoginServic
 
 			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 				token := strings.TrimPrefix(authHeader, "Bearer ")
-				// Validate token against login state
+
+				// Prefer the persistent session store: FinalizeLogin issues
+				// session IDs from there, so production (file://) clients send
+				// those as their bearer token.
+				if persistentSessions != nil && persistentSessions.ValidateSession(token) {
+					logger.WithFields(logrus.Fields{
+						"path":   r.URL.Path,
+						"method": "session",
+					}).Debug("Session token authentication successful")
+					next.ServeHTTP(w, r)
+					return
+				}
+
+				// Fall back to OAuth login state (legacy / pre-persistent tokens).
 				accountName, callbackComplete, ok := loginSvc.ResolveAccountAndStatusByState(token)
 				if ok && callbackComplete {
 					logger.WithFields(logrus.Fields{
