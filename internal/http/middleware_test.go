@@ -66,7 +66,7 @@ func (m *MockLoginService) ClearState(state string) {
 // createTestRouter creates a router with the AuthMiddleware applied and test handlers.
 func createTestRouter(sessionService interfaces.SessionService, loginService interfaces.LoginService, logger interfaces.Logger) *mux.Router {
 	r := mux.NewRouter()
-	r.Use(flyHttp.AuthMiddleware(sessionService, loginService, logger))
+	r.Use(flyHttp.AuthMiddleware(sessionService, loginService, nil, logger))
 
 	// Public routes
 	r.HandleFunc("/static", func(w http.ResponseWriter, r *http.Request) {

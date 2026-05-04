@@ -26,8 +26,9 @@ func SetupHandlers(secret string, logger interfaces.Logger, appServices *AppServ
 		// Continue without persistent sessions
 	}
 
-	// Add authentication middleware
-	r.Use(flyHttp.AuthMiddleware(sessionStore, appServices.LoginService, logger))
+	// Add authentication middleware (persistentSessionStore may be nil if it
+	// failed to initialize above; the middleware handles that gracefully).
+	r.Use(flyHttp.AuthMiddleware(sessionStore, appServices.LoginService, persistentSessionStore, logger))
 
 	authHandler := flyHandlers.NewAuthHandler(sessionStore, appServices.ESIAPIService, logger, appServices.AccountManagementService, appServices.ConfigurationService, appServices.LoginService, appServices.AuthClient, appServices.HTTPCacheService, appServices.WebSocketHub, appServices.CharacterService, persistentSessionStore)
 	accountHandler := flyHandlers.NewAccountHandler(sessionStore, logger, appServices.AccountManagementService, appServices.HTTPCacheService, appServices.WebSocketHub)
