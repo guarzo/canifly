@@ -20,7 +20,7 @@ import { IconButton, Tooltip } from '@mui/material';
 import Subheader from '../components/ui/Subheader.jsx';
 import Kbd from '../components/ui/Kbd.jsx';
 import StatusDot from '../components/ui/StatusDot.jsx';
-import SyncProfileRow from '../components/sync/SyncProfileRow.jsx';
+import SyncProfileRow from '../components/profiles/SyncProfileRow.jsx';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import { syncInstructions } from '../utils/instructions.jsx';
 import {

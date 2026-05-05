@@ -1,4 +1,4 @@
-// src/components/sync/SyncProfileRow.jsx
+// src/components/profiles/SyncProfileRow.jsx
 //
 // Dense, table-style row for one EVE profile in the Sync page.
 // Each row pairs a character file with a user file and exposes a
