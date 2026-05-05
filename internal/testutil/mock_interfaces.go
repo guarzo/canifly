@@ -322,6 +322,11 @@ func (m *MockConfigService) EnsureSettingsDir() error {
 	return args.Error(0)
 }
 
+func (m *MockConfigService) IsDefaultSettingsDir() (bool, error) {
+	args := m.Called()
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *MockConfigService) UpdateRoles(newRole string) error {
 	args := m.Called(newRole)
 	return args.Error(0)

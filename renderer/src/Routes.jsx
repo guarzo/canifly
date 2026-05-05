@@ -37,6 +37,7 @@ function AppRoutes({ characters }) {
     const roles = config?.roles || config?.Roles || [];
     const userSelections = config?.userSelections || config?.DropDownSelections || {};
     const currentSettingsDir = config?.settingsDir || config?.SettingsDir || '';
+    const isDefaultDir = Boolean(config?.isDefaultDir ?? config?.IsDefaultDir ?? false);
     const rawLastBackup = config?.lastBackupDir || config?.LastBackupDir;
     const lastBackupDir = typeof rawLastBackup === 'string' ? rawLastBackup : '';
 
@@ -73,6 +74,7 @@ function AppRoutes({ characters }) {
                                 settingsData={eveProfiles}
                                 userSelections={userSelections}
                                 currentSettingsDir={currentSettingsDir}
+                                isDefaultDir={isDefaultDir}
                                 lastBackupDir={lastBackupDir}
                             />
                         </PageTransition>

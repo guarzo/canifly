@@ -3,7 +3,6 @@
 // One row per character: status dot, portrait, name, account, SP, queue
 // ETA, location, role, and a kebab. Stateless w.r.t. the page; the
 // expanded detail panel is rendered as a sibling when isExpanded.
-import PropTypes from 'prop-types';
 import {
     OpenInNewOutlined,
     ExpandMoreOutlined,
@@ -126,19 +125,6 @@ const CharacterRow = ({
             ) : null}
         </>
     );
-};
-
-CharacterRow.propTypes = {
-    character: PropTypes.object.isRequired,
-    isLast: PropTypes.bool.isRequired,
-    isExpanded: PropTypes.bool.isRequired,
-    onToggleExpand: PropTypes.func.isRequired,
-    isFocused: PropTypes.bool.isRequired,
-    onFocus: PropTypes.func.isRequired,
-    roles: PropTypes.array.isRequired,
-    skillConversions: PropTypes.object.isRequired,
-    onUpdateCharacter: PropTypes.func.isRequired,
-    onRemoveCharacter: PropTypes.func.isRequired,
 };
 
 export default CharacterRow;

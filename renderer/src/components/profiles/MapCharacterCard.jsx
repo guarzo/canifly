@@ -2,7 +2,6 @@
 // One dense draggable row representing an unassociated character file.
 
 import { forwardRef } from 'react';
-import PropTypes from 'prop-types';
 import { formatDate } from '../../utils/formatter.jsx';
 import MtimeSwatch from './MtimeSwatch.jsx';
 
@@ -38,15 +37,5 @@ const CharacterCard = forwardRef(function CharacterCard({ char, handleDragStart,
         </div>
     );
 });
-
-CharacterCard.propTypes = {
-    char: PropTypes.shape({
-        name: PropTypes.string.isRequired,
-        charId: PropTypes.string.isRequired,
-        mtime: PropTypes.string.isRequired,
-    }).isRequired,
-    handleDragStart: PropTypes.func.isRequired,
-    mtimeToColor: PropTypes.objectOf(PropTypes.string).isRequired,
-};
 
 export default CharacterCard;

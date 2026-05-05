@@ -2,7 +2,6 @@
 // Used as the "By plan" view; complements the matrix.
 
 import { useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
 import {
     ContentCopyOutlined,
     DeleteOutlined as DeleteOutline,
@@ -11,6 +10,7 @@ import {
 } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import StatusDot from '../ui/StatusDot.jsx';
+import EveTypeIcon from '../ui/EveTypeIcon.jsx';
 import { calculateDaysFromToday } from '../../utils/formatter.jsx';
 import MissingSkillsPopover from './MissingSkillsPopover.jsx';
 
@@ -87,8 +87,6 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
             {plans.map((p, idx) => {
                 const isOpen = expanded.has(p.name);
                 const isLast = idx === plans.length - 1;
-                const typeID = conversions?.[p.name];
-                const icon = typeID ? `https://images.evetech.net/types/${typeID}/icon` : null;
                 return (
                     <div key={p.name} role="rowgroup">
                         <div
@@ -115,11 +113,7 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                                     : <ChevronRightOutlined fontSize="small" sx={{ color: 'var(--ink-3)' }} />}
                             </div>
                             <div className="flex items-center gap-2.5 min-w-0">
-                                {icon ? (
-                                    <img src={icon} alt="" aria-hidden loading="lazy" className="h-6 w-6 rounded-sm border border-rule-1 shrink-0" />
-                                ) : (
-                                    <span className="h-6 w-6 rounded-sm border border-rule-1 bg-surface-2 shrink-0" aria-hidden />
-                                )}
+                                <EveTypeIcon name={p.name} conversions={conversions} />
                                 <span className="text-body text-ink-1 truncate">{p.name}</span>
                             </div>
                             <span className="text-body font-mono tabular text-right text-status-ready">{p.qualified}</span>
@@ -193,15 +187,6 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
             })}
         </div>
     );
-};
-
-PlanList.propTypes = {
-    skillPlans: PropTypes.object.isRequired,
-    characters: PropTypes.array.isRequired,
-    conversions: PropTypes.object.isRequired,
-    filter: PropTypes.string.isRequired,
-    onCopy: PropTypes.func.isRequired,
-    onDelete: PropTypes.func.isRequired,
 };
 
 export default PlanList;

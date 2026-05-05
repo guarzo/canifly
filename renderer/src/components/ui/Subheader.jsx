@@ -1,6 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-
 /**
  * Subheader — the page header in the new system.
  * Replaces the glass + gradient SubPageHeader on migrated routes.
@@ -43,13 +41,6 @@ const Subheader = ({ title, meta, actions, tip }) => {
             <div className="mt-4 h-px w-full bg-rule-1" />
         </header>
     );
-};
-
-Subheader.propTypes = {
-    title: PropTypes.string.isRequired,
-    meta: PropTypes.node,
-    actions: PropTypes.node,
-    tip: PropTypes.string,
 };
 
 export default Subheader;

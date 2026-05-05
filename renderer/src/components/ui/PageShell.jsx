@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import Subheader from './Subheader.jsx';
 
 /**
@@ -13,14 +12,5 @@ const PageShell = ({ title, meta, actions, tip, children, className = '' }) => (
         {children}
     </div>
 );
-
-PageShell.propTypes = {
-    title: PropTypes.string.isRequired,
-    meta: PropTypes.node,
-    actions: PropTypes.node,
-    tip: PropTypes.string,
-    children: PropTypes.node,
-    className: PropTypes.string,
-};
 
 export default PageShell;

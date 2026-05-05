@@ -3,7 +3,6 @@
 // Subheader actions cluster: group-by segmented control, sort toggle,
 // show-hidden toggle, and refresh button. Stateless — receives the
 // current values + setters from the page.
-import PropTypes from 'prop-types';
 import { IconButton, Tooltip } from '@mui/material';
 import {
     AccountBalanceOutlined,
@@ -76,17 +75,5 @@ const CharacterOverviewToolbar = ({
         </Tooltip>
     </>
 );
-
-CharacterOverviewToolbar.propTypes = {
-    view: PropTypes.string.isRequired,
-    onViewChange: PropTypes.func.isRequired,
-    sortOrder: PropTypes.string.isRequired,
-    onToggleSortOrder: PropTypes.func.isRequired,
-    showHidden: PropTypes.bool.isRequired,
-    onToggleShowHidden: PropTypes.func.isRequired,
-    isRefreshing: PropTypes.bool.isRequired,
-    onRefreshAll: PropTypes.func.isRequired,
-    refreshRef: PropTypes.object,
-};
 
 export default CharacterOverviewToolbar;

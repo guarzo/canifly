@@ -4,7 +4,6 @@
 // sticky header (group name, char count, group SP) and the per-character
 // rows underneath. Account-view groups also expose an account kebab menu.
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import CharacterRow from './CharacterRow.jsx';
@@ -43,12 +42,6 @@ function AccountMenu({ account, onUpdate, onRemove }) {
         </>
     );
 }
-AccountMenu.propTypes = {
-    account: PropTypes.object.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    onRemove: PropTypes.func.isRequired,
-};
-
 const GroupBlock = ({
     groupKey,
     view,
@@ -120,23 +113,6 @@ const GroupBlock = ({
             ))}
         </section>
     );
-};
-
-GroupBlock.propTypes = {
-    groupKey: PropTypes.string.isRequired,
-    view: PropTypes.string.isRequired,
-    characters: PropTypes.array.isRequired,
-    roles: PropTypes.array.isRequired,
-    skillConversions: PropTypes.object.isRequired,
-    expanded: PropTypes.instanceOf(Set).isRequired,
-    onToggleExpand: PropTypes.func.isRequired,
-    focusedRowId: PropTypes.number,
-    setFocusedRowId: PropTypes.func.isRequired,
-    onUpdateCharacter: PropTypes.func.isRequired,
-    onRemoveCharacter: PropTypes.func.isRequired,
-    onUpdateAccount: PropTypes.func.isRequired,
-    onRemoveAccount: PropTypes.func.isRequired,
-    allAccounts: PropTypes.array.isRequired,
 };
 
 export default GroupBlock;

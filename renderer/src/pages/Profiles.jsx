@@ -7,7 +7,6 @@
 // redirects land in the right mode).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -25,6 +24,7 @@ import SegmentedControl from '../components/ui/SegmentedControl.jsx';
 import Kbd from '../components/ui/Kbd.jsx';
 import MappingView from '../components/profiles/MappingView.jsx';
 import SyncView from '../components/profiles/SyncView.jsx';
+import { useAppData } from '../hooks/useAppData';
 import { useConfirmDialog } from '../hooks/useConfirmDialog.jsx';
 import { useSyncAction } from '../hooks/useSyncAction.js';
 import { useMappingDerivations } from '../hooks/useMappingDerivations.js';
@@ -78,12 +78,13 @@ const Profiles = ({
     settingsData = [],
     userSelections = {},
     currentSettingsDir = '',
+    isDefaultDir = false,
     lastBackupDir = '',
 }) => {
     const [params, setParams] = useSearchParams();
     const { run, isLoading } = useSyncAction();
+    const { refreshData } = useAppData();
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
-    const [isDefaultDir, setIsDefaultDir] = useState(false);
 
     // Smart default: unmatched characters → Mapping; else Sync. The persisted
     // value wins on second visit; the query string wins over both.
@@ -141,12 +142,12 @@ const Profiles = ({
     const handleChooseSettingsDir = useCallback(async () => {
         const chosen = await window.electronAPI.chooseDirectory();
         if (!chosen) { toast.info('No directory chosen.'); return; }
-        await run(async () => {
-            const result = await chooseSettingsDir(chosen);
-            if (result?.success) setIsDefaultDir(false);
-            return { ...result, message: result?.message || `Settings directory: ${chosen}` };
+        const result = await run(async () => {
+            const r = await chooseSettingsDir(chosen);
+            return { ...r, message: r?.message || `Settings directory: ${chosen}` };
         }, { errorContext: 'chooseSettingsDir' });
-    }, [run]);
+        if (result?.success && refreshData) await refreshData();
+    }, [run, refreshData]);
 
     const handleBackup = useCallback(async () => {
         const chosen = await window.electronAPI.chooseDirectory(lastBackupDir || '');
@@ -161,12 +162,12 @@ const Profiles = ({
             message: 'Reset the settings directory to the default Tranquility location?',
         });
         if (!ok.isConfirmed) return;
-        await run(async () => {
-            const result = await resetToDefaultDirectory();
-            if (result?.success) setIsDefaultDir(true);
-            return { ...result, message: 'Reset to default: Tranquility' };
+        const result = await run(async () => {
+            const r = await resetToDefaultDirectory();
+            return { ...r, message: 'Reset to default: Tranquility' };
         }, { errorContext: 'resetToDefaultDirectory' });
-    }, [run, showConfirmDialog]);
+        if (result?.success && refreshData) await refreshData();
+    }, [run, showConfirmDialog, refreshData]);
 
     const cycleSort = () => {
         const order = ['mtime-desc', 'mtime-asc', 'name-asc', 'name-desc'];
@@ -287,15 +288,6 @@ const Profiles = ({
             {confirmDialog}
         </PageShell>
     );
-};
-
-Profiles.propTypes = {
-    subDirs: PropTypes.array,
-    associations: PropTypes.array,
-    settingsData: PropTypes.array,
-    userSelections: PropTypes.object,
-    currentSettingsDir: PropTypes.string,
-    lastBackupDir: PropTypes.string,
 };
 
 export default Profiles;

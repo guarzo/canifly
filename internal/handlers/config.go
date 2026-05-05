@@ -40,8 +40,16 @@ func (h *ConfigHandler) GetConfig() http.HandlerFunc {
 				return nil, err
 			}
 
+			isDefault, err := h.configService.IsDefaultSettingsDir()
+			if err != nil {
+				// Non-fatal: log and fall back to false so the UI degrades to "not default" rather than failing the whole config request.
+				h.logger.Warnf("IsDefaultSettingsDir failed: %v", err)
+				isDefault = false
+			}
+
 			configData := map[string]interface{}{
 				"settingsDir":    config.SettingsDir,
+				"isDefaultDir":   isDefault,
 				"roles":          config.Roles,
 				"userSelections": config.DropDownSelections,
 				"lastBackupDir":  config.LastBackupDir,

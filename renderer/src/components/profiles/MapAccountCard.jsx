@@ -3,7 +3,6 @@
 // associated characters listed beneath as inline rows. Drop target.
 
 import { forwardRef } from 'react';
-import PropTypes from 'prop-types';
 import { DeleteOutlined as DeleteOutline } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';
@@ -82,24 +81,5 @@ const AccountCard = forwardRef(function AccountCard(
         </div>
     );
 });
-
-AccountCard.propTypes = {
-    mapping: PropTypes.shape({
-        userId: PropTypes.string.isRequired,
-        name: PropTypes.string,
-        mtime: PropTypes.string,
-    }).isRequired,
-    associations: PropTypes.arrayOf(
-        PropTypes.shape({
-            userId: PropTypes.string.isRequired,
-            charId: PropTypes.string.isRequired,
-            charName: PropTypes.string.isRequired,
-            mtime: PropTypes.string,
-        }),
-    ).isRequired,
-    handleUnassociate: PropTypes.func.isRequired,
-    handleDrop: PropTypes.func.isRequired,
-    mtimeToColor: PropTypes.objectOf(PropTypes.string).isRequired,
-};
 
 export default AccountCard;

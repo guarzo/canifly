@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * MtimeSwatch — a small filled square that color-codes a file by its
  * (rounded-to-the-minute) mtime bucket. Two files written in the same minute
@@ -18,10 +16,5 @@ const MtimeSwatch = ({ color, title }) => (
         style={{ backgroundColor: color || 'var(--surface-3)' }}
     />
 );
-
-MtimeSwatch.propTypes = {
-    color: PropTypes.string,
-    title: PropTypes.string,
-};
 
 export default MtimeSwatch;

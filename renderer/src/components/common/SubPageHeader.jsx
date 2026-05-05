@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
-
 /**
  * SubPageHeader — calm typographic page header.
  * Consumed by Mapping, Sync, SkillPlans, Settings, etc. The CharacterOverview
@@ -50,12 +48,6 @@ const SubPageHeader = ({ title, instructions, storageKey }) => {
             <div className="mt-4 h-px w-full bg-rule-1" />
         </header>
     );
-};
-
-SubPageHeader.propTypes = {
-    title: PropTypes.string.isRequired,
-    instructions: PropTypes.string,
-    storageKey: PropTypes.string.isRequired,
 };
 
 export default SubPageHeader;

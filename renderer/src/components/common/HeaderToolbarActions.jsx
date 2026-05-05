@@ -2,7 +2,6 @@
 //
 // Left-side toolbar cluster: hamburger menu, Add Character, Add Skill Plan,
 // and the Fuzzworks status badge. Visible only when authenticated.
-import PropTypes from 'prop-types';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import {
     Menu as MenuIcon,
@@ -62,11 +61,5 @@ const HeaderToolbarActions = ({ onOpenDrawer, onAddCharacter, onAddSkillPlan }) 
         </Box>
     </>
 );
-
-HeaderToolbarActions.propTypes = {
-    onOpenDrawer: PropTypes.func.isRequired,
-    onAddCharacter: PropTypes.func.isRequired,
-    onAddSkillPlan: PropTypes.func.isRequired,
-};
 
 export default HeaderToolbarActions;

@@ -1,6 +1,5 @@
 // renderer/src/components/profiles/SyncProfileRow.jsx
 import { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { SyncOutlined, SyncAltOutlined } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import PairSelect from '../ui/PairSelect.jsx';
@@ -119,24 +118,6 @@ const SyncProfileRow = ({
             </div>
         </div>
     );
-};
-
-SyncProfileRow.propTypes = {
-    subDir: PropTypes.shape({
-        profile: PropTypes.string.isRequired,
-        availableCharFiles: PropTypes.array.isRequired,
-        availableUserFiles: PropTypes.array.isRequired,
-    }).isRequired,
-    selection: PropTypes.shape({
-        charId: PropTypes.string,
-        userId: PropTypes.string,
-    }),
-    onSelectionChange: PropTypes.func.isRequired,
-    onSync: PropTypes.func.isRequired,
-    onSyncAll: PropTypes.func.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-    isFocused: PropTypes.bool,
-    onFocus: PropTypes.func,
 };
 
 export default SyncProfileRow;

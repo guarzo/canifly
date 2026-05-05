@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * SegmentedControl — keyboard-navigable, radio-group-semantic alternative to
  * MUI's pill ToggleButtonGroup. Each option is an icon + tooltip + accessible
@@ -55,19 +53,6 @@ const SegmentedControl = ({ value, onChange, options, ariaLabel, className = '' 
             })}
         </div>
     );
-};
-
-SegmentedControl.propTypes = {
-    value: PropTypes.string.isRequired,
-    onChange: PropTypes.func.isRequired,
-    options: PropTypes.arrayOf(PropTypes.shape({
-        value: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
-        icon: PropTypes.node,
-        showLabel: PropTypes.bool,
-    })).isRequired,
-    ariaLabel: PropTypes.string.isRequired,
-    className: PropTypes.string,
 };
 
 export default SegmentedControl;

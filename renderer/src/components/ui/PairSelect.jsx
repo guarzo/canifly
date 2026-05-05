@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { Select, MenuItem } from '@mui/material';
 import { ArrowForwardOutlined } from '@mui/icons-material';
 import StatusDot from './StatusDot.jsx';
@@ -108,28 +107,6 @@ const PairSelect = ({
             </Select>
         </div>
     );
-};
-
-const optionShape = PropTypes.shape({
-    value: PropTypes.string.isRequired,
-    primary: PropTypes.string.isRequired,
-    secondary: PropTypes.string,
-});
-
-PairSelect.propTypes = {
-    state: PropTypes.oneOf(['ready', 'training', 'queued', 'idle', 'error']).isRequired,
-    leftValue: PropTypes.string.isRequired,
-    leftOptions: PropTypes.arrayOf(optionShape).isRequired,
-    onLeftChange: PropTypes.func.isRequired,
-    leftLabel: PropTypes.string.isRequired,
-    leftPlaceholder: PropTypes.string,
-    rightValue: PropTypes.string.isRequired,
-    rightOptions: PropTypes.arrayOf(optionShape).isRequired,
-    onRightChange: PropTypes.func.isRequired,
-    rightLabel: PropTypes.string.isRequired,
-    rightPlaceholder: PropTypes.string,
-    arrowActive: PropTypes.bool,
-    statusLabel: PropTypes.string,
 };
 
 export default PairSelect;

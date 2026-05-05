@@ -2,7 +2,6 @@
 //
 // Drawer-based primary navigation for the Header. Stateless — drawer
 // open/close lives in the parent.
-import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import {
     Drawer,
@@ -124,12 +123,6 @@ const HeaderNav = ({ open, onClose, currentPath }) => {
         </div>
     </StyledDrawer>
     );
-};
-
-HeaderNav.propTypes = {
-    open: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    currentPath: PropTypes.string.isRequired,
 };
 
 export default HeaderNav;

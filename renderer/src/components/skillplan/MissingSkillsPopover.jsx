@@ -1,5 +1,4 @@
 import { cloneElement, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Popover } from '@mui/material';
 
 const MissingSkillsPopover = ({ planName, missingSkills, trigger }) => {
@@ -50,12 +49,6 @@ const MissingSkillsPopover = ({ planName, missingSkills, trigger }) => {
             </Popover>
         </>
     );
-};
-
-MissingSkillsPopover.propTypes = {
-    planName: PropTypes.string.isRequired,
-    missingSkills: PropTypes.object,
-    trigger: PropTypes.element.isRequired,
 };
 
 export default MissingSkillsPopover;

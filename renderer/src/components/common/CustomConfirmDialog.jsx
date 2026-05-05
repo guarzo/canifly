@@ -1,6 +1,5 @@
 // CustomConfirmDialog — design-system rewrite. Matches AddSkillPlanModal:
 // surface-1 paper, rule-1 hairlines, radius-lg, accent confirm button.
-import PropTypes from 'prop-types';
 import { useId } from 'react';
 import { Dialog } from '@mui/material';
 
@@ -56,16 +55,6 @@ const CustomConfirmDialog = ({
             </footer>
         </Dialog>
     );
-};
-
-CustomConfirmDialog.propTypes = {
-    open: PropTypes.bool.isRequired,
-    title: PropTypes.string.isRequired,
-    message: PropTypes.string.isRequired,
-    onConfirm: PropTypes.func.isRequired,
-    onCancel: PropTypes.func.isRequired,
-    confirmLabel: PropTypes.string,
-    cancelLabel: PropTypes.string,
 };
 
 export default CustomConfirmDialog;

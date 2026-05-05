@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * SkillProgress — flat ring matched to the design system.
  * No gradient, no glow, no pulse. Hue + weight encode state; the percent
@@ -62,12 +60,6 @@ const SkillProgress = ({ skill, progress, isTraining }) => {
             </div>
         </div>
     );
-};
-
-SkillProgress.propTypes = {
-    skill: PropTypes.shape({ name: PropTypes.string.isRequired }).isRequired,
-    progress: PropTypes.number.isRequired,
-    isTraining: PropTypes.bool,
 };
 
 export default SkillProgress;

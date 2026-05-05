@@ -3,7 +3,6 @@
 // The detail panel revealed when a row is expanded. Houses the role
 // editor (with inline "add new role") and the skill queue list.
 import { useEffect, useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
 import { ChevronRightOutlined } from '@mui/icons-material';
 import { Select, MenuItem, TextField } from '@mui/material';
 import useAppDataStore from '../../stores/appDataStore';
@@ -145,13 +144,6 @@ const ExpandedRow = ({ character, roles, skillConversions, onUpdateCharacter }) 
             </div>
         </div>
     );
-};
-
-ExpandedRow.propTypes = {
-    character: PropTypes.object.isRequired,
-    roles: PropTypes.array.isRequired,
-    skillConversions: PropTypes.object.isRequired,
-    onUpdateCharacter: PropTypes.func.isRequired,
 };
 
 export default ExpandedRow;

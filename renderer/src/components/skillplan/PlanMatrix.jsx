@@ -1,6 +1,5 @@
 // renderer/src/components/skillplan/PlanMatrix.jsx
 import { useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Tooltip } from '@mui/material';
 import StatusDot from '../ui/StatusDot.jsx';
 import EveTypeIcon from '../ui/EveTypeIcon.jsx';
@@ -157,13 +156,6 @@ const PlanMatrix = ({ characters, skillPlans, conversions, filter }) => {
             />
         </>
     );
-};
-
-PlanMatrix.propTypes = {
-    characters: PropTypes.array.isRequired,
-    skillPlans: PropTypes.object.isRequired,
-    conversions: PropTypes.object.isRequired,
-    filter: PropTypes.string.isRequired,
 };
 
 export default PlanMatrix;

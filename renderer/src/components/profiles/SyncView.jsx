@@ -1,6 +1,5 @@
 // renderer/src/components/profiles/SyncView.jsx
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 
 import StatusDot from '../ui/StatusDot.jsx';
@@ -140,13 +139,6 @@ const SyncView = ({ settingsData, associations, userSelections, filter }) => {
             {confirmDialog}
         </>
     );
-};
-
-SyncView.propTypes = {
-    settingsData: PropTypes.array.isRequired,
-    associations: PropTypes.array.isRequired,
-    userSelections: PropTypes.object,
-    filter: PropTypes.string.isRequired,
 };
 
 export default SyncView;

@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 const STATE_LABEL = {
     ready: 'Ready',
     training: 'Training',
@@ -42,8 +40,6 @@ function Glyph({ state }) {
     }
 }
 
-Glyph.propTypes = { state: PropTypes.string.isRequired };
-
 /**
  * StatusDot encodes character/skill state with hue + shape + accessible label.
  * - `state`: ready | training | queued | idle | error.
@@ -60,12 +56,6 @@ const StatusDot = ({ state = 'idle', label, className = '' }) => {
             <Glyph state={state} />
         </span>
     );
-};
-
-StatusDot.propTypes = {
-    state: PropTypes.oneOf(['ready', 'training', 'queued', 'idle', 'error']),
-    label: PropTypes.string,
-    className: PropTypes.string,
 };
 
 export default StatusDot;

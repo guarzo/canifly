@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
 import {
     Dialog,
     Select,
@@ -193,17 +192,6 @@ const AccountPromptModal = ({
             </footer>
         </Dialog>
     );
-};
-
-AccountPromptModal.propTypes = {
-    isOpen: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired,
-    title: PropTypes.string,
-    existingAccounts: PropTypes.array,
-    showRememberMe: PropTypes.bool,
-    rememberMe: PropTypes.bool,
-    onRememberMeChange: PropTypes.func,
 };
 
 export default AccountPromptModal;

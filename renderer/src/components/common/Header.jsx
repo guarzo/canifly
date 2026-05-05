@@ -4,7 +4,6 @@
 // open) lives here; data, side-effects, and the OAuth orchestration live
 // in `useHeaderData`. Each visual section is its own subcomponent.
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -97,11 +96,6 @@ const Header = ({ openSkillPlanModal, existingAccounts }) => {
             />
         </>
     );
-};
-
-Header.propTypes = {
-    openSkillPlanModal: PropTypes.func.isRequired,
-    existingAccounts: PropTypes.array,
 };
 
 export default Header;

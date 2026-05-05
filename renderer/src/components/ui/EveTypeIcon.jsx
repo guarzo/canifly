@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * EveTypeIcon — a small square thumbnail for an EVE type, looked up by name
  * via the conversions map. Falls back to a hairline-bordered placeholder when
@@ -36,13 +34,6 @@ const EveTypeIcon = ({ name, conversions, size = 6, className = '' }) => {
             className={`${sizeClass} rounded-sm border border-rule-1 bg-surface-2 shrink-0 ${className}`}
         />
     );
-};
-
-EveTypeIcon.propTypes = {
-    name: PropTypes.string.isRequired,
-    conversions: PropTypes.object,
-    size: PropTypes.oneOf(Object.keys(SIZE_CLASS).map(Number)),
-    className: PropTypes.string,
 };
 
 export default EveTypeIcon;

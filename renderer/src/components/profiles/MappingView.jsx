@@ -1,6 +1,5 @@
 // renderer/src/components/profiles/MappingView.jsx
 import { useCallback, useEffect, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 
 import MapAccountCard from './MapAccountCard.jsx';
@@ -282,14 +281,6 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
             {confirmDialog}
         </>
     );
-};
-
-MappingView.propTypes = {
-    subDirs: PropTypes.array.isRequired,
-    associations: PropTypes.array.isRequired,
-    filter: PropTypes.string.isRequired,
-    view: PropTypes.oneOf(['all', 'unmatched', 'matched']).isRequired,
-    sortOrder: PropTypes.oneOf(['mtime-desc', 'mtime-asc', 'name-asc', 'name-desc']).isRequired,
 };
 
 export default MappingView;

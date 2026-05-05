@@ -119,6 +119,20 @@ func (s *ConfigurationService) EnsureSettingsDir() error {
 	return nil
 }
 
+// IsDefaultSettingsDir reports whether the currently configured settings
+// directory matches the OS-default Tranquility location. Returns false when
+// no directory is configured or when auto-detection has not yet picked one.
+func (s *ConfigurationService) IsDefaultSettingsDir() (bool, error) {
+	current, err := s.GetSettingsDir()
+	if err != nil {
+		return false, err
+	}
+	if current == "" {
+		return false, nil
+	}
+	return current == s.getDefaultSettingsDir(), nil
+}
+
 func (s *ConfigurationService) SaveUserSelections(selections model.DropDownSelections) error {
 	configData, err := s.storage.LoadConfigData()
 	if err != nil {

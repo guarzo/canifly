@@ -4,8 +4,6 @@
 // changes per-cell and so this shell can host alternate dense matrices in
 // the future.
 
-import PropTypes from 'prop-types';
-
 const FROZEN_W = 220 + 72 + 92; // nameW + spW + summaryW from the original
 const COL_W = 36;
 
@@ -65,18 +63,5 @@ const MatrixShell = ({ ariaLabel, frozenHeader, columnHeaders, rows, frozenWidth
         })}
     </div>
 );
-
-MatrixShell.propTypes = {
-    ariaLabel: PropTypes.string.isRequired,
-    frozenHeader: PropTypes.node.isRequired,
-    columnHeaders: PropTypes.arrayOf(PropTypes.node).isRequired,
-    rows: PropTypes.arrayOf(PropTypes.shape({
-        key: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-        frozenCell: PropTypes.node.isRequired,
-        cells: PropTypes.arrayOf(PropTypes.node).isRequired,
-    })).isRequired,
-    frozenWidth: PropTypes.number,
-    colWidth: PropTypes.number,
-};
 
 export default MatrixShell;

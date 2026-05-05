@@ -1,6 +1,5 @@
 // src/components/landing/LoginButton.jsx
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import AccountPromptModal from '../common/AccountPromptModal.jsx';
 import { initiateLogin } from '../../api/authApi';
@@ -123,10 +122,6 @@ const LoginButton = ({ onModalOpenChange }) => {
             />
         </>
     );
-};
-
-LoginButton.propTypes = {
-    onModalOpenChange: PropTypes.func,
 };
 
 export default LoginButton;
