@@ -352,7 +352,7 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId, charName s
 
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return err
+		return fmt.Errorf("associate character: load account data: %w", err)
 	}
 
 	// Find if association already exists
@@ -362,7 +362,10 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId, charName s
 			if charName != "" {
 				accountData.Associations[i].CharName = charName
 			}
-			return s.storage.SaveAccountData(accountData)
+			if err := s.storage.SaveAccountData(accountData); err != nil {
+				return fmt.Errorf("associate character: save account data: %w", err)
+			}
+			return nil
 		}
 	}
 
@@ -373,7 +376,10 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId, charName s
 		CharName: charName,
 	})
 
-	return s.storage.SaveAccountData(accountData)
+	if err := s.storage.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("associate character: save account data: %w", err)
+	}
+	return nil
 }
 
 func (s *AccountManagementService) UnassociateCharacter(userId, charId string) error {
@@ -382,7 +388,7 @@ func (s *AccountManagementService) UnassociateCharacter(userId, charId string) e
 
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return err
+		return fmt.Errorf("unassociate character: load account data: %w", err)
 	}
 
 	// Remove association
@@ -394,13 +400,16 @@ func (s *AccountManagementService) UnassociateCharacter(userId, charId string) e
 	}
 
 	accountData.Associations = newAssociations
-	return s.storage.SaveAccountData(accountData)
+	if err := s.storage.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("unassociate character: save account data: %w", err)
+	}
+	return nil
 }
 
 func (s *AccountManagementService) GetAssociations() ([]model.Association, error) {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get associations: load account data: %w", err)
 	}
 	return accountData.Associations, nil
 }
