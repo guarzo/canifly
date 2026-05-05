@@ -61,6 +61,7 @@ describe('useSyncAction', () => {
                 .rejects.toThrow('boom');
         });
         expect(mockLoggerError).toHaveBeenCalled();
+        expect(mockToastError).toHaveBeenCalled();
         expect(result.current.isLoading).toBe(false);
     });
 });

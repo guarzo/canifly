@@ -30,6 +30,9 @@ const matchesQuery = (q) => (str) => !q || (str || '').toLowerCase().includes(q)
 const MappingView = ({ subDirs, associations: initialAssociations, filter, view, sortOrder }) => {
     const { refreshData } = useAppData();
     const [associations, setAssociations] = useState(initialAssociations);
+    useEffect(() => {
+        setAssociations(initialAssociations);
+    }, [initialAssociations]);
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
 
     const { accounts, availableCharacters, mtimeToColor } =
@@ -103,7 +106,7 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
             window.removeEventListener('scroll', recompute, true);
             if (rafId) cancelAnimationFrame(rafId);
         };
-    }, [accounts, availableCharacters, mtimeToColor]);
+    }, [accounts, availableCharacters, mtimeToColor, filter]);
 
     const handleDragStart = (event, charId) => {
         event.dataTransfer.setData('text/plain', charId);

@@ -22,6 +22,8 @@ export function useSyncAction() {
             return result;
         } catch (err) {
             logger.error(`${errorContext} failed`, err);
+            const userMessage = err?.message || `${errorContext} failed`;
+            toast.error(userMessage);
             throw err;
         } finally {
             setIsLoading(false);
