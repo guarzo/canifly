@@ -54,3 +54,35 @@ describe('Profiles smart default', () => {
         expect(screen.getByRole('heading', { name: 'Profiles' })).toBeInTheDocument();
     });
 });
+
+describe('Profiles reset-to-default button visibility', () => {
+    test('hides the reset-to-default button when isDefaultDir is true (sync mode)', () => {
+        wrap(
+            <Profiles
+                subDirs={[]}
+                associations={[]}
+                settingsData={[{ profile: 'settings_default', availableCharFiles: [], availableUserFiles: [] }]}
+                userSelections={{}}
+                currentSettingsDir="/path/to/Tranquility"
+                isDefaultDir={true}
+                lastBackupDir=""
+            />,
+        );
+        expect(screen.queryByRole('button', { name: /reset to default directory/i })).toBeNull();
+    });
+
+    test('shows the reset-to-default button when isDefaultDir is false (sync mode)', () => {
+        wrap(
+            <Profiles
+                subDirs={[]}
+                associations={[]}
+                settingsData={[{ profile: 'settings_default', availableCharFiles: [], availableUserFiles: [] }]}
+                userSelections={{}}
+                currentSettingsDir="/some/custom/dir"
+                isDefaultDir={false}
+                lastBackupDir=""
+            />,
+        );
+        expect(screen.getByRole('button', { name: /reset to default directory/i })).toBeInTheDocument();
+    });
+});

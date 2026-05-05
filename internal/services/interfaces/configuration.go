@@ -8,6 +8,7 @@ type ConfigurationService interface {
 	UpdateSettingsDir(dir string) error
 	GetSettingsDir() (string, error)
 	EnsureSettingsDir() error
+	IsDefaultSettingsDir() (bool, error)
 	SaveUserSelections(model.DropDownSelections) error
 	FetchUserSelections() (model.DropDownSelections, error)
 	UpdateRoles(newRole string) error

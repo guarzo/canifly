@@ -78,12 +78,12 @@ const Profiles = ({
     settingsData = [],
     userSelections = {},
     currentSettingsDir = '',
+    isDefaultDir = false,
     lastBackupDir = '',
 }) => {
     const [params, setParams] = useSearchParams();
     const { run, isLoading } = useSyncAction();
     const [showConfirmDialog, confirmDialog] = useConfirmDialog();
-    const [isDefaultDir, setIsDefaultDir] = useState(false);
 
     // Smart default: unmatched characters → Mapping; else Sync. The persisted
     // value wins on second visit; the query string wins over both.
@@ -143,7 +143,6 @@ const Profiles = ({
         if (!chosen) { toast.info('No directory chosen.'); return; }
         await run(async () => {
             const result = await chooseSettingsDir(chosen);
-            if (result?.success) setIsDefaultDir(false);
             return { ...result, message: result?.message || `Settings directory: ${chosen}` };
         }, { errorContext: 'chooseSettingsDir' });
     }, [run]);
@@ -163,7 +162,6 @@ const Profiles = ({
         if (!ok.isConfirmed) return;
         await run(async () => {
             const result = await resetToDefaultDirectory();
-            if (result?.success) setIsDefaultDir(true);
             return { ...result, message: 'Reset to default: Tranquility' };
         }, { errorContext: 'resetToDefaultDirectory' });
     }, [run, showConfirmDialog]);
@@ -295,6 +293,7 @@ Profiles.propTypes = {
     settingsData: PropTypes.array,
     userSelections: PropTypes.object,
     currentSettingsDir: PropTypes.string,
+    isDefaultDir: PropTypes.bool,
     lastBackupDir: PropTypes.string,
 };
 
