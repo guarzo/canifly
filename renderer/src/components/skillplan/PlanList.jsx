@@ -12,6 +12,7 @@ import {
 import { IconButton, Tooltip } from '@mui/material';
 import StatusDot from '../ui/StatusDot.jsx';
 import { calculateDaysFromToday } from '../../utils/formatter.jsx';
+import MissingSkillsPopover from './MissingSkillsPopover.jsx';
 
 const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelete }) => {
     const [expanded, setExpanded] = useState(() => new Set());
@@ -39,11 +40,20 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                     }),
                     ...missing.map((n) => ({ name: n, state: 'idle', label: 'Missing skills' })),
                 ];
+                const aggregate = {};
+                for (const charName of missing) {
+                    const ch = characters.find((c) => c.Character?.CharacterName === charName);
+                    const charMissing = ch?.Character?.MissingSkills?.[sp.Name] || {};
+                    for (const [skill, lvl] of Object.entries(charMissing)) {
+                        aggregate[skill] = Math.max(aggregate[skill] ?? 0, lvl);
+                    }
+                }
                 return {
                     name: sp.Name,
                     qualified: qualified.length,
                     pending: pending.length,
                     missing: missing.length,
+                    aggregateMissing: aggregate,
                     children,
                 };
             });
@@ -114,7 +124,25 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                             </div>
                             <span className="text-body font-mono tabular text-right text-status-ready">{p.qualified}</span>
                             <span className="text-body font-mono tabular text-right text-status-training">{p.pending}</span>
-                            <span className="text-body font-mono tabular text-right text-ink-3">{p.missing}</span>
+                            {p.missing > 0 ? (
+                                <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                                    <MissingSkillsPopover
+                                        planName={p.name}
+                                        missingSkills={p.aggregateMissing}
+                                        trigger={
+                                            <button
+                                                type="button"
+                                                className="text-body font-mono tabular text-ink-3 hover:text-ink-1 underline-offset-2 hover:underline"
+                                                aria-label={`Show ${p.missing} missing skill${p.missing === 1 ? '' : 's'} across characters for ${p.name}`}
+                                            >
+                                                {p.missing}
+                                            </button>
+                                        }
+                                    />
+                                </div>
+                            ) : (
+                                <span className="text-body font-mono tabular text-right text-ink-3">{p.missing}</span>
+                            )}
                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                                 <Tooltip title="Copy skill plan">
                                     <IconButton
