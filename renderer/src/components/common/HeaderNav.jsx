@@ -16,8 +16,7 @@ import {
 import {
     SpaceDashboardOutlined as CharacterOverviewIcon,
     ListAltOutlined as SkillPlansIcon,
-    SyncOutlined as SyncIcon,
-    AccountTreeOutlined as MappingIcon,
+    ManageAccountsOutlined as ProfilesIcon,
     SettingsOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -39,10 +38,9 @@ const StyledDrawer = styled(Drawer)(() => ({
 
 const NAV_LINKS = [
     { text: 'Overview',    icon: <CharacterOverviewIcon fontSize="small" />, path: '/' },
-    { text: 'Skill Plans', icon: <SkillPlansIcon fontSize="small" />,         path: '/skill-plans' },
-    { text: 'Mapping',     icon: <MappingIcon fontSize="small" />,            path: '/mapping' },
-    { text: 'Sync',        icon: <SyncIcon fontSize="small" />,               path: '/sync' },
-    { text: 'Settings',    icon: <SettingsIcon fontSize="small" />,           path: '/settings' },
+    { text: 'Skill Plans', icon: <SkillPlansIcon fontSize="small" />,        path: '/skill-plans' },
+    { text: 'Profiles',    icon: <ProfilesIcon fontSize="small" />,          path: '/profiles' },
+    { text: 'Settings',    icon: <SettingsIcon fontSize="small" />,          path: '/settings' },
 ];
 
 const navItemSx = (selected) => ({
