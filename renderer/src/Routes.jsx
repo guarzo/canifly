@@ -1,7 +1,6 @@
 // src/Routes.jsx
-
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
@@ -11,8 +10,7 @@ import { logger } from './utils/logger';
 import CharacterOverview from './pages/CharacterOverview.jsx';
 import SkillPlans from './pages/SkillPlans.jsx';
 import Landing from './pages/Landing.jsx';
-import Sync from './pages/Sync.jsx';
-import Mapping from './pages/Mapping.jsx';
+import Profiles from './pages/Profiles.jsx';
 import Settings from './pages/Settings.jsx';
 import PageTransition from './components/transitions/PageTransition.jsx';
 import LoadingScreen from './components/ui/LoadingScreen.jsx';
@@ -20,29 +18,27 @@ import LoadingScreen from './components/ui/LoadingScreen.jsx';
 function AppRoutes({ characters }) {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
-    const { accounts, associations, config, isLoading } = useAppData();
+    const { associations, config, isLoading } = useAppData();
     const { skillPlans, eveProfiles, eveConversions, loading: eveLoading } = useEveData();
-    
-    // Debug logging
+
     React.useEffect(() => {
         logger.debug('Routes - associations:', associations);
         logger.debug('Routes - eveProfiles:', eveProfiles);
         logger.debug('Routes - eveConversions:', eveConversions);
     }, [associations, eveProfiles, eveConversions]);
-    
+
     if (!isAuthenticated) {
         return <Landing />;
     }
-    
     if (isLoading || eveLoading.skillPlans || eveLoading.eveProfiles || eveLoading.eveConversions) {
         return <LoadingScreen message="Loading…" />;
     }
-    
-    // Extract data from stores
+
     const roles = config?.roles || config?.Roles || [];
     const userSelections = config?.userSelections || config?.DropDownSelections || {};
     const currentSettingsDir = config?.settingsDir || config?.SettingsDir || '';
-    const lastBackupDir = config?.lastBackupDir || config?.LastBackupDir || [];
+    const rawLastBackup = config?.lastBackupDir || config?.LastBackupDir;
+    const lastBackupDir = typeof rawLastBackup === 'string' ? rawLastBackup : '';
 
     return (
         <AnimatePresence mode="wait">
@@ -51,10 +47,7 @@ function AppRoutes({ characters }) {
                     path="/"
                     element={
                         <PageTransition>
-                            <CharacterOverview
-                                roles={roles}
-                                skillConversions={eveConversions}
-                            />
+                            <CharacterOverview roles={roles} skillConversions={eveConversions} />
                         </PageTransition>
                     }
                 />
@@ -71,30 +64,23 @@ function AppRoutes({ characters }) {
                     }
                 />
                 <Route
-                    path="/sync"
+                    path="/profiles"
                     element={
                         <PageTransition>
-                            <Sync
-                                settingsData={eveProfiles}
+                            <Profiles
+                                subDirs={eveProfiles}
                                 associations={associations}
-                                currentSettingsDir={currentSettingsDir}
+                                settingsData={eveProfiles}
                                 userSelections={userSelections}
+                                currentSettingsDir={currentSettingsDir}
                                 lastBackupDir={lastBackupDir}
                             />
                         </PageTransition>
                     }
                 />
-                <Route
-                    path="/mapping"
-                    element={
-                        <PageTransition>
-                            <Mapping
-                                associations={associations}
-                                subDirs={eveProfiles}
-                            />
-                        </PageTransition>
-                    }
-                />
+                {/* Bookmark-preserving redirects */}
+                <Route path="/mapping" element={<Navigate to="/profiles?view=mapping" replace />} />
+                <Route path="/sync" element={<Navigate to="/profiles?view=sync" replace />} />
                 <Route
                     path="/settings"
                     element={

@@ -2,13 +2,17 @@
 // A user-file row: dense header (swatch + name + mtime + count) with the
 // associated characters listed beneath as inline rows. Drop target.
 
+import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { DeleteOutlined as DeleteOutline } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import { formatDate } from '../../utils/formatter.jsx';
 import MtimeSwatch from './MtimeSwatch.jsx';
 
-const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mtimeToColor }) => {
+const AccountCard = forwardRef(function AccountCard(
+    { mapping, associations, handleUnassociate, handleDrop, mtimeToColor },
+    ref,
+) {
     const userId = mapping.userId;
     const userName = mapping.name || `Account ${userId}`;
     const associatedChars = associations.filter((a) => a.userId === userId);
@@ -21,7 +25,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
             onDrop={(e) => handleDrop(e, userId, userName)}
             className="rounded-lg border border-rule-1 bg-surface-1 overflow-hidden"
         >
-            <div className="grid grid-cols-[16px_minmax(0,1fr)_auto_60px] gap-3 items-center h-10 px-4 bg-surface-2 border-b border-rule-1">
+            <div ref={ref} className="grid grid-cols-[16px_minmax(0,1fr)_auto_60px] gap-3 items-center h-10 px-4 bg-surface-2 border-b border-rule-1">
                 <MtimeSwatch color={swatch} title={`mtime ${mtime}`} />
                 <span className="text-body text-ink-1 truncate" title={userName}>
                     {userName}
@@ -77,7 +81,7 @@ const AccountCard = ({ mapping, associations, handleUnassociate, handleDrop, mti
             )}
         </div>
     );
-};
+});
 
 AccountCard.propTypes = {
     mapping: PropTypes.shape({
