@@ -37,14 +37,16 @@ const CharacterDetailModal = ({ open, onClose, character, skillConversions }) =>
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: 'var(--surface-1)',
-                    backgroundImage: 'none',
-                    color: 'var(--ink-1)',
-                    border: '1px solid var(--rule-1)',
-                    borderRadius: '10px',
-                    boxShadow: '0 6px 20px oklch(0 0 0 / 0.4)',
+            slotProps={{
+                paper: {
+                    sx: {
+                        bgcolor: 'var(--surface-1)',
+                        backgroundImage: 'none',
+                        color: 'var(--ink-1)',
+                        border: '1px solid var(--rule-1)',
+                        borderRadius: '10px',
+                        boxShadow: '0 6px 20px oklch(0 0 0 / 0.4)',
+                    },
                 },
             }}
         >

@@ -346,7 +346,7 @@ func (s *AccountManagementService) UpdateAssociationsAfterNewCharacter(account *
 	return s.updateAssociationsAfterNewCharacter(account, charID)
 }
 
-func (s *AccountManagementService) AssociateCharacter(userId, charId string) error {
+func (s *AccountManagementService) AssociateCharacter(userId, charId, charName string) error {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
@@ -356,14 +356,18 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId string) err
 	for i, assoc := range accountData.Associations {
 		if assoc.CharId == charId {
 			accountData.Associations[i].UserId = userId
+			if charName != "" {
+				accountData.Associations[i].CharName = charName
+			}
 			return s.storage.SaveAccountData(accountData)
 		}
 	}
 
 	// Create new association
 	accountData.Associations = append(accountData.Associations, model.Association{
-		CharId: charId,
-		UserId: userId,
+		CharId:   charId,
+		UserId:   userId,
+		CharName: charName,
 	})
 
 	return s.storage.SaveAccountData(accountData)

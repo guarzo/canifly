@@ -24,8 +24,8 @@ func (m *MockAssociationService) UpdateAssociationsAfterNewCharacter(account *mo
 	return args.Error(0)
 }
 
-func (m *MockAssociationService) AssociateCharacter(userId, charId string) error {
-	args := m.Called(userId, charId)
+func (m *MockAssociationService) AssociateCharacter(userId, charId, charName string) error {
+	args := m.Called(userId, charId, charName)
 	return args.Error(0)
 }
 
@@ -264,8 +264,8 @@ func (m *MockAccountManagementService) UpdateAssociationsAfterNewCharacter(accou
 	return args.Error(0)
 }
 
-func (m *MockAccountManagementService) AssociateCharacter(userId, charId string) error {
-	args := m.Called(userId, charId)
+func (m *MockAccountManagementService) AssociateCharacter(userId, charId, charName string) error {
+	args := m.Called(userId, charId, charName)
 	return args.Error(0)
 }
 
