@@ -106,7 +106,7 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
             window.removeEventListener('scroll', recompute, true);
             if (rafId) cancelAnimationFrame(rafId);
         };
-    }, [accounts, availableCharacters, mtimeToColor, filter]);
+    }, [accounts, availableCharacters, mtimeToColor]);
 
     const handleDragStart = (event, charId) => {
         event.dataTransfer.setData('text/plain', charId);
@@ -129,11 +129,17 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
             message: `Associate "${char.name}" with account "${userName}"?`,
         });
         if (!ok.isConfirmed) return;
-        const result = await associateCharacter(userId, charId, userName, char.name);
-        if (result?.success) {
-            toast.success(result.message);
-            setAssociations((prev) => [...prev, { userId, charId, charName: char.name, mtime: char.mtime }]);
-            if (refreshData) await refreshData();
+        try {
+            const result = await associateCharacter(userId, charId, userName, char.name);
+            if (result?.success) {
+                toast.success(result.message);
+                setAssociations((prev) => [...prev, { userId, charId, charName: char.name, mtime: char.mtime }]);
+                if (refreshData) await refreshData();
+            } else {
+                toast.error(result?.message || 'Association failed.');
+            }
+        } catch (err) {
+            toast.error(err?.message || 'Association failed.');
         }
     }, [associations, availableCharacters, showConfirmDialog, refreshData]);
 
@@ -143,13 +149,19 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
             message: `Unassociate "${charName}" from account "${userName}"?`,
         });
         if (!ok.isConfirmed) return;
-        const result = await unassociateCharacter(userId, charId, userName, charName);
-        if (result?.success) {
-            toast.success(result.message);
-            setAssociations((prev) =>
-                prev.filter((a) => a.charId !== charId || a.userId !== userId),
-            );
-            if (refreshData) await refreshData();
+        try {
+            const result = await unassociateCharacter(userId, charId, userName, charName);
+            if (result?.success) {
+                toast.success(result.message);
+                setAssociations((prev) =>
+                    prev.filter((a) => a.charId !== charId || a.userId !== userId),
+                );
+                if (refreshData) await refreshData();
+            } else {
+                toast.error(result?.message || 'Unassociation failed.');
+            }
+        } catch (err) {
+            toast.error(err?.message || 'Unassociation failed.');
         }
     }, [showConfirmDialog, refreshData]);
 

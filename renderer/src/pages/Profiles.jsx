@@ -110,11 +110,14 @@ const Profiles = ({
 
     useEffect(() => {
         writeLS(LS.view, view);
-        // Mirror to URL so a page reload keeps the same mode.
-        const next = new URLSearchParams(params);
-        next.set('view', view);
-        setParams(next, { replace: true });
-    }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+        // Mirror to URL so a page reload keeps the same mode. Use the
+        // functional setParams form to avoid stale closures over `params`.
+        setParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('view', view);
+            return next;
+        }, { replace: true });
+    }, [view, setParams]);
     useEffect(() => writeLS(LS.filter, filter), [filter]);
     useEffect(() => writeLS(LS.mapView, mapView), [mapView]);
     useEffect(() => writeLS(LS.mapSort, mapSort), [mapSort]);

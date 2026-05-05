@@ -2,7 +2,15 @@ import PropTypes from 'prop-types';
 
 const SwatchBridge = ({ containerRef, pairs, width, height, className = '' }) => {
     if (!pairs || pairs.length === 0) {
-        return <svg aria-hidden width={width} height={height} className={className} />;
+        return (
+            <svg
+                aria-hidden
+                width={width}
+                height={height}
+                className={`pointer-events-none ${className}`}
+                style={{ position: 'absolute', inset: 0 }}
+            />
+        );
     }
     const origin = containerRef.current?.getBoundingClientRect?.() || { left: 0, top: 0 };
 

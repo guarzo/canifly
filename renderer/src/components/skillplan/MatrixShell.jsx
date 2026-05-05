@@ -17,6 +17,7 @@ const MatrixShell = ({ ariaLabel, frozenHeader, columnHeaders, rows, frozenWidth
     >
         <div role="row" className="sticky top-0 z-20 flex items-end bg-surface-2 border-b border-rule-1">
             <div
+                role="columnheader"
                 className="sticky left-0 z-30 bg-surface-2 border-r border-rule-1 flex items-end gap-3 px-4 py-2"
                 style={{ width: frozenWidth }}
             >
@@ -43,6 +44,7 @@ const MatrixShell = ({ ariaLabel, frozenHeader, columnHeaders, rows, frozenWidth
                     className={`flex items-stretch ${isLast ? '' : 'border-b border-rule-1'} hover:bg-surface-2`}
                 >
                     <div
+                        role="rowheader"
                         className="sticky left-0 z-10 bg-surface-1 border-r border-rule-1 flex items-center gap-3 px-4 h-10"
                         style={{ width: frozenWidth }}
                     >

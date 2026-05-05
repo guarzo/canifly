@@ -22,8 +22,8 @@ const SyncProfileRow = ({
 
     const charOptions = useMemo(
         () => [...(subDir.availableCharFiles || [])]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((c) => ({ value: c.charId, primary: c.name, secondary: c.charId })),
+            .sort((a, b) => (a.name || a.charId).localeCompare(b.name || b.charId))
+            .map((c) => ({ value: c.charId, primary: c.name || c.charId, secondary: c.charId })),
         [subDir.availableCharFiles],
     );
     const userOptions = useMemo(

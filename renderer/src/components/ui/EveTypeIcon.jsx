@@ -4,11 +4,21 @@ import PropTypes from 'prop-types';
  * EveTypeIcon — a small square thumbnail for an EVE type, looked up by name
  * via the conversions map. Falls back to a hairline-bordered placeholder when
  * the name is unknown. Decorative; rendered with aria-hidden.
+ *
+ * Size must be one of the keys in SIZE_CLASS so Tailwind picks up the
+ * h-N/w-N utilities at build time. Adding a new size means adding it here.
  */
+const SIZE_CLASS = {
+    4: 'h-4 w-4',
+    5: 'h-5 w-5',
+    6: 'h-6 w-6',
+    8: 'h-8 w-8',
+};
+
 const EveTypeIcon = ({ name, conversions, size = 6, className = '' }) => {
     const typeID = conversions?.[name];
     const url = typeID ? `https://images.evetech.net/types/${typeID}/icon` : null;
-    const sizeClass = `h-${size} w-${size}`;
+    const sizeClass = SIZE_CLASS[size] || SIZE_CLASS[6];
     if (url) {
         return (
             <img
@@ -31,7 +41,7 @@ const EveTypeIcon = ({ name, conversions, size = 6, className = '' }) => {
 EveTypeIcon.propTypes = {
     name: PropTypes.string.isRequired,
     conversions: PropTypes.object,
-    size: PropTypes.number,
+    size: PropTypes.oneOf(Object.keys(SIZE_CLASS).map(Number)),
     className: PropTypes.string,
 };
 

@@ -33,15 +33,21 @@ const SyncView = ({ settingsData, associations, userSelections, filter }) => {
     }, []);
 
     const handleSelectionChange = useCallback((profile, field, value) => {
+        let computedNext = null;
         setSelections((prev) => {
             const next = { ...prev, [profile]: { ...prev[profile], [field]: value } };
             if (field === 'charId' && value) {
                 const assoc = associations.find((a) => a.charId === value);
                 if (assoc) next[profile].userId = assoc.userId;
             }
-            persistSelections(next);
+            computedNext = next;
             return next;
         });
+        if (computedNext) {
+            persistSelections(computedNext).catch((err) => {
+                toast.error(err?.message || 'Failed to save selection.');
+            });
+        }
     }, [associations, persistSelections]);
 
     const handleSync = useCallback(async (profile) => {

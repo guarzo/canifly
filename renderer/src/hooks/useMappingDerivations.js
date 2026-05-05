@@ -19,19 +19,23 @@ const SWATCH_PALETTE = [
 
 function roundToMinute(mtime) {
     const d = new Date(mtime);
+    if (Number.isNaN(d.getTime())) return null;
     d.setSeconds(0, 0);
     return d.toISOString();
 }
 
 export function computeMappingDerivations(subDirs, associations) {
-    if (!subDirs || subDirs.length === 0) {
+    if (!Array.isArray(subDirs) || subDirs.length === 0) {
         return { accounts: [], availableCharacters: [], mtimeToColor: {} };
     }
 
     const userMap = {};
     subDirs.forEach((mapping) => {
+        if (!mapping || !Array.isArray(mapping.availableUserFiles)) return;
         mapping.availableUserFiles.forEach((userFile) => {
+            if (!userFile || !userFile.userId) return;
             const roundedMtime = roundToMinute(userFile.mtime);
+            if (!roundedMtime) return;
             if (
                 !userMap[userFile.userId] ||
                 new Date(roundedMtime) > new Date(userMap[userFile.userId].mtime)
@@ -46,8 +50,11 @@ export function computeMappingDerivations(subDirs, associations) {
 
     const charMap = {};
     subDirs.forEach((mapping) => {
+        if (!mapping || !Array.isArray(mapping.availableCharFiles)) return;
         mapping.availableCharFiles.forEach((charFile) => {
+            if (!charFile || !charFile.charId) return;
             const roundedMtime = roundToMinute(charFile.mtime);
+            if (!roundedMtime) return;
             const { charId } = charFile;
             if (!charMap[charId] || new Date(roundedMtime) > new Date(charMap[charId].mtime)) {
                 charMap[charId] = { ...charFile, mtime: roundedMtime, profile: mapping.profile };

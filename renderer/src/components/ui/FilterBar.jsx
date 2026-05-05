@@ -42,7 +42,7 @@ const FilterBar = ({
                 <Kbd>/</Kbd>
             )}
         </div>
-        {count ? (
+        {count != null ? (
             <span className="text-meta text-ink-3 tabular">{count}</span>
         ) : null}
     </div>
