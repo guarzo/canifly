@@ -347,6 +347,9 @@ func (s *AccountManagementService) UpdateAssociationsAfterNewCharacter(account *
 }
 
 func (s *AccountManagementService) AssociateCharacter(userId, charId, charName string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
@@ -374,6 +377,9 @@ func (s *AccountManagementService) AssociateCharacter(userId, charId, charName s
 }
 
 func (s *AccountManagementService) UnassociateCharacter(userId, charId string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
 		return err
