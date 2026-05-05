@@ -31,7 +31,7 @@ type AccountManagementService interface {
 
 	// Association Management (from AssociationService)
 	UpdateAssociationsAfterNewCharacter(account *model.Account, charID int64) error
-	AssociateCharacter(userId, charId string) error
+	AssociateCharacter(userId, charId, charName string) error
 	UnassociateCharacter(userId, charId string) error
 	GetAssociations() ([]model.Association, error)
 }

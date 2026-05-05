@@ -26,9 +26,11 @@ const AddSkillPlanModal = ({ onClose }) => {
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                className: 'bg-surface-1 border border-rule-1 rounded-lg',
-                sx: { backgroundImage: 'none' },
+            slotProps={{
+                paper: {
+                    className: 'bg-surface-1 border border-rule-1 rounded-lg',
+                    sx: { backgroundImage: 'none' },
+                },
             }}
         >
             <form onSubmit={handleSubmit}>

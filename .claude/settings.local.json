@@ -15,7 +15,9 @@
       "Bash(npm test *)",
       "Bash(ps *)",
       "Bash(kill 382438)",
-      "Bash(go test *)"
+      "Bash(go test *)",
+      "Bash(sed -n '20,40p' internal/testutil/mock_interfaces.go)",
+      "Bash(sed -n '260,280p' internal/testutil/mock_interfaces.go)"
     ],
     "deny": [],
     "ask": []

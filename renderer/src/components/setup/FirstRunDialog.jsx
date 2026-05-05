@@ -46,11 +46,13 @@ const FirstRunDialog = ({ open, onComplete }) => {
             maxWidth="sm"
             fullWidth
             disableEscapeKeyDown
-            PaperProps={{
-                sx: {
-                    backgroundColor: 'var(--surface-1)',
-                    border: '1px solid var(--rule-1)',
-                    backgroundImage: 'none',
+            slotProps={{
+                paper: {
+                    sx: {
+                        backgroundColor: 'var(--surface-1)',
+                        border: '1px solid var(--rule-1)',
+                        backgroundImage: 'none',
+                    },
                 },
             }}
         >

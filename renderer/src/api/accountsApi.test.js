@@ -89,7 +89,7 @@ describe('accountsApi', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ userId: 'user1', characterId: 'char1' })
+                body: JSON.stringify({ userId: 'user1', characterId: 'char1', charName: 'CharName' })
             }, {
                 errorMessage: 'Association operation failed.'
             });

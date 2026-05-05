@@ -101,12 +101,12 @@ export async function getAssociations() {
     });
 }
 
-export async function associateCharacter(userId, charId, _userName, _charName) {
+export async function associateCharacter(userId, charId, _userName, charName) {
     return apiRequest(`/api/associations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ userId, characterId: charId })
+        body: JSON.stringify({ userId, characterId: charId, charName })
     }, {
         errorMessage: 'Association operation failed.'
     });

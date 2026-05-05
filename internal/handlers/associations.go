@@ -38,8 +38,9 @@ func (h *AssociationHandler) ListAssociations() http.HandlerFunc {
 		data := make([]map[string]interface{}, len(associations))
 		for i, assoc := range associations {
 			data[i] = map[string]interface{}{
-				"userId":      assoc.UserId,
-				"characterId": assoc.CharId,
+				"userId":   assoc.UserId,
+				"charId":   assoc.CharId,
+				"charName": assoc.CharName,
 			}
 		}
 
@@ -55,6 +56,7 @@ func (h *AssociationHandler) CreateAssociation() http.HandlerFunc {
 		var request struct {
 			UserID      string `json:"userId"`
 			CharacterID string `json:"characterId"`
+			CharName    string `json:"charName"`
 		}
 
 		if err := decodeJSONBody(r, &request); err != nil {
@@ -67,16 +69,18 @@ func (h *AssociationHandler) CreateAssociation() http.HandlerFunc {
 			return
 		}
 
-		if err := h.assocService.AssociateCharacter(request.UserID, request.CharacterID); err != nil {
+		if err := h.assocService.AssociateCharacter(request.UserID, request.CharacterID, request.CharName); err != nil {
 			h.logger.Errorf("Failed to create association: %v", err)
 			respondError(w, "Failed to create association", http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusCreated)
 		respondJSON(w, map[string]interface{}{
-			"userId":      request.UserID,
-			"characterId": request.CharacterID,
+			"success":  true,
+			"message":  "Character associated.",
+			"userId":   request.UserID,
+			"charId":   request.CharacterID,
+			"charName": request.CharName,
 		})
 	}
 }
@@ -99,6 +103,9 @@ func (h *AssociationHandler) DeleteAssociation() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		respondJSON(w, map[string]interface{}{
+			"success": true,
+			"message": "Character unassociated.",
+		})
 	}
 }

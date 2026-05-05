@@ -346,33 +346,49 @@ func (s *AccountManagementService) UpdateAssociationsAfterNewCharacter(account *
 	return s.updateAssociationsAfterNewCharacter(account, charID)
 }
 
-func (s *AccountManagementService) AssociateCharacter(userId, charId string) error {
+func (s *AccountManagementService) AssociateCharacter(userId, charId, charName string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return err
+		return fmt.Errorf("associate character: load account data: %w", err)
 	}
 
 	// Find if association already exists
 	for i, assoc := range accountData.Associations {
 		if assoc.CharId == charId {
 			accountData.Associations[i].UserId = userId
-			return s.storage.SaveAccountData(accountData)
+			if charName != "" {
+				accountData.Associations[i].CharName = charName
+			}
+			if err := s.storage.SaveAccountData(accountData); err != nil {
+				return fmt.Errorf("associate character: save account data: %w", err)
+			}
+			return nil
 		}
 	}
 
 	// Create new association
 	accountData.Associations = append(accountData.Associations, model.Association{
-		CharId: charId,
-		UserId: userId,
+		CharId:   charId,
+		UserId:   userId,
+		CharName: charName,
 	})
 
-	return s.storage.SaveAccountData(accountData)
+	if err := s.storage.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("associate character: save account data: %w", err)
+	}
+	return nil
 }
 
 func (s *AccountManagementService) UnassociateCharacter(userId, charId string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return err
+		return fmt.Errorf("unassociate character: load account data: %w", err)
 	}
 
 	// Remove association
@@ -384,13 +400,16 @@ func (s *AccountManagementService) UnassociateCharacter(userId, charId string) e
 	}
 
 	accountData.Associations = newAssociations
-	return s.storage.SaveAccountData(accountData)
+	if err := s.storage.SaveAccountData(accountData); err != nil {
+		return fmt.Errorf("unassociate character: save account data: %w", err)
+	}
+	return nil
 }
 
 func (s *AccountManagementService) GetAssociations() ([]model.Association, error) {
 	accountData, err := s.storage.LoadAccountData()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get associations: load account data: %w", err)
 	}
 	return accountData.Associations, nil
 }

@@ -23,9 +23,11 @@ const CustomConfirmDialog = ({
             fullWidth
             aria-labelledby={titleId}
             aria-describedby={descId}
-            PaperProps={{
-                className: 'bg-surface-1 border border-rule-1 rounded-lg',
-                sx: { backgroundImage: 'none' },
+            slotProps={{
+                paper: {
+                    className: 'bg-surface-1 border border-rule-1 rounded-lg',
+                    sx: { backgroundImage: 'none' },
+                },
             }}
         >
             <header className="px-5 py-4 border-b border-rule-1">
