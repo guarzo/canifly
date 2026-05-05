@@ -1,35 +1,9 @@
-// src/components/profiles/SyncProfileRow.jsx
-//
-// Dense, table-style row for one EVE profile in the Sync page.
-// Each row pairs a character file with a user file and exposes a
-// prominent (but calm) Sync action plus a Sync-All overflow.
-
+// renderer/src/components/profiles/SyncProfileRow.jsx
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import {
-    ArrowForwardOutlined,
-    SyncOutlined,
-    SyncAltOutlined,
-} from '@mui/icons-material';
-import { IconButton, Tooltip, Select, MenuItem } from '@mui/material';
-
-import StatusDot from '../ui/StatusDot.jsx';
-
-const selectSx = {
-    height: 32,
-    minHeight: 32,
-    fontSize: 14,
-    color: 'var(--ink-1)',
-    backgroundColor: 'var(--surface-1)',
-    borderRadius: '6px',
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--rule-1)' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--rule-2)' },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'var(--accent)',
-        borderWidth: '1px',
-    },
-    '& .MuiSelect-select': { paddingTop: 6, paddingBottom: 6 },
-};
+import { SyncOutlined, SyncAltOutlined } from '@mui/icons-material';
+import { IconButton, Tooltip } from '@mui/material';
+import PairSelect from '../ui/PairSelect.jsx';
 
 const SyncProfileRow = ({
     subDir,
@@ -46,12 +20,16 @@ const SyncProfileRow = ({
     const userId = selection?.userId || '';
     const ready = Boolean(charId && userId);
 
-    const sortedChars = useMemo(
-        () => [...(subDir.availableCharFiles || [])].sort((a, b) => a.name.localeCompare(b.name)),
+    const charOptions = useMemo(
+        () => [...(subDir.availableCharFiles || [])]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((c) => ({ value: c.charId, primary: c.name, secondary: c.charId })),
         [subDir.availableCharFiles],
     );
-    const sortedUsers = useMemo(
-        () => [...(subDir.availableUserFiles || [])].sort((a, b) => a.userId.localeCompare(b.userId)),
+    const userOptions = useMemo(
+        () => [...(subDir.availableUserFiles || [])]
+            .sort((a, b) => a.userId.localeCompare(b.userId))
+            .map((u) => ({ value: u.userId, primary: u.name || u.userId, secondary: u.name ? u.userId : undefined })),
         [subDir.availableUserFiles],
     );
 
@@ -64,73 +42,37 @@ const SyncProfileRow = ({
             onFocus={onFocus}
             className={[
                 'grid items-center gap-3 px-4 h-12',
-                'grid-cols-[20px_minmax(140px,1fr)_minmax(180px,1.4fr)_20px_minmax(180px,1.4fr)_72px_36px]',
+                'grid-cols-[minmax(140px,1fr)_minmax(420px,2.4fr)_72px_36px]',
                 'border-b border-rule-1 last:border-b-0',
                 'transition-colors duration-fast ease-out-quart outline-hidden',
                 isFocused ? 'bg-surface-2 shadow-rail-accent' : 'hover:bg-surface-2',
             ].join(' ')}
             data-profile={subDir.profile}
         >
-            <div className="flex items-center justify-center">
-                <StatusDot state={status} label={ready ? 'Pair selected' : 'No pair'} />
-            </div>
-
             <div className="min-w-0">
                 <div className="text-body text-ink-1 truncate font-mono tabular" title={subDir.profile}>
                     {profileName}
                 </div>
                 <div className="text-micro text-ink-3 tabular">
-                    {sortedChars.length} char · {sortedUsers.length} user
+                    {charOptions.length} char · {userOptions.length} user
                 </div>
             </div>
 
-            <Select
-                size="small"
-                value={charId}
-                onChange={(e) => onSelectionChange(subDir.profile, 'charId', e.target.value)}
-                displayEmpty
-                inputProps={{ 'aria-label': `Character file for ${profileName}` }}
-                sx={selectSx}
-                fullWidth
-            >
-                <MenuItem value="">
-                    <span className="text-ink-3">Select character file…</span>
-                </MenuItem>
-                {sortedChars.map((c) => (
-                    <MenuItem key={c.charId} value={c.charId}>
-                        <span className="font-mono text-body text-ink-1">{c.name}</span>
-                        <span className="ml-2 font-mono text-meta text-ink-3 tabular">{c.charId}</span>
-                    </MenuItem>
-                ))}
-            </Select>
-
-            <div className="flex items-center justify-center" aria-hidden="true">
-                <ArrowForwardOutlined
-                    sx={{
-                        fontSize: 16,
-                        color: ready ? 'var(--accent)' : 'var(--ink-4)',
-                    }}
-                />
-            </div>
-
-            <Select
-                size="small"
-                value={userId}
-                onChange={(e) => onSelectionChange(subDir.profile, 'userId', e.target.value)}
-                displayEmpty
-                inputProps={{ 'aria-label': `User file for ${profileName}` }}
-                sx={selectSx}
-                fullWidth
-            >
-                <MenuItem value="">
-                    <span className="text-ink-3">Select user file…</span>
-                </MenuItem>
-                {sortedUsers.map((u) => (
-                    <MenuItem key={u.userId} value={u.userId}>
-                        <span className="font-mono text-body text-ink-1 tabular">{u.userId}</span>
-                    </MenuItem>
-                ))}
-            </Select>
+            <PairSelect
+                state={status}
+                statusLabel={ready ? 'Pair selected' : 'No pair'}
+                leftValue={charId}
+                leftOptions={charOptions}
+                onLeftChange={(v) => onSelectionChange(subDir.profile, 'charId', v)}
+                leftLabel={`Character file for ${profileName}`}
+                leftPlaceholder="Select character file…"
+                rightValue={userId}
+                rightOptions={userOptions}
+                onRightChange={(v) => onSelectionChange(subDir.profile, 'userId', v)}
+                rightLabel={`User file for ${profileName}`}
+                rightPlaceholder="Select user file…"
+                arrowActive={ready}
+            />
 
             <div className="flex items-center justify-end">
                 <Tooltip title={ready ? 'Sync this profile' : 'Select a character and user file first'}>

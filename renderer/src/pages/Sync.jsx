@@ -359,13 +359,10 @@ const Sync = ({
                     {/* Column header. */}
                     <div
                         role="row"
-                        className="hidden sm:grid grid-cols-[20px_minmax(140px,1fr)_minmax(180px,1.4fr)_20px_minmax(180px,1.4fr)_72px_36px] gap-3 px-4 py-2 text-meta text-ink-3 border-b border-rule-1 bg-surface-2"
+                        className="hidden sm:grid grid-cols-[minmax(140px,1fr)_minmax(420px,2.4fr)_72px_36px] gap-3 px-4 py-2 text-meta text-ink-3 border-b border-rule-1 bg-surface-2"
                     >
-                        <div role="columnheader" aria-label="Pair status" />
                         <div role="columnheader">Profile</div>
-                        <div role="columnheader">Character file</div>
-                        <div role="columnheader" aria-hidden="true" />
-                        <div role="columnheader">User file</div>
+                        <div role="columnheader">Character file → User file</div>
                         <div role="columnheader" className="text-right">Action</div>
                         <div role="columnheader" aria-label="Sync all" />
                     </div>
