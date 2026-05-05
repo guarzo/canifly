@@ -71,10 +71,19 @@ const SkillPlans = ({ characters = [], skillPlans = {}, conversions = {} }) => {
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
-    const handleCopy = (planName, newPlanName) => execute(
-        () => copySkillPlan(planName, newPlanName),
-        { successMessage: 'Skill plan copied' },
-    );
+    const handleCopy = (planName) => {
+        const existing = new Set(Object.keys(skillPlans));
+        let target = `${planName} (copy)`;
+        let n = 2;
+        while (existing.has(target)) {
+            target = `${planName} (copy ${n})`;
+            n += 1;
+        }
+        return execute(
+            () => copySkillPlan(planName, target),
+            { successMessage: `Copied to "${target}"` },
+        );
+    };
     const handleDelete = (planName) => execute(
         () => deleteSkillPlan(planName),
         { successMessage: 'Skill plan deleted' },

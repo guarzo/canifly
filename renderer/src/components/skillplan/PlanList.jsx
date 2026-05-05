@@ -41,7 +41,6 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                 ];
                 return {
                     name: sp.Name,
-                    skills: sp.Skills,
                     qualified: qualified.length,
                     pending: pending.length,
                     missing: missing.length,
@@ -121,7 +120,7 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
                                     <IconButton
                                         size="small"
                                         aria-label={`Copy ${p.name}`}
-                                        onClick={() => onCopy(p.name, p.skills)}
+                                        onClick={() => onCopy(p.name)}
                                         className="h-7! w-7! rounded-md! text-ink-3! hover:bg-surface-3! hover:text-ink-1!"
                                     >
                                         <ContentCopyOutlined sx={{ fontSize: 16 }} />
