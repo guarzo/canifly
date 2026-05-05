@@ -5,7 +5,6 @@
 // data, just rotated.
 
 import { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import EveTypeIcon from '../ui/EveTypeIcon.jsx';
 import ProgressRail from '../ui/ProgressRail.jsx';
 import { computePlanReadiness } from '../../hooks/usePlanReadiness.js';
@@ -69,13 +68,6 @@ const PlanTimeline = ({ characters, skillPlans, conversions, filter }) => {
             })}
         </div>
     );
-};
-
-PlanTimeline.propTypes = {
-    characters: PropTypes.array.isRequired,
-    skillPlans: PropTypes.object.isRequired,
-    conversions: PropTypes.object.isRequired,
-    filter: PropTypes.string.isRequired,
 };
 
 export default PlanTimeline;

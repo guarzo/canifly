@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * SkeletonLoader — calm placeholders. No gradient sweep, no shimmer.
  * Pulses opacity gently; reduced-motion users see a static block.
@@ -20,11 +18,6 @@ const SkeletonLoader = ({ variant = 'text', className = '' }) => (
         className={`bg-surface-2 rounded-sm animate-skeleton-pulse ${VARIANTS[variant] || VARIANTS.text} ${className}`}
     />
 );
-
-SkeletonLoader.propTypes = {
-    variant: PropTypes.oneOf(Object.keys(VARIANTS)),
-    className: PropTypes.string,
-};
 
 // Skeleton matched to the new CharacterOverview row geometry.
 // Same height (40px) and column template so paint-to-data swap doesn't reflow.

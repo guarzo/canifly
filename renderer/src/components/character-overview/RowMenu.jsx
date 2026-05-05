@@ -2,7 +2,6 @@
 //
 // Per-row kebab menu — currently just "Remove character".
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { IconButton, Menu, MenuItem } from '@mui/material';
 import { DeleteOutlined as DeleteOutline, MoreVert as MoreVertIcon } from '@mui/icons-material';
 
@@ -31,11 +30,6 @@ const RowMenu = ({ character, onRemove }) => {
             </Menu>
         </>
     );
-};
-
-RowMenu.propTypes = {
-    character: PropTypes.object.isRequired,
-    onRemove: PropTypes.func.isRequired,
 };
 
 export default RowMenu;

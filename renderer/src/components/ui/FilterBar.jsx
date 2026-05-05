@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { Search as SearchIcon } from '@mui/icons-material';
 import Kbd from './Kbd.jsx';
 
@@ -47,15 +46,5 @@ const FilterBar = ({
         ) : null}
     </div>
 );
-
-FilterBar.propTypes = {
-    inputRef: PropTypes.shape({ current: PropTypes.any }),
-    value: PropTypes.string.isRequired,
-    onChange: PropTypes.func.isRequired,
-    placeholder: PropTypes.string.isRequired,
-    ariaLabel: PropTypes.string,
-    count: PropTypes.node,
-    className: PropTypes.string,
-};
 
 export default FilterBar;

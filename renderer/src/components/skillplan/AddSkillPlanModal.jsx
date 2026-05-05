@@ -2,7 +2,6 @@
 // rule hairlines, accent button. No glass, gradient, or motion.
 
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { Dialog } from '@mui/material';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { createSkillPlan } from '../../api/skillPlansApi';
@@ -84,10 +83,6 @@ const AddSkillPlanModal = ({ onClose }) => {
             </form>
         </Dialog>
     );
-};
-
-AddSkillPlanModal.propTypes = {
-    onClose: PropTypes.func.isRequired,
 };
 
 export default AddSkillPlanModal;

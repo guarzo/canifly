@@ -1,7 +1,6 @@
 // src/components/common/HeaderUserMenu.jsx
 //
 // Right-hand cluster of the Header — Refresh, Logout, and Close Window.
-import PropTypes from 'prop-types';
 import { Box, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import {
     LogoutOutlined,
@@ -57,13 +56,5 @@ const HeaderUserMenu = ({ isAuthenticated, isRefreshing, onRefresh, onLogout, on
         </Tooltip>
     </Box>
 );
-
-HeaderUserMenu.propTypes = {
-    isAuthenticated: PropTypes.bool.isRequired,
-    isRefreshing: PropTypes.bool.isRequired,
-    onRefresh: PropTypes.func.isRequired,
-    onLogout: PropTypes.func.isRequired,
-    onClose: PropTypes.func.isRequired,
-};
 
 export default HeaderUserMenu;

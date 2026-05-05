@@ -2,7 +2,6 @@
 // short copy, one primary action, no hero, no gradients.
 
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { Dialog, DialogContent } from '@mui/material';
 import { saveEVECredentials } from '../../api/configApi';
 
@@ -130,11 +129,6 @@ const FirstRunDialog = ({ open, onComplete }) => {
     );
 };
 
-FirstRunDialog.propTypes = {
-    open: PropTypes.bool.isRequired,
-    onComplete: PropTypes.func.isRequired,
-};
-
 const Field = ({ label, value, onChange, type = 'text', disabled, autoFocus }) => (
     <label className="block">
         <span className="block text-meta text-ink-3 mb-1">{label}</span>
@@ -148,14 +142,5 @@ const Field = ({ label, value, onChange, type = 'text', disabled, autoFocus }) =
         />
     </label>
 );
-
-Field.propTypes = {
-    label: PropTypes.string.isRequired,
-    value: PropTypes.string.isRequired,
-    onChange: PropTypes.func.isRequired,
-    type: PropTypes.string,
-    disabled: PropTypes.bool,
-    autoFocus: PropTypes.bool,
-};
 
 export default FirstRunDialog;

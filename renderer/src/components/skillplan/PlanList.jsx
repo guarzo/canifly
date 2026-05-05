@@ -2,7 +2,6 @@
 // Used as the "By plan" view; complements the matrix.
 
 import { useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
 import {
     ContentCopyOutlined,
     DeleteOutlined as DeleteOutline,
@@ -188,15 +187,6 @@ const PlanList = ({ skillPlans, characters, conversions, filter, onCopy, onDelet
             })}
         </div>
     );
-};
-
-PlanList.propTypes = {
-    skillPlans: PropTypes.object.isRequired,
-    characters: PropTypes.array.isRequired,
-    conversions: PropTypes.object.isRequired,
-    filter: PropTypes.string.isRequired,
-    onCopy: PropTypes.func.isRequired,
-    onDelete: PropTypes.func.isRequired,
 };
 
 export default PlanList;

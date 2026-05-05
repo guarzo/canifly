@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * Connector — a single hairline SVG path between two points. The signature
  * informational primitive of the redesign. Callers compute the `from` and
@@ -56,24 +54,6 @@ const Connector = ({
             ) : null}
         </svg>
     );
-};
-
-const point = PropTypes.shape({
-    x: PropTypes.number.isRequired,
-    y: PropTypes.number.isRequired,
-});
-
-Connector.propTypes = {
-    from: point.isRequired,
-    to: point.isRequired,
-    color: PropTypes.string,
-    strokeWidth: PropTypes.number,
-    active: PropTypes.bool,
-    withArrow: PropTypes.bool,
-    ariaLabel: PropTypes.string,
-    width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    className: PropTypes.string,
 };
 
 export default Connector;

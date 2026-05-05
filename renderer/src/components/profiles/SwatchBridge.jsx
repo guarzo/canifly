@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 const SwatchBridge = ({ containerRef, pairs, width, height, className = '' }) => {
     if (!pairs || pairs.length === 0) {
         return (
@@ -45,19 +43,6 @@ const SwatchBridge = ({ containerRef, pairs, width, height, className = '' }) =>
             })}
         </svg>
     );
-};
-
-SwatchBridge.propTypes = {
-    containerRef: PropTypes.shape({ current: PropTypes.any }).isRequired,
-    pairs: PropTypes.arrayOf(PropTypes.shape({
-        key: PropTypes.string.isRequired,
-        color: PropTypes.string,
-        fromRect: PropTypes.object.isRequired,
-        toRect: PropTypes.object.isRequired,
-    })).isRequired,
-    width: PropTypes.number.isRequired,
-    height: PropTypes.number.isRequired,
-    className: PropTypes.string,
 };
 
 export default SwatchBridge;

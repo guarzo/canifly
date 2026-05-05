@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * LoadingScreen — calm centered placeholder.
  * No glow, no spinning logo, no gradient. A small pulsing dot is enough
@@ -21,9 +19,5 @@ const LoadingScreen = ({ message = 'Loading…' }) => (
         </div>
     </div>
 );
-
-LoadingScreen.propTypes = {
-    message: PropTypes.string,
-};
 
 export default LoadingScreen;

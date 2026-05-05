@@ -7,7 +7,6 @@
 // redirects land in the right mode).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -285,16 +284,6 @@ const Profiles = ({
             {confirmDialog}
         </PageShell>
     );
-};
-
-Profiles.propTypes = {
-    subDirs: PropTypes.array,
-    associations: PropTypes.array,
-    settingsData: PropTypes.array,
-    userSelections: PropTypes.object,
-    currentSettingsDir: PropTypes.string,
-    isDefaultDir: PropTypes.bool,
-    lastBackupDir: PropTypes.string,
 };
 
 export default Profiles;

@@ -1,7 +1,6 @@
 // src/components/character-overview/CharacterOverviewFilter.jsx
 //
 // Filter input bar with the slash-key hint and match count.
-import PropTypes from 'prop-types';
 import { Search as SearchIcon } from '@mui/icons-material';
 import Kbd from '../ui/Kbd.jsx';
 
@@ -35,13 +34,5 @@ const CharacterOverviewFilter = ({ filter, onFilterChange, onClear, matchCount, 
         </span>
     </div>
 );
-
-CharacterOverviewFilter.propTypes = {
-    filter: PropTypes.string.isRequired,
-    onFilterChange: PropTypes.func.isRequired,
-    onClear: PropTypes.func.isRequired,
-    matchCount: PropTypes.number.isRequired,
-    filterRef: PropTypes.object,
-};
 
 export default CharacterOverviewFilter;

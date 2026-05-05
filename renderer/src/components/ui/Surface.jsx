@@ -1,6 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-
 const TIER_BG = {
     0: 'bg-surface-0',
     1: 'bg-surface-1',
@@ -34,14 +32,5 @@ const Surface = React.forwardRef(function Surface(
         </Tag>
     );
 });
-
-Surface.propTypes = {
-    tier: PropTypes.oneOf([0, 1, 2, 3]),
-    bordered: PropTypes.bool,
-    radius: PropTypes.oneOf(['none', 'sm', 'md', 'lg']),
-    as: PropTypes.elementType,
-    className: PropTypes.string,
-    children: PropTypes.node,
-};
 
 export default Surface;

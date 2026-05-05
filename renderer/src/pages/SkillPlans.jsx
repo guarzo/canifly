@@ -1,6 +1,5 @@
 // renderer/src/pages/SkillPlans.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import {
     GridOnOutlined,
     ListAltOutlined,
@@ -159,12 +158,6 @@ const SkillPlans = ({ characters = [], skillPlans = {}, conversions = {} }) => {
             </div>
         </PageShell>
     );
-};
-
-SkillPlans.propTypes = {
-    characters: PropTypes.array,
-    skillPlans: PropTypes.object,
-    conversions: PropTypes.object,
 };
 
 export default SkillPlans;

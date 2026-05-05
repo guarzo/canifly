@@ -4,7 +4,6 @@
 // derivations, action handlers, and the keyboard-shortcut handler all
 // live in `useCharacterOverview`. Visual sections live in
 // renderer/src/components/character-overview/*.
-import PropTypes from 'prop-types';
 import Subheader from '../components/ui/Subheader.jsx';
 import Kbd from '../components/ui/Kbd.jsx';
 import { overviewInstructions } from '../utils/instructions.jsx';
@@ -134,11 +133,6 @@ const CharacterOverview = ({ roles = [], skillConversions = {} }) => {
             </div>
         </div>
     );
-};
-
-CharacterOverview.propTypes = {
-    roles: PropTypes.array,
-    skillConversions: PropTypes.object,
 };
 
 export default CharacterOverview;

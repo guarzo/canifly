@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import {
     Dialog,
     DialogContent,
@@ -159,13 +158,6 @@ const CharacterDetailModal = ({ open, onClose, character, skillConversions }) =>
             </footer>
         </Dialog>
     );
-};
-
-CharacterDetailModal.propTypes = {
-    open: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    character: PropTypes.object.isRequired,
-    skillConversions: PropTypes.object.isRequired,
 };
 
 export default CharacterDetailModal;

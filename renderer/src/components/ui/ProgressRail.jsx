@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 const STATE_VAR = {
     ready: 'var(--status-ready)',
     training: 'var(--status-training)',
@@ -41,18 +39,6 @@ const ProgressRail = ({ segments, ariaLabel, height = 6, className = '' }) => {
             </div>
         </div>
     );
-};
-
-ProgressRail.propTypes = {
-    segments: PropTypes.arrayOf(PropTypes.shape({
-        key: PropTypes.string.isRequired,
-        weight: PropTypes.number.isRequired,
-        state: PropTypes.oneOf(['ready', 'training', 'queued', 'idle', 'error']).isRequired,
-        label: PropTypes.string,
-    })).isRequired,
-    ariaLabel: PropTypes.string.isRequired,
-    height: PropTypes.number,
-    className: PropTypes.string,
 };
 
 export default ProgressRail;

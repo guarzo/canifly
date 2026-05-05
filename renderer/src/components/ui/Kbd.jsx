@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 /**
  * Renders a keyboard shortcut hint inline with action labels.
  * Uses surface-2 + rule-1 + mono micro type. No animation, no glow.
@@ -17,10 +15,5 @@ const Kbd = ({ children, className = '' }) => (
         {children}
     </kbd>
 );
-
-Kbd.propTypes = {
-    children: PropTypes.node.isRequired,
-    className: PropTypes.string,
-};
 
 export default Kbd;
