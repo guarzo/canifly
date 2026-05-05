@@ -1,15 +1,17 @@
 // MapCharacterCard.jsx — redesigned per DESIGN.md.
 // One dense draggable row representing an unassociated character file.
 
+import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { formatDate } from '../../utils/formatter.jsx';
 import MtimeSwatch from './MtimeSwatch.jsx';
 
-const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
+const CharacterCard = forwardRef(function CharacterCard({ char, handleDragStart, mtimeToColor }, ref) {
     const swatch = mtimeToColor[char.mtime];
 
     return (
         <div
+            ref={ref}
             draggable
             onDragStart={(e) => handleDragStart(e, char.charId)}
             role="listitem"
@@ -35,7 +37,7 @@ const CharacterCard = ({ char, handleDragStart, mtimeToColor }) => {
             </span>
         </div>
     );
-};
+});
 
 CharacterCard.propTypes = {
     char: PropTypes.shape({

@@ -1,10 +1,11 @@
 // renderer/src/components/profiles/MappingView.jsx
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 
 import MapAccountCard from './MapAccountCard.jsx';
 import MapCharacterCard from './MapCharacterCard.jsx';
+import SwatchBridge from './SwatchBridge.jsx';
 import { useMappingDerivations } from '../../hooks/useMappingDerivations.js';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog.jsx';
 import { useAppData } from '../../hooks/useAppData';
@@ -33,6 +34,76 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
 
     const { accounts, availableCharacters, mtimeToColor } =
         useMappingDerivations(subDirs, associations);
+
+    // Bridge refs
+    const containerRef = useRef(null);
+    const accountRefsMap = useRef(new Map());
+    const charRefsMap = useRef(new Map());
+    const [pairs, setPairs] = useState([]);
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        if (typeof ResizeObserver === 'undefined') return;
+
+        let rafId = null;
+        const recompute = () => {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => {
+                rafId = null;
+                const container = containerRef.current;
+                if (!container) return;
+                const cRect = container.getBoundingClientRect();
+                setContainerSize({ width: cRect.width, height: cRect.height });
+
+                // Only draw bridges when columns are side-by-side (lg breakpoint)
+                if (window.innerWidth < 1024) {
+                    setPairs([]);
+                    return;
+                }
+
+                const nextPairs = [];
+                for (const char of availableCharacters) {
+                    const charRef = charRefsMap.current.get(char.charId);
+                    if (!charRef) continue;
+                    const toRect = charRef.getBoundingClientRect();
+
+                    // Find first account with matching mtime
+                    const matchedAccount = accounts.find((a) => a.mtime && a.mtime === char.mtime);
+                    if (!matchedAccount) continue;
+
+                    const accountRef = accountRefsMap.current.get(matchedAccount.userId);
+                    if (!accountRef) continue;
+                    const fromRect = accountRef.getBoundingClientRect();
+
+                    // Skip if columns are stacked (fromRect.right >= toRect.left)
+                    if (fromRect.right >= toRect.left) continue;
+
+                    nextPairs.push({
+                        key: `${matchedAccount.userId}-${char.charId}`,
+                        color: mtimeToColor[char.mtime],
+                        fromRect,
+                        toRect,
+                    });
+                }
+                setPairs(nextPairs);
+            });
+        };
+
+        recompute();
+
+        const ro = new ResizeObserver(recompute);
+        if (containerRef.current) ro.observe(containerRef.current);
+
+        window.addEventListener('resize', recompute);
+        window.addEventListener('scroll', recompute, true);
+
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', recompute);
+            window.removeEventListener('scroll', recompute, true);
+            if (rafId) cancelAnimationFrame(rafId);
+        };
+    }, [accounts, availableCharacters, mtimeToColor]);
 
     const handleDragStart = (event, charId) => {
         event.dataTransfer.setData('text/plain', charId);
@@ -118,7 +189,17 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
 
     return (
         <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div
+                ref={containerRef}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                style={{ position: 'relative' }}
+            >
+                <SwatchBridge
+                    containerRef={containerRef}
+                    pairs={pairs}
+                    width={containerSize.width}
+                    height={containerSize.height}
+                />
                 <section aria-label="User files">
                     <div className="mb-2 flex items-baseline justify-between">
                         <h2 className="text-h3 text-ink-1 uppercase tracking-wide">User files</h2>
@@ -135,6 +216,10 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
                             {filteredAccounts.map((mapping) => (
                                 <MapAccountCard
                                     key={`${mapping.userId}-${mapping.mtime}`}
+                                    ref={(el) => {
+                                        if (el) accountRefsMap.current.set(mapping.userId, el);
+                                        else accountRefsMap.current.delete(mapping.userId);
+                                    }}
                                     mapping={mapping}
                                     associations={associations}
                                     handleUnassociate={handleUnassociate}
@@ -165,6 +250,10 @@ const MappingView = ({ subDirs, associations: initialAssociations, filter, view,
                                 {filteredCharacters.map((char) => (
                                     <MapCharacterCard
                                         key={`${char.charId}-${char.mtime}`}
+                                        ref={(el) => {
+                                            if (el) charRefsMap.current.set(char.charId, el);
+                                            else charRefsMap.current.delete(char.charId);
+                                        }}
                                         char={char}
                                         handleDragStart={handleDragStart}
                                         mtimeToColor={mtimeToColor}
